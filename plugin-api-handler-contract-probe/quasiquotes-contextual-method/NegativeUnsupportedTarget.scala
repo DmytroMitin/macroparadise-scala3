@@ -1,0 +1,6 @@
+package quasiquotes.macroparadisecontextual.negative
+
+import quasiquotes.macroparadisecontextual.PositionedContextualApply
+
+@PositionedContextualApply
+final class UnsupportedClassTarget

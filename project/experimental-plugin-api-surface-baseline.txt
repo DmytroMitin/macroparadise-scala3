@@ -1,0 +1,878 @@
+format-version=1
+scala-compiler=3.8.5-RC1-bin-20260405-9478256-NIGHTLY
+sbt=1.12.8
+jdk-feature=25
+project-version=0.1.0-SNAPSHOT
+artifact-role=exact-build-experimental-precompiled-handler-contract-and-fixtures
+CLASS|paradise3/MetadataInitializationProbe.class|INTEGRATION_FIXTURE_SUPPORT|public final class paradise3.MetadataInitializationProbe
+CLASS|paradise3/PreservedRuntimeMarker.class|INTEGRATION_FIXTURE_MARKER|public interface paradise3.PreservedRuntimeMarker extends java.lang.annotation.Annotation
+CLASS|paradise3/api/AnnotatedClassView$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$ConstructorClause$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$ConstructorClause$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$ConstructorClause.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$ConstructorClause implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$ConstructorParameter$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$ConstructorParameter.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$ConstructorParameter implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$DefinitionKind$$anon$1 extends paradise3.api.AnnotatedClassView$DefinitionKind implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/AnnotatedClassView$DefinitionKind$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$DefinitionKind$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$DefinitionKind.class|HANDLER_CONTRACT|public abstract class paradise3.api.AnnotatedClassView$DefinitionKind implements scala.reflect.Enum
+CLASS|paradise3/api/AnnotatedClassView$Modifiers$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$Modifiers$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$Modifiers.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$Modifiers implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$TypeParameter$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$TypeParameter$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$TypeParameter.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$TypeParameter implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$Variance$$anon$2 extends paradise3.api.AnnotatedClassView$Variance implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/AnnotatedClassView$Variance$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView$Variance$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassView$Variance.class|HANDLER_CONTRACT|public abstract class paradise3.api.AnnotatedClassView$Variance implements scala.reflect.Enum
+CLASS|paradise3/api/AnnotatedClassView.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassView implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationApplication$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationApplication$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationApplication$RawConstructor$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationApplication$RawConstructor$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationApplication$RawConstructor.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationApplication$RawConstructor implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationApplication.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationApplication implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationTermArgument$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/AnnotationTermArgument$Named$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Named$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationTermArgument$Named.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Named extends paradise3.api.AnnotationTermArgument
+CLASS|paradise3/api/AnnotationTermArgument$Positional$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Positional$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotationTermArgument$Positional.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Positional extends paradise3.api.AnnotationTermArgument
+CLASS|paradise3/api/AnnotationTermArgument.class|HANDLER_CONTRACT|public abstract class paradise3.api.AnnotationTermArgument implements scala.reflect.Enum
+CLASS|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionCompositionPolicy$$anon$1 extends paradise3.api.ExpansionCompositionPolicy implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/ExpansionCompositionPolicy$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionCompositionPolicy$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionCompositionPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionCompositionPolicy implements scala.reflect.Enum
+CLASS|paradise3/api/ExpansionDiagnostic$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionDiagnostic$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionDiagnostic.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionDiagnostic implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionInput$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOutcome$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$$anon$3 extends paradise3.api.ExpansionOutcome implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/ExpansionOutcome$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionOutcome$Expanded$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Expanded$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOutcome$Expanded.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Expanded extends paradise3.api.ExpansionOutcome
+CLASS|paradise3/api/ExpansionOutcome$Rejected$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Rejected$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOutcome$Rejected.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Rejected extends paradise3.api.ExpansionOutcome
+CLASS|paradise3/api/ExpansionOutcome$Structured$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOutcome$Structured.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured extends paradise3.api.ExpansionOutcome
+CLASS|paradise3/api/ExpansionOutcome.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionOutcome implements scala.reflect.Enum
+CLASS|paradise3/api/ExpansionTargetProfile$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetProfile$$anon$2 extends paradise3.api.ExpansionTargetProfile implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/ExpansionTargetProfile$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetProfile$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionTargetProfile.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionTargetProfile implements scala.reflect.Enum
+CLASS|paradise3/api/ParadiseAnnotationExpander.class|HANDLER_CONTRACT|public interface paradise3.api.ParadiseAnnotationExpander
+CLASS|paradise3/api/StructuredExpansionOutput$.class|HANDLER_CONTRACT|public final class paradise3.api.StructuredExpansionOutput$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/StructuredExpansionOutput.class|HANDLER_CONTRACT|public final class paradise3.api.StructuredExpansionOutput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/expander.class|METADATA_CARRIER|public interface paradise3.api.expander extends java.lang.annotation.Annotation
+CLASS|paradise3/api/helpers/ExpansionHelpers$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$ implements java.io.Serializable
+CLASS|paradise3/api/helpers/ExpansionHelpers.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers
+CLASS|paradise3/companionInvocationLinkageError.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationLinkageError extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/companionInvocationNotApplicable.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationNotApplicable extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/companionInvocationNullOutcome.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationNullOutcome extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/companionInvocationRejected.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationRejected extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/companionInvocationThrows.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationThrows extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/companionInvocationWrongFallback.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationWrongFallback extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalCompanionDebug.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalCompanionDebug extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalDebug.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalDebug extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalLabel.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalLabel extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalMarker.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalMarker extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalQuasiquotesTerm.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalQuasiquotesTerm extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalRestrictedTraitApply.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalRestrictedTraitApply extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalSiblingDebug.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalSiblingDebug extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/externalTypedLabel.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.externalTypedLabel<A> extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationEmptyRejected.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationEmptyRejected extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationLinkageError.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationLinkageError extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationNotApplicable.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationNotApplicable extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationNullOutcome.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationNullOutcome extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationNullRejectedDiagnostics.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationNullRejectedDiagnostics extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationNullRejectedFallback.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationNullRejectedFallback extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationThrows.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationThrows extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/invocationWrongFallback.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.invocationWrongFallback extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/malformedConflictingAdditional.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedConflictingAdditional extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/malformedDuplicatePrimary.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedDuplicatePrimary extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/malformedEmptyOutput.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedEmptyOutput extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/malformedLateCompanion.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedLateCompanion extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/malformedMissingPrimary.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedMissingPrimary extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/metadataEmpty.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.metadataEmpty extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/metadataMissing.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.metadataMissing extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullAdditionalElement.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullAdditionalElement extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullAdditionalList.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullAdditionalList extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullCompanion.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullCompanion extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullCompanionOption.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullCompanionOption extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullOutput.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullOutput extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredNullPrimary.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullPrimary extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredTopLevelConflict.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredTopLevelConflict extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/structuredUnknownAdditional.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredUnknownAdditional extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|qualifiedlookalike/gen.class|INTEGRATION_FIXTURE_MARKER|public final class qualifiedlookalike.gen extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|qualifiedone/audit.class|INTEGRATION_FIXTURE_MARKER|public final class qualifiedone.audit extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|qualifiedtwo/audit.class|INTEGRATION_FIXTURE_MARKER|public final class qualifiedtwo.audit extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|qualifiedunknown/audit.class|INTEGRATION_FIXTURE_MARKER|public final class qualifiedunknown.audit extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|qualifiedwrong/audit.class|INTEGRATION_FIXTURE_MARKER|public final class qualifiedwrong.audit extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|ConstructorClause|0|public|static,final|Lparadise3/api/AnnotatedClassView$ConstructorClause$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|ConstructorParameter|0|public|static,final|Lparadise3/api/AnnotatedClassView$ConstructorParameter$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|DefinitionKind|0|public|static,final|Lparadise3/api/AnnotatedClassView$DefinitionKind$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|Modifiers|0|public|static,final|Lparadise3/api/AnnotatedClassView$Modifiers$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|TypeParameter|0|public|static,final|Lparadise3/api/AnnotatedClassView$TypeParameter$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|FIELD|Variance|0|public|static,final|Lparadise3/api/AnnotatedClassView$Variance$;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|$lessinit$greater$default$7|0|public|-|()Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|apply|1|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$DefinitionKind;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|decode|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassView;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$ConstructorClause$;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|METHOD|apply|0|public|-|(Lscala/collection/immutable/List;ZLdotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassView$ConstructorClause;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|CONSTRUCTOR|<init>|0|public|-|(Lscala/collection/immutable/List;ZLdotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|_1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|_2|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|_3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|apply|0|public|static|(Lscala/collection/immutable/List;ZLdotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|copy$default$1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|copy$default$2|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|copy$default$3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|copy|0|public|-|(Lscala/collection/immutable/List;ZLdotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|isContextual|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|parameters|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorClause.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassView$ConstructorClause;)Lparadise3/api/AnnotatedClassView$ConstructorClause;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$ConstructorParameter$;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;ZZZZLdotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassView$ConstructorParameter;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;ZZZZLdotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_3|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_6|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_7|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|_8|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;ZZZZLdotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$3|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$6|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$7|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy$default$8|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;ZZZZLdotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|hasDefault|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|isContextual|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|isVal|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|isVar|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|name|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|rawType|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|typePos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$ConstructorParameter.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassView$ConstructorParameter;)Lparadise3/api/AnnotatedClassView$ConstructorParameter;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$$anon$1.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|FIELD|Class|0|public|static,final|Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$DefinitionKind$;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|FIELD|Trait|0|public|static,final|Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/AnnotatedClassView$DefinitionKind;)I
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|METHOD|values|0|public|-|()[Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$DefinitionKind.class|METHOD|values|0|public|static|()[Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$Modifiers$;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|METHOD|apply|0|public|-|(ZZZZZ)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassView$Modifiers;)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|CONSTRUCTOR|<init>|0|public|-|(ZZZZZ)V
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|_1|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|_2|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|_3|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|_4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|_5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|apply|0|public|static|(ZZZZZ)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|constructorIsPrivate|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy$default$1|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy$default$2|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy$default$3|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy$default$4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy$default$5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|copy|0|public|-|(ZZZZZ)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|isAbstract|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|isCase|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|isFinal|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|isSealed|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Modifiers.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassView$Modifiers;)Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$TypeParameter$;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|$lessinit$greater$default$3|0|public|-|()Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|$lessinit$greater$default$4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|$lessinit$greater$default$5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|apply|1|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$Variance;ZZ)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassView$TypeParameter;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|CONSTRUCTOR|<init>|1|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$Variance;ZZ)V
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|$lessinit$greater$default$3|0|public|static|()Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|$lessinit$greater$default$4|0|public|static|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|$lessinit$greater$default$5|0|public|static|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|_3|0|public|-|()Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|_4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|_5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|apply|1|public|static|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$Variance;ZZ)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy$default$3|0|public|-|()Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy$default$4|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy$default$5|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|copy|1|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$Variance;ZZ)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|hasContextBounds|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|isOrdinaryUnbounded|0|public|-|()Z
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|name|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassView$TypeParameter;)Lparadise3/api/AnnotatedClassView$TypeParameter;
+MEMBER|paradise3/api/AnnotatedClassView$TypeParameter.class|METHOD|variance|0|public|-|()Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|FIELD|Contravariant|0|public|static,final|Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|FIELD|Covariant|0|public|static,final|Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|FIELD|Invariant|0|public|static,final|Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassView$Variance$;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/AnnotatedClassView$Variance;)I
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|METHOD|values|0|public|-|()[Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView$Variance.class|METHOD|values|0|public|static|()[Lparadise3/api/AnnotatedClassView$Variance;
+MEMBER|paradise3/api/AnnotatedClassView.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotatedClassView.class|CONSTRUCTOR|<init>|1|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$DefinitionKind;)V
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|$lessinit$greater$default$7|0|public|static|()Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_4|0|public|-|()Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_5|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_6|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|_7|0|public|-|()Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|apply|1|public|static|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$DefinitionKind;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|className|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|classPos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|constructorClauses|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|constructorPos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$4|0|public|-|()Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$5|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$6|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy$default$7|0|public|-|()Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|copy|1|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Lparadise3/api/AnnotatedClassView$Modifiers;Ldotty/tools/dotc/util/SrcPos;Ldotty/tools/dotc/util/SrcPos;Lparadise3/api/AnnotatedClassView$DefinitionKind;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|decode|0|public|static|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|definitionKind|0|public|-|()Lparadise3/api/AnnotatedClassView$DefinitionKind;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|modifiers|0|public|-|()Lparadise3/api/AnnotatedClassView$Modifiers;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|typeParameters|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotatedClassView.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassView;)Lparadise3/api/AnnotatedClassView;
+MEMBER|paradise3/api/AnnotationApplication$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotationApplication$;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|fromInput|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|rawCategory|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotationApplication;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotationApplication$RawConstructor$;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotationApplication$RawConstructor;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;)V
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|_2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|annotationName|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lscala/collection/immutable/List;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|copy$default$2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|typeArguments|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication$RawConstructor.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotationApplication$RawConstructor;)Lparadise3/api/AnnotationApplication$RawConstructor;
+MEMBER|paradise3/api/AnnotationApplication.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|_2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|_3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|_4|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|_5|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|annotationName|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy$default$2|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy$default$3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy$default$4|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy$default$5|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lscala/collection/immutable/List;Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|fromInput|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|rawCategory|0|public|static|(Ldotty/tools/dotc/ast/Trees$Tree;)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|rawTree|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|requireExactlyOneTypeArgument|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|requireSingleStringLiteralArgument|0|public|-|(Ljava/lang/String;)Lscala/util/Either;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|termArguments|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|typeArguments|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/AnnotationApplication.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotationApplication;)Lparadise3/api/AnnotationApplication;
+MEMBER|paradise3/api/AnnotationTermArgument$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotationTermArgument$;
+MEMBER|paradise3/api/AnnotationTermArgument$.class|FIELD|Named|0|public|static,final|Lparadise3/api/AnnotationTermArgument$Named$;
+MEMBER|paradise3/api/AnnotationTermArgument$.class|FIELD|Positional|0|public|static,final|Lparadise3/api/AnnotationTermArgument$Positional$;
+MEMBER|paradise3/api/AnnotationTermArgument$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/AnnotationTermArgument;
+MEMBER|paradise3/api/AnnotationTermArgument$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/AnnotationTermArgument$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/AnnotationTermArgument;)I
+MEMBER|paradise3/api/AnnotationTermArgument$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotationTermArgument$Named$;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotationTermArgument$Named;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|_3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|argumentPos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|copy$default$3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|name|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Named.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotationTermArgument$Named;)Lparadise3/api/AnnotationTermArgument$Named;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotationTermArgument$Positional$;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotationTermArgument$Positional;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|argumentPos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/AnnotationTermArgument$Positional.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotationTermArgument$Positional;)Lparadise3/api/AnnotationTermArgument$Positional;
+MEMBER|paradise3/api/AnnotationTermArgument.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/AnnotationTermArgument;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|valueTree|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$$anon$1.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionCompositionPolicy$;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|FIELD|SourceOrdered|0|public|static,final|Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|FIELD|StandaloneOnly|0|public|static,final|Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionCompositionPolicy;)I
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|METHOD|values|0|public|-|()[Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionCompositionPolicy.class|METHOD|values|0|public|static|()[Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionDiagnostic$;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionDiagnostic;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionDiagnostic.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|message|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionDiagnostic.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionDiagnostic;)Lparadise3/api/ExpansionDiagnostic;
+MEMBER|paradise3/api/ExpansionInput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionInput$;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|$lessinit$greater$default$5|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/Set;Lscala/Option;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionInput;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/Set;Lscala/Option;)V
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|$lessinit$greater$default$5|0|public|static|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|_3|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|_4|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|_5|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|annotatedClassView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|annotatedClass|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|annotationName|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/Set;Lscala/Option;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|className|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$3|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$4|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$5|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/Set;Lscala/Option;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|currentAnnotation|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|existingCompanion|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|topLevelNames|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionInput;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|Expanded|0|public|static,final|Lparadise3/api/ExpansionOutcome$Expanded$;
+MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOutcome$;
+MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|NotApplicable|0|public|static,final|Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|Rejected|0|public|static,final|Lparadise3/api/ExpansionOutcome$Rejected$;
+MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|Structured|0|public|static,final|Lparadise3/api/ExpansionOutcome$Structured$;
+MEMBER|paradise3/api/ExpansionOutcome$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/ExpansionOutcome$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionOutcome$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionOutcome;)I
+MEMBER|paradise3/api/ExpansionOutcome$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOutcome$Expanded$;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|METHOD|apply|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOutcome$Expanded;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|CONSTRUCTOR|<init>|0|public|-|(Lscala/collection/immutable/List;)V
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|_1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|apply|0|public|static|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|copy$default$1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|copy|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|trees|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Expanded.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOutcome$Expanded;)Lparadise3/api/ExpansionOutcome$Expanded;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOutcome$Rejected$;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|METHOD|apply|0|public|-|(Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOutcome$Rejected;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|CONSTRUCTOR|<init>|0|public|-|(Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$TypeDef;)V
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|_1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|apply|0|public|static|(Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|copy$default$1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|copy|0|public|-|(Lscala/collection/immutable/List;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|diagnostics|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|fallback|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Rejected.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOutcome$Rejected;)Lparadise3/api/ExpansionOutcome$Rejected;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOutcome$Structured$;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|METHOD|apply|0|public|-|(Lparadise3/api/StructuredExpansionOutput;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOutcome$Structured;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/StructuredExpansionOutput;)V
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|_1|0|public|-|()Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|apply|0|public|static|(Lparadise3/api/StructuredExpansionOutput;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|copy|0|public|-|(Lparadise3/api/StructuredExpansionOutput;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|output|0|public|-|()Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome$Structured.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOutcome$Structured;)Lparadise3/api/ExpansionOutcome$Structured;
+MEMBER|paradise3/api/ExpansionOutcome.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|CommonClassOnly|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionTargetProfile$;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|RestrictedGenericTraitApply|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionTargetProfile;)I
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|values|0|public|-|()[Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionTargetProfile.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|values|0|public|static|()[Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|annotationName|0|public|abstract|()Ljava/lang/String;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|compositionPolicy$|0|public|static|(Lparadise3/api/ParadiseAnnotationExpander;)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|compositionPolicy|0|public|default|()Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|consumesExistingCompanion$|0|public|static|(Lparadise3/api/ParadiseAnnotationExpander;)Z
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|consumesExistingCompanion|0|public|default|()Z
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|expand|0|public|abstract|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|targetProfile$|0|public|static|(Lparadise3/api/ParadiseAnnotationExpander;)Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|targetProfile|0|public|default|()Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/StructuredExpansionOutput$;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|unapply|0|public|-|(Lparadise3/api/StructuredExpansionOutput;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/StructuredExpansionOutput.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)V
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|_2|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|_3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|additionalTopLevelDefinitions|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|companion|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|copy$default$2|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|copy$default$3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|primary|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/StructuredExpansionOutput.class|METHOD|unapply|0|public|static|(Lparadise3/api/StructuredExpansionOutput;)Lparadise3/api/StructuredExpansionOutput;
+MEMBER|paradise3/api/expander.class|METHOD|value|0|public|abstract|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/ExpansionHelpers$;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodSiblingClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|expanded|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|rejected|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|rejected|1|public|-|(Lparadise3/api/ExpansionDiagnostic;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|stringReturningMethod|0|public|-|(Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/util/SourceFile;Ldotty/tools/dotc/core/Contexts$Context;)Ldotty/tools/dotc/ast/Trees$DefDef;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|structured$default$2|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|structured$default$3|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|structured|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|withAnnotatedClassView|0|public|-|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodSiblingClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|expanded|0|public|static|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|rejected|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|rejected|1|public|static|(Lparadise3/api/ExpansionDiagnostic;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|stringReturningMethod|0|public|static|(Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/util/SourceFile;Ldotty/tools/dotc/core/Contexts$Context;)Ldotty/tools/dotc/ast/Trees$DefDef;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured$default$2|0|public|static|()Lscala/Option;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured$default$3|0|public|static|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|withAnnotatedClassView|0|public|static|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+METADATA|paradise3/api/expander.class|retention=RUNTIME|targets=ANNOTATION_TYPE,TYPE|member=value|descriptor=()Ljava/lang/String;
+POLICY|forbidden-package-identity|plugin-api-thin-ownership-v1
+POLICY|forbidden-prefixes|demo/,dotty/,macroparadise/,quasiquotes/,scala/,scala3/,tasty/
+POLICY|standard-metadata|META-INF/MANIFEST.MF
+RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA
+RESOURCE|paradise3/api/AnnotatedClassView.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/AnnotationApplication.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/AnnotationTermArgument.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionCompositionPolicy.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionDiagnostic.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionInput.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionOutcome.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionTargetProfile.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ParadiseAnnotationExpander.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/StructuredExpansionOutput.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/helpers/ExpansionHelpers.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationLinkageError.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationNotApplicable.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationNullOutcome.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationRejected.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationThrows.tasty|SCALA_TASTY
+RESOURCE|paradise3/companionInvocationWrongFallback.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalCompanionDebug.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalDebug.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalLabel.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalMarker.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalQuasiquotesTerm.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalRestrictedTraitApply.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalSiblingDebug.tasty|SCALA_TASTY
+RESOURCE|paradise3/externalTypedLabel.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationEmptyRejected.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationLinkageError.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationNotApplicable.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationNullOutcome.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationNullRejectedDiagnostics.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationNullRejectedFallback.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationThrows.tasty|SCALA_TASTY
+RESOURCE|paradise3/invocationWrongFallback.tasty|SCALA_TASTY
+RESOURCE|paradise3/malformedConflictingAdditional.tasty|SCALA_TASTY
+RESOURCE|paradise3/malformedDuplicatePrimary.tasty|SCALA_TASTY
+RESOURCE|paradise3/malformedEmptyOutput.tasty|SCALA_TASTY
+RESOURCE|paradise3/malformedLateCompanion.tasty|SCALA_TASTY
+RESOURCE|paradise3/malformedMissingPrimary.tasty|SCALA_TASTY
+RESOURCE|paradise3/metadataEmpty.tasty|SCALA_TASTY
+RESOURCE|paradise3/metadataMissing.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullAdditionalElement.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullAdditionalList.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullCompanion.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullCompanionOption.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullOutput.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredNullPrimary.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredTopLevelConflict.tasty|SCALA_TASTY
+RESOURCE|paradise3/structuredUnknownAdditional.tasty|SCALA_TASTY
+RESOURCE|qualifiedlookalike/gen.tasty|SCALA_TASTY
+RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
+RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
+RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
+RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
+normalized-sha256=6194ab649847ed6ff42344c8eb054443f7ead655cfa50f1da9ca4e3aacb31a84

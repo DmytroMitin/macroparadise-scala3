@@ -1,0 +1,4 @@
+import paradise3.unrelatedMarker
+
+@unrelatedMarker
+final class UnrelatedStructuredMetadataUser

@@ -1,0 +1,6 @@
+package quasiquotes.macroparadisecontextual.negative
+
+import quasiquotes.macroparadisecontextual.MismatchedPositionedContextualApply
+
+@MismatchedPositionedContextualApply
+trait MismatchedBinding[A]
