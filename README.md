@@ -55,6 +55,16 @@ experimental handler contract, checks the normalized API surface, exercises
 independent consumers, verifies the external-handler starter, and confirms
 that publishing remains disabled.
 
+For an additional product-only isolation proof, run the same canonical gate in
+a disposable source copy with fresh dependency and build caches:
+
+```sh
+scripts/verify-public-product-fresh-copy.sh
+```
+
+This companion gate copies only tracked and task-owned untracked product files;
+it does not read a controller checkout or reuse repository build output.
+
 For a smaller ordinary development pass:
 
 ```sh
@@ -137,7 +147,7 @@ explained in the [Security policy](SECURITY.md).
 
 ## License and publication status
 
-No license has been selected or added to this repository. Do not infer a grant
-of rights from source availability alone. No plugin or handler-contract
-artifact is published remotely, and all build projects remain configured with
-publishing disabled.
+The source is licensed under the [Apache License 2.0](LICENSE). The plugin and
+handler-facing API remain experimental, compiler-version-specific, and without
+stability guarantees. No plugin or handler-contract artifact is published
+remotely, and all build projects remain configured with publishing disabled.

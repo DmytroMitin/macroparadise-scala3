@@ -58,6 +58,8 @@ object PublicProductBoundary {
   )
 
   private val PublicProjectFiles = Set(
+    "project/Apache2LicensePolicy.scala",
+    "project/Apache2LicensePolicySpec.scala",
     "project/BuildDependencyCoordinatePolicy.scala",
     "project/BuildDependencyCoordinatePolicySpec.scala",
     "project/ExperimentalHandlerContractArtifact.scala",

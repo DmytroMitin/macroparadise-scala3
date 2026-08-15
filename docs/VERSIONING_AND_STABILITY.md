@@ -22,6 +22,10 @@ metadata.
 The normalized handler-facing API inventory detects changes within the pinned
 build. It does not promise source, binary, or behavioral compatibility.
 
+The source is licensed under the [Apache License 2.0](../LICENSE). That license
+grant is separate from API maturity: the handler-facing API remains
+experimental, exact-compiler-specific, and without compatibility guarantees.
+
 ## Change expectations
 
 Until a versioning policy and first release are explicitly selected:
@@ -37,7 +41,6 @@ Until a versioning policy and first release are explicitly selected:
 
 These decisions must not be inferred from a passing source build:
 
-- selecting a repository license;
 - making source publicly visible;
 - choosing artifact coordinates and compiler crossing;
 - adopting semantic or early-semantic versioning;

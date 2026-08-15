@@ -3,6 +3,7 @@ ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
 ThisBuild / resolvers += Resolver.scalaNightlyRepository
 ThisBuild / publish / skip := true
 ThisBuild / organization := "io.github.dmytromitin"
+ThisBuild / licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / homepage := Some(url("https://github.com/DmytroMitin/macroparadise-scala3"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
@@ -43,6 +44,12 @@ lazy val verifyPublicProductTestsNonzero =
 lazy val verifyPublicDocumentationPolicy =
   taskKey[Unit]("Verify the compact public documentation allowlist, private-residue policy, and relative links")
 
+lazy val verifyApache2LicensePolicy =
+  taskKey[Unit]("Verify the complete Apache-2.0 text, public wording, and POM license metadata")
+
+lazy val verifyFreshPublicProductCopyScript =
+  taskKey[Unit]("Verify the product-owned fresh-copy isolation script without recursively running sbt")
+
 lazy val verifyPublicProductPublishingDisabled =
   taskKey[Unit]("Verify every public-product project remains unpublished")
 
@@ -81,6 +88,22 @@ verifyPublicDocumentationPolicy := {
   streams.value.log.info(
     s"public documentation policy verified: files=${result.checkedPaths.size} focusedCases=${PublicDocumentationPolicySpec.CaseCount}/${PublicDocumentationPolicySpec.CaseCount}"
   )
+}
+
+verifyApache2LicensePolicy := {
+  Apache2LicensePolicySpec.run()
+  val result = Apache2LicensePolicy.verify(baseDirectory.value)
+  require(result.errors.isEmpty, s"Apache-2.0 policy failed:\n${result.errors.mkString("\n")}")
+  streams.value.log.info(
+    s"Apache-2.0 source and metadata policy verified: digest=${result.licenseSha256} focusedCases=${Apache2LicensePolicySpec.CaseCount}/${Apache2LicensePolicySpec.CaseCount}"
+  )
+}
+
+verifyFreshPublicProductCopyScript := {
+  val script = baseDirectory.value / "scripts" / "test-verify-public-product-fresh-copy.sh"
+  val exit = scala.sys.process.Process(Seq(script.getAbsolutePath), baseDirectory.value).!
+  require(exit == 0, s"fresh public-product copy script model failed with exit $exit")
+  streams.value.log.info("fresh public-product copy script model verified")
 }
 
 verifyPublicProductTestsNonzero := {
@@ -129,6 +152,8 @@ verifyPublicProductBoundary := Def
     verifyJdkVersionEnforcement,
     verifyPublicProductBoundaryModel,
     verifyPublicDocumentationPolicy,
+    verifyApache2LicensePolicy,
+    verifyFreshPublicProductCopyScript,
     verifyBuildDependencyCoordinatePolicy,
     verifyPublicProductTestsNonzero,
     plugin / Test / test,
@@ -1090,4 +1115,3 @@ lazy val pluginTests = (project in file("plugin-tests"))
       .dependsOn(pluginTestHandlers / Compile / packageBin)
       .value
   )
-

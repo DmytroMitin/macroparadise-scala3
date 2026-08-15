@@ -13,7 +13,9 @@ object PublicDocumentationPolicySpec {
     try {
       val result = PublicDocumentationPolicy.verify(clean, PublicDocumentationPolicy.RequiredPaths)
       assert(result.errors.isEmpty, result.errors.mkString("; "))
-      assert(result.checkedPaths == PublicDocumentationPolicy.RequiredPaths.toVector.sorted)
+      assert(
+        result.checkedPaths == PublicDocumentationPolicy.RequiredPaths.toVector.sorted.filter(_.endsWith(".md"))
+      )
     } finally delete(clean)
 
     assertFinding("README.md", s"See [private history](${path("prompts", "110.md")}).\n", "PRIVATE_HISTORY_PATH")

@@ -59,12 +59,12 @@ explicit test setup.
 
 ## Open-source, publication, and stability work
 
-Public source visibility, license selection, artifact publication, and API
-stability are separate decisions.
+The source license is Apache License 2.0. Public source visibility, artifact
+publication, and API stability remain separate decisions.
 
 Before any public visibility change:
 
-- select and add an explicit license;
+- retain and verify the complete Apache License 2.0 text and build metadata;
 - preserve any required private lineage outside the public source surface;
 - rehearse and independently inspect a sanitized source snapshot;
 - confirm governance and security wording remains truthful.

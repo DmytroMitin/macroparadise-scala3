@@ -13,6 +13,7 @@ object PublicDocumentationPolicy {
   final case class Verification(checkedPaths: Vector[String], errors: Vector[Finding])
 
   val RequiredPaths: Set[String] = Set(
+    "LICENSE",
     "README.md",
     "ROADMAP.md",
     "CONTRIBUTING.md",
