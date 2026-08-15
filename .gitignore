@@ -1,0 +1,19 @@
+# sbt and Scala build output
+**/target/
+project/project/
+.bloop/
+.bsp/
+.metals/
+.scala-build/
+out/
+
+# Repository-local dependency and build-tool caches
+.sbt/
+.ivy2/
+.coursier/
+
+# Editor and platform metadata
+.idea/
+.vscode/
+*.iml
+.DS_Store

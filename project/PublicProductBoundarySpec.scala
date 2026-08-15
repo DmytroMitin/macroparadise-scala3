@@ -2,7 +2,7 @@ import java.io.File
 import java.nio.file.Files
 
 object PublicProductBoundarySpec {
-  val CaseCount = 17
+  val CaseCount = 18
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -24,6 +24,7 @@ object PublicProductBoundarySpec {
       assert(clean.manifestSha256.matches("[0-9a-f]{64}"))
 
       assert(PublicProductBoundary.roleOf("build.sbt").id == "BUILD_RUNTIME")
+      assert(PublicProductBoundary.roleOf(".gitignore").id == "BUILD_RUNTIME")
       assert(PublicProductBoundary.roleOf("plugin/src/test/scala/ProductSpec.scala").id == "PRODUCT_CODE")
       assert(PublicProductBoundary.roleOf("README.md").id == "PUBLIC_DOCUMENTATION")
       assert(PublicProductBoundary.roleOf("README.md").candidateEligible)

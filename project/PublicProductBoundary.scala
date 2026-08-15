@@ -151,6 +151,7 @@ object PublicProductBoundary {
     else if (path.startsWith("docs/")) ExcludedController
     else if (
       path == "build.sbt" ||
+      path == ".gitignore" ||
       path == ".github/workflows/test.yml" ||
       path == ".public-product-source-manifest.tsv" ||
       PublicProjectFiles.contains(path)
