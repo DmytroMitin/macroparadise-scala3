@@ -35,6 +35,19 @@ sbt -batch \
 
 Those paths are local packaged files, not published coordinates. Do not put the
 production plugin or repository test fixtures on the handler's direct compile
-classpath. See
+classpath. The starter owns its task-local evidence trace; no undocumented
+trace property is required. `verifyStarter` runs marker and handler compilation,
+the zero-expansion precheck, consumer compilation, and `Hello, Greeter!` runtime
+use in that order. If the precheck fails, consumer compilation does not start.
+
+To inspect the packaged precheck inputs and artifact roles without running it,
+use the production plugin and its exact runtime classpath:
+
+```text
+java -cp <plugin-and-exact-runtime-classpath> \
+  macroparadise.ExternalHandlerPrecheckMain --help
+```
+
+See
 [`docs/EXTERNAL_HANDLER_AUTHORING.md`](../../docs/EXTERNAL_HANDLER_AUTHORING.md)
 for the contract, precheck categories, limitations, and evidence model.

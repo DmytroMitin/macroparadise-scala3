@@ -166,6 +166,7 @@ lazy val consumer: Project = project.in(file("consumer"))
     markConsumerCompileStart := {
       (handler / precheckPositive).value
       val evidence = evidenceDirectory
+      System.setProperty(ExpansionTraceProperty, expansionTrace.getAbsolutePath)
       appendEvent(evidence / "positive-flow.trace", "consumer-compile-start")
       writeLines(
         evidence / "consumer-compile-classpath.txt",

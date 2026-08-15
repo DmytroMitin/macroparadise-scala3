@@ -89,6 +89,8 @@ object ExternalHandlerAuthoringStarter {
     val rendered = command.mkString("\n")
     if (!rendered.contains("macroparadise.starter.plugin=")) errors += "plugin path property missing"
     if (!rendered.contains("macroparadise.starter.pluginApi=")) errors += "pluginApi path property missing"
+    if (rendered.contains("macroparadise.starter.expandTrace="))
+      errors += "starter command exposes an internal expansion-trace property"
     Vector("clean", "verifyStarter", "verifyNegativeMatrix").foreach { task =>
       if (!command.contains(task)) errors += s"child task $task missing"
     }
@@ -159,7 +161,6 @@ object ExternalHandlerAuthoringStarter {
       "-Dmacroparadise.starter.plugin=" + pluginArtifact.getCanonicalPath,
       "-Dmacroparadise.starter.pluginApi=" + pluginApiArtifact.getCanonicalPath,
       "-Dmacroparadise.starter.evidenceDir=" + evidence.getAbsolutePath,
-      "-Dmacroparadise.starter.expandTrace=" + expandTrace.getAbsolutePath,
       "clean",
       "verifyStarter",
       "verifyNegativeMatrix"

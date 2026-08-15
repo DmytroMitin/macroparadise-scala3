@@ -124,6 +124,20 @@ Failures stop before consumer compilation. Categories cover malformed handler
 identity, metadata/descriptor mismatch, exact compiler or JDK mismatch,
 forbidden handler dependencies, and missing artifacts.
 
+The packaged plugin also exposes deterministic command help:
+
+```sh
+java -cp <plugin-and-exact-runtime-classpath> \
+  macroparadise.ExternalHandlerPrecheckMain --help
+```
+
+The help output names all four artifact roles, the separately recorded handler
+compile classpath, qualified identities, and exact toolchain expectations. A
+failed precheck exits with status 2 and reports
+`stage=preconsumer consumerCompilationStarted=false expansionInvoked=false`
+before its category, detail, and usage. `--help` exits successfully without
+loading artifacts or running the precheck.
+
 ## What the starter proves
 
 The positive flow typechecks and runs `new Greeter().generatedGreeting`, which

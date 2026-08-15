@@ -16,6 +16,33 @@ import scala.util.Try
 object ExternalHandlerPrecheckMain:
   import ExternalHandlerPrecheck.*
 
+  private[macroparadise] val usage: String =
+    """Usage:
+      |  java -cp <plugin-and-exact-runtime-classpath> macroparadise.ExternalHandlerPrecheckMain \
+      |    --plugin=<plugin.jar> \
+      |    --plugin-api=<plugin-api.jar> \
+      |    --marker=<marker.jar> \
+      |    --handler=<handler.jar> \
+      |    --handler-compile-classpath=<path-list> \
+      |    --marker-class=<qualified-marker-class> \
+      |    --expected-handler-class=<qualified-handler-class> \
+      |    --expected-annotation=<qualified-annotation-name> \
+      |    --expected-scala-version=<exact-version> \
+      |    --expected-jdk-major=<major>
+      |
+      |Artifact roles:
+      |  plugin: packaged production compiler plugin containing this command
+      |  plugin-api: packaged experimental handler contract
+      |  marker: separately compiled annotation and runtime handler metadata
+      |  handler: separately compiled ParadiseAnnotationExpander implementation
+      |  handler-compile-classpath: plugin-api plus the exact compiler/runtime artifacts used to compile the handler
+      |
+      |Preconsumer guarantee:
+      |  failures stop with stage=preconsumer consumerCompilationStarted=false expansionInvoked=false
+      |
+      |Use --help to print this usage without running the precheck.
+      |""".stripMargin
+
   private val RequiredKeys = Vector(
     "plugin",
     "plugin-api",
@@ -30,15 +57,24 @@ object ExternalHandlerPrecheckMain:
   )
 
   def main(args: Array[String]): Unit =
-    execute(args, getClass.getClassLoader) match
-      case Right(success) =>
-        println(
-          s"EXTERNAL_HANDLER_AUTHORING_PRECHECK_READY " +
-            s"PRECONSUMER_HANDLER_DECLARATION_AND_BINDING_PRECHECK_READY ${success.render}"
-        )
-      case Left(failure) =>
-        System.err.println(s"EXTERNAL_HANDLER_AUTHORING_PRECHECK_FAILED ${failure.render}")
-        System.exit(2)
+    if helpRequested(args) then println(usage)
+    else
+      execute(args, getClass.getClassLoader) match
+        case Right(success) =>
+          println(
+            s"EXTERNAL_HANDLER_AUTHORING_PRECHECK_READY " +
+              s"PRECONSUMER_HANDLER_DECLARATION_AND_BINDING_PRECHECK_READY ${success.render}"
+          )
+        case Left(failure) =>
+          System.err.println(renderFailure(failure))
+          System.exit(2)
+
+  private[macroparadise] def helpRequested(args: Array[String]): Boolean =
+    args.toVector == Vector("--help")
+
+  private[macroparadise] def renderFailure(failure: Failure): String =
+    s"EXTERNAL_HANDLER_AUTHORING_PRECHECK_FAILED stage=preconsumer " +
+      s"consumerCompilationStarted=false expansionInvoked=false ${failure.render}\n$usage"
 
   private[macroparadise] def execute(
       args: Array[String],

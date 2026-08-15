@@ -85,6 +85,16 @@ External-handler authoring and negative matrix:
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
+Packaged precheck usage, without loading marker or handler artifacts:
+
+```sh
+java -cp <plugin-and-exact-runtime-classpath> \
+  macroparadise.ExternalHandlerPrecheckMain --help
+```
+
+Argument and precheck failures exit with status 2 and explicitly report that
+consumer compilation and expansion did not start.
+
 Whitespace and patch sanity:
 
 ```sh

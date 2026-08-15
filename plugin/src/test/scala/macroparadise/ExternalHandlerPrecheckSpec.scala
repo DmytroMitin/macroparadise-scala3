@@ -206,6 +206,40 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
       deleteRecursively(root)
   }
 
+  test("precheck help names every required role and the preconsumer boundary") {
+    val usage = ExternalHandlerPrecheckMain.usage
+
+    Vector(
+      "--plugin=<plugin.jar>",
+      "--plugin-api=<plugin-api.jar>",
+      "--marker=<marker.jar>",
+      "--handler=<handler.jar>",
+      "--handler-compile-classpath=<path-list>",
+      "--marker-class=<qualified-marker-class>",
+      "--expected-handler-class=<qualified-handler-class>",
+      "--expected-annotation=<qualified-annotation-name>",
+      "--expected-scala-version=<exact-version>",
+      "--expected-jdk-major=<major>"
+    ).foreach(option => assert(usage.contains(option), usage))
+    assert(usage.contains("consumerCompilationStarted=false"), usage)
+    assert(usage.contains("expansionInvoked=false"), usage)
+    assert(ExternalHandlerPrecheckMain.helpRequested(Array("--help")))
+    assert(!ExternalHandlerPrecheckMain.helpRequested(Array.empty[String]))
+    assert(!ExternalHandlerPrecheckMain.helpRequested(Array("--help=true")))
+  }
+
+  test("precheck argument failure output identifies the stopped stage before usage") {
+    val rendered = ExternalHandlerPrecheckMain.renderFailure(
+      Failure("PRECHECK_ARGUMENT_FAILURE", "missing required argument --plugin")
+    )
+
+    assert(rendered.startsWith("EXTERNAL_HANDLER_AUTHORING_PRECHECK_FAILED stage=preconsumer"), rendered)
+    assert(rendered.contains("consumerCompilationStarted=false"), rendered)
+    assert(rendered.contains("expansionInvoked=false"), rendered)
+    assert(rendered.contains("category=PRECHECK_ARGUMENT_FAILURE"), rendered)
+    assert(rendered.contains("Usage:"), rendered)
+  }
+
   test("precheck command rejects a missing required artifact argument") {
     val failure = failed(
       ExternalHandlerPrecheckMain.parse(

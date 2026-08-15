@@ -1,5 +1,5 @@
 object ExternalHandlerAuthoringStarterSpec {
-  val CaseCount = 5
+  val CaseCount = 6
 
   def run(): Unit = {
     import ExternalHandlerAuthoringStarter._
@@ -31,6 +31,15 @@ object ExternalHandlerAuthoringStarterSpec {
     )
     assert(validateChildCommand(command).isEmpty)
     assert(validateChildCommand(command :+ ("publish" + "Local")).nonEmpty)
+    assert(
+      validateChildCommand(
+        command.patch(
+          2,
+          Vector("-Dmacroparadise.starter.expandTrace=/tmp/internal-evidence-only.trace"),
+          0
+        )
+      ).nonEmpty
+    )
 
     val allowedClasspath = Vector(
       "/tmp/macroparadise-scala3-plugin-api.jar",
