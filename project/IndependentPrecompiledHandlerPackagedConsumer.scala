@@ -231,8 +231,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       compilerJars, apiArtifact, pluginArtifact, Some(independentArtifact), Some(independentArtifact),
       source, output,
       Vector(
-        s"-Dmacroparadise.metadataReaderTrace=${metadataTrace.getAbsolutePath}",
-        s"-Dmacroparadise.externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+        s"-P:helloWorld:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:helloWorld:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
       )
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
@@ -315,15 +315,15 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       handlerClasspath: Option[File],
       source: File,
       output: File,
-      jvmOptions: Vector[String]
+      extraPluginOptions: Vector[String]
   ): Vector[String] = {
     val sourceClasspath = compilerJars ++ Vector(apiArtifact) ++ markerOnCompileClasspath.toVector
-    Vector(javaTool("java")) ++ jvmOptions ++ Vector(
+    Vector(javaTool("java")) ++ Vector(
       "-cp", classpath(compilerJars), "dotty.tools.dotc.Main",
       "-classpath", classpath(sourceClasspath), "-d", output.getAbsolutePath,
       s"-Xplugin:${classpath(Vector(pluginArtifact, apiArtifact))}",
       "-Xplugin-require:helloWorld"
-    ) ++ handlerClasspath.toVector.map(file => s"-P:helloWorld:handlerClasspath=${file.getAbsolutePath}") ++ Vector(source.getAbsolutePath)
+    ) ++ handlerClasspath.toVector.map(file => s"-P:helloWorld:handlerClasspath=${file.getAbsolutePath}") ++ extraPluginOptions ++ Vector(source.getAbsolutePath)
   }
 
   private def validatePluginCommand(

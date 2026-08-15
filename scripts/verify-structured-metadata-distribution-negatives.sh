@@ -48,7 +48,6 @@ run_case() {
 
   set +e
   "$java_executable" \
-    "-Dmacroparadise.metadataReaderTrace=${trace_file}" \
     -cp "$compiler_classpath" \
     dotty.tools.dotc.Main \
     -classpath "$consumer_classpath" \
@@ -56,6 +55,7 @@ run_case() {
     "-Xplugin:${plugin_path}" \
     -Xplugin-require:helloWorld \
     "-P:helloWorld:handlerClasspath=${handler_jar}" \
+    "-P:helloWorld:metadataReaderTrace=${trace_file}" \
     "$@" \
     "${sources[@]}" \
     >"$log_file" 2>&1

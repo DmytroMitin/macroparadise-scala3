@@ -213,6 +213,11 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
       Option.when(includeHandlerPath)(
         s"-P:helloWorld:handlerClasspath=${artifact.getAbsolutePath}"
       ).toList
+    val traceOptions =
+      List(
+        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace"
+      )
     val (exitCode, messages) = runCompiler(
       List(
         "-classpath",
@@ -221,11 +226,8 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
         "-Xplugin-require:helloWorld"
-      ) ++ handlerOption ++ List(sourceFile.toString),
-      jvmProperties = List(
-        "macroparadise.metadataReaderTrace" -> metadataTrace.toString,
-        "macroparadise.externalHandlerInvocationTrace" -> invocationTrace.toString
-      )
+      ) ++ handlerOption ++ traceOptions ++ List(sourceFile.toString),
+      jvmProperties = Nil
     )
     CompileResult(
       exitCode != 0,

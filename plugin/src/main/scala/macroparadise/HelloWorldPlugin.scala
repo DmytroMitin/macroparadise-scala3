@@ -24,7 +24,7 @@ import paradise3.api.{
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.net.URLClassLoader
-import java.nio.file.{Files, Path, StandardOpenOption}
+import java.nio.file.{Files, InvalidPathException, Path, StandardOpenOption}
 import scala.util.control.NonFatal
 
 class HelloWorldPlugin extends ResearchPlugin:
@@ -41,6 +41,23 @@ class HelloWorldPlugin extends ResearchPlugin:
       case group =>
         List(group)
 
+private final class ExternalHandlerInvocationTrace private (path: Option[Path]):
+  def record(handlerClass: String, annotationName: String, className: String): Unit =
+    path.foreach: tracePath =>
+      try
+        Files.writeString(
+          tracePath,
+          s"handler=$handlerClass annotation=$annotationName class=$className\n",
+          StandardOpenOption.CREATE,
+          StandardOpenOption.APPEND
+        )
+      catch
+        case NonFatal(_) => ()
+
+private object ExternalHandlerInvocationTrace:
+  def fromPath(path: Option[Path]): ExternalHandlerInvocationTrace =
+    ExternalHandlerInvocationTrace(path)
+
 private object ExternalHandlerLoading:
   private val BuiltInAnnotationNames = Set("gen", "debug")
 
@@ -56,7 +73,8 @@ private object ExternalHandlerLoading:
       handlerLoader: ClassLoader,
       metadataReader: AnnotationMetadataReader,
       metadataHandlerRunCache: MetadataHandlerRunCache,
-      deferredSameModule: Option[DeferredSameModuleHandler]
+      deferredSameModule: Option[DeferredSameModuleHandler],
+      invocationTrace: ExternalHandlerInvocationTrace
   )
 
   enum DeferredLoadResult:
@@ -65,6 +83,14 @@ private object ExternalHandlerLoading:
     case Invalid
 
   def load(options: List[String])(using Context): LoadedHandlers =
+    val invocationTrace =
+      ExternalHandlerInvocationTrace.fromPath(
+        TraceFileOption.parse(options, "externalHandlerInvocationTrace")
+      )
+    val metadataTrace =
+      MetadataReaderTrace.fromPath(
+        TraceFileOption.parse(options, "metadataReaderTrace")
+      )
     val rawHandlerClassNames =
       options.collect:
         case option if option.startsWith("handler=") =>
@@ -90,12 +116,22 @@ private object ExternalHandlerLoading:
 
     StructuredMetadataDistributionContract.parseAndValidate(options) match
       case Left(message) =>
-        invalidStructuredMetadataConfiguration(message, pluginLoader)
+        invalidStructuredMetadataConfiguration(
+          message,
+          pluginLoader,
+          invocationTrace
+        )
       case Right(structuredMetadataPaths) =>
         val metadataReader =
           structuredMetadataPaths match
             case None =>
-              Right(AnnotationMetadataReader.production(metadataLoader))
+              Right(
+                AnnotationMetadataReader.production(
+                  metadataLoader,
+                  Nil,
+                  metadataTrace
+                )
+              )
             case Some(paths) =>
               StructuredMetadataDistributionContract.auditRuntime(
                 pluginLoader,
@@ -107,14 +143,26 @@ private object ExternalHandlerLoading:
                   report.echo(
                     s"[structured-metadata] validated experimental distribution: inputs=${paths.map(_.value).mkString(",")} ${evidence.head}"
                   )
-                  Right(AnnotationMetadataReader.production(metadataLoader, paths))
+                  Right(
+                    AnnotationMetadataReader.production(
+                      metadataLoader,
+                      paths,
+                      metadataTrace
+                    )
+                  )
                 case StructuredMetadataDistributionContract.InspectorAudit.Unavailable(
                       message
                     ) =>
                   report.warning(
                     s"experimental structured metadata reader unavailable; controlled string compatibility fallback remains enabled: $message"
                   )
-                  Right(AnnotationMetadataReader.production(metadataLoader, paths))
+                  Right(
+                    AnnotationMetadataReader.production(
+                      metadataLoader,
+                      paths,
+                      metadataTrace
+                    )
+                  )
                 case StructuredMetadataDistributionContract.InspectorAudit.Invalid(
                       message
                     ) =>
@@ -122,7 +170,11 @@ private object ExternalHandlerLoading:
 
         metadataReader match
           case Left(message) =>
-            invalidStructuredMetadataConfiguration(message, pluginLoader)
+            invalidStructuredMetadataConfiguration(
+              message,
+              pluginLoader,
+              invocationTrace
+            )
           case Right(reader) =>
             val deferredSameModule = parseDeferredSameModuleHandler(options)
             val explicitHandlers =
@@ -137,12 +189,14 @@ private object ExternalHandlerLoading:
               metadataHandlerRunCache = MetadataHandlerRunCache(
                 explicitHandlers
               ),
-              deferredSameModule = deferredSameModule
+              deferredSameModule = deferredSameModule,
+              invocationTrace = invocationTrace
             )
 
   private def invalidStructuredMetadataConfiguration(
       message: String,
-      pluginLoader: ClassLoader
+      pluginLoader: ClassLoader,
+      invocationTrace: ExternalHandlerInvocationTrace
   )(using Context): LoadedHandlers =
     val diagnostic =
       s"invalid experimental structured metadata configuration: $message"
@@ -154,8 +208,34 @@ private object ExternalHandlerLoading:
       metadataReader =
         UnavailableStructuredAnnotationMetadataReader(diagnostic),
       metadataHandlerRunCache = MetadataHandlerRunCache(Nil),
-      deferredSameModule = None
+      deferredSameModule = None,
+      invocationTrace = invocationTrace
     )
+
+  private object TraceFileOption:
+    def parse(options: List[String], optionName: String)(using Context): Option[Path] =
+      val prefix = s"$optionName="
+      val rawValues =
+        options.collect:
+          case option if option.startsWith(prefix) => option.stripPrefix(prefix)
+
+      if rawValues.size > 1 then
+        report.error(s"the test/evidence `$optionName=` option accepts exactly one path")
+        None
+      else
+        rawValues.headOption match
+          case None => None
+          case Some(rawValue) if rawValue.trim.isEmpty =>
+            report.error(s"empty test/evidence trace option `$optionName=`")
+            None
+          case Some(rawValue) =>
+            try Some(Path.of(rawValue.trim))
+            catch
+              case error: InvalidPathException =>
+                report.error(
+                  s"invalid test/evidence trace option `$optionName=`: ${error.getMessage}"
+                )
+                None
 
   private def parseDeferredSameModuleHandler(
       options: List[String]
@@ -906,7 +986,8 @@ private object ParadiseTreeRewrite:
       )
 
   private final class ExternalAnnotationExpander(
-      loadedHandler: LoadedExternalHandler
+      loadedHandler: LoadedExternalHandler,
+      invocationTrace: ExternalHandlerInvocationTrace
   ) extends AnnotationExpander:
     private val handler = loadedHandler.instance
     private val descriptor = loadedHandler.descriptor
@@ -947,7 +1028,7 @@ private object ParadiseTreeRewrite:
         )
 
       try
-        ExternalHandlerInvocationTrace.record(
+        invocationTrace.record(
           descriptor.handlerClassName,
           annotationName,
           input.annotatedClass.name.toString
@@ -1093,21 +1174,6 @@ private object ParadiseTreeRewrite:
         .filter(_.nonEmpty)
         .getOrElse("<no-message>")
 
-  private object ExternalHandlerInvocationTrace:
-    private val PropertyName = "macroparadise.externalHandlerInvocationTrace"
-
-    def record(handlerClass: String, annotationName: String, className: String): Unit =
-      Option(System.getProperty(PropertyName)).map(_.trim).filter(_.nonEmpty).foreach: value =>
-        try
-          Files.writeString(
-            Path.of(value),
-            s"handler=$handlerClass annotation=$annotationName class=$className\n",
-            StandardOpenOption.CREATE,
-            StandardOpenOption.APPEND
-          )
-        catch
-          case NonFatal(_) => ()
-
   private object HandledAnnotations:
     def matchingExpanders(typeDef: TypeDef)(using Context): List[AnnotationExpander] =
       matchingExpanders(typeDef, Nil)
@@ -1211,7 +1277,10 @@ private object ParadiseTreeRewrite:
       )
     val externalExpanders =
       externalHandlers.map: handler =>
-        ExternalAnnotationExpander(handler)
+        ExternalAnnotationExpander(
+          handler,
+          loadedExternalHandlers.invocationTrace
+        )
 
     unit.untpdTree match
       case pkg: PackageDef =>

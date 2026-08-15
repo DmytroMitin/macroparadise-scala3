@@ -49,18 +49,6 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
       explicitHandler: Boolean,
       traceInvocations: Boolean = false
   ): CompileResult =
-    System.getProperties.synchronized:
-      compileSnippetWithExclusiveTraceProperty(
-        source,
-        explicitHandler,
-        traceInvocations
-      )
-
-  private def compileSnippetWithExclusiveTraceProperty(
-      source: String,
-      explicitHandler: Boolean,
-      traceInvocations: Boolean
-  ): CompileResult =
     val tempDir = Files.createTempDirectory("macroparadise-restricted-trait")
     val sourceFile = tempDir.resolve("Snippet.scala")
     val outDir = tempDir.resolve("out")
@@ -68,41 +56,34 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
     Files.createDirectories(outDir)
     Files.writeString(sourceFile, source)
 
-    val property = "macroparadise.externalHandlerInvocationTrace"
-    val previous = Option(System.getProperty(property))
-    if traceInvocations then System.setProperty(property, traceFile.toString)
-    else System.clearProperty(property)
-
     val options =
       Seq(s"-P:helloWorld:handlerClasspath=$handlerJar") ++
         Option.when(explicitHandler)(
           "-P:helloWorld:handler=demo.ExternalRestrictedTraitApplyExpander"
+        ) ++
+        Option.when(traceInvocations)(
+          s"-P:helloWorld:externalHandlerInvocationTrace=$traceFile"
         )
     val reporter = new CollectingReporter
-    try
-      val result =
-        Main.process(
-          Array(
-            "-classpath",
-            compileClasspath,
-            "-d",
-            outDir.toString,
-            s"-Xplugin:$pluginPath",
-            "-Xplugin-require:helloWorld"
-          ) ++ options.toArray ++ Array(sourceFile.toString),
-          reporter,
-          null
-        )
-      CompileResult(
-        result.hasErrors(),
-        reporter.messages.toList,
-        outputFiles(outDir),
-        if Files.exists(traceFile) then Files.readAllLines(traceFile).asScala.toList else Nil
+    val result =
+      Main.process(
+        Array(
+          "-classpath",
+          compileClasspath,
+          "-d",
+          outDir.toString,
+          s"-Xplugin:$pluginPath",
+          "-Xplugin-require:helloWorld"
+        ) ++ options.toArray ++ Array(sourceFile.toString),
+        reporter,
+        null
       )
-    finally
-      previous match
-        case Some(value) => System.setProperty(property, value)
-        case None => System.clearProperty(property)
+    CompileResult(
+      result.hasErrors(),
+      reporter.messages.toList,
+      outputFiles(outDir),
+      if Files.exists(traceFile) then Files.readAllLines(traceFile).asScala.toList else Nil
+    )
 
   private def outputFiles(outDir: Path): List[String] =
     val stream = Files.walk(outDir)

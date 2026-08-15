@@ -30,12 +30,6 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
 
   private val apiLoader = getClass.getClassLoader
 
-  private def withMetadataReaderTraceLock[A](body: => A): A =
-    // The trace path is a JVM-global system property. Root `sbt test` can run
-    // this suite concurrently with pluginTests, so both projects synchronize
-    // on the JVM-global Properties monitor while overriding it.
-    System.getProperties.synchronized(body)
-
   private def codeSourcePath(clazz: Class[?]): String =
     new File(clazz.getProtectionDomain.getCodeSource.getLocation.toURI)
       .getAbsolutePath
@@ -144,45 +138,38 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
   }
 
   test("production reader accepts explicit paths and stops after structured Found") {
-    withMetadataReaderTraceLock:
-      val traceFile =
-        Files.createTempFile("macroparadise-explicit-production-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      val validatedPath =
-        StructuredMetadataDistributionContract
-          .validatePath(legacyMarkerJar)
-          .toOption
-          .get
-      System.setProperty(propertyName, traceFile.toString)
+    val traceFile =
+      Files.createTempFile("macroparadise-explicit-production-reader", ".trace")
+    val validatedPath =
+      StructuredMetadataDistributionContract
+        .validatePath(legacyMarkerJar)
+        .toOption
+        .get
 
-      try
-        withLegacyLoader: legacyLoader =>
-          val reader =
-            AnnotationMetadataReader.production(
-              legacyLoader,
-              List(validatedPath)
-            )
-          assertEquals(
-            reader.findExpanderClass("legacyExternalDebug"),
-            MetadataLookupResult.Found("demo.LegacyExternalDebugExpander")
+    try
+      withLegacyLoader: legacyLoader =>
+        val reader =
+          AnnotationMetadataReader.production(
+            legacyLoader,
+            List(validatedPath),
+            MetadataReaderTrace.fromPath(Some(traceFile))
           )
-          assertEquals(
-            Files
-              .readString(traceFile)
-              .linesIterator
-              .filter(_.contains("paradise3.legacyExternalDebug"))
-              .toList,
-            List(
-              "runtime paradise3.legacyExternalDebug NotFound",
-              "structured paradise3.legacyExternalDebug Found(demo.LegacyExternalDebugExpander)"
-            )
+        assertEquals(
+          reader.findExpanderClass("legacyExternalDebug"),
+          MetadataLookupResult.Found("demo.LegacyExternalDebugExpander")
+        )
+        assertEquals(
+          Files
+            .readString(traceFile)
+            .linesIterator
+            .filter(_.contains("paradise3.legacyExternalDebug"))
+            .toList,
+          List(
+            "runtime paradise3.legacyExternalDebug NotFound",
+            "structured paradise3.legacyExternalDebug Found(demo.LegacyExternalDebugExpander)"
           )
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
-        Files.deleteIfExists(traceFile)
+        )
+    finally Files.deleteIfExists(traceFile)
   }
 
   test("explicit structured metadata paths return NotFound for an unrelated annotation") {
@@ -374,70 +361,64 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
   }
 
   test("production reader traces runtime and structured misses before real legacy string recovery") {
-    withMetadataReaderTraceLock:
-      val traceFile =
-        Files.createTempFile("macroparadise-legacy-production-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      System.setProperty(propertyName, traceFile.toString)
+    val traceFile =
+      Files.createTempFile("macroparadise-legacy-production-reader", ".trace")
 
-      try
-        withLegacyLoader: legacyLoader =>
-          val reader = AnnotationMetadataReader.production(legacyLoader)
-
-          assertEquals(
-            reader.findExpanderClass("legacyExternalDebug"),
-            MetadataLookupResult.Found("demo.LegacyExternalDebugExpander")
+    try
+      withLegacyLoader: legacyLoader =>
+        val reader =
+          AnnotationMetadataReader.production(
+            legacyLoader,
+            Nil,
+            MetadataReaderTrace.fromPath(Some(traceFile))
           )
-          assertEquals(
-            Files
-              .readString(traceFile)
-              .linesIterator
-              .filter(_.contains("paradise3.legacyExternalDebug"))
-              .toList,
-            List(
-              "runtime paradise3.legacyExternalDebug NotFound",
-              "structured paradise3.legacyExternalDebug NotFound",
-              "string paradise3.legacyExternalDebug Found(demo.LegacyExternalDebugExpander)"
-            )
-          )
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
-        Files.deleteIfExists(traceFile)
-  }
-
-  test("production current marker still short-circuits after a real runtime Found") {
-    withMetadataReaderTraceLock:
-      val traceFile =
-        Files.createTempFile("macroparadise-current-production-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      System.setProperty(propertyName, traceFile.toString)
-
-      try
-        val reader = AnnotationMetadataReader.production(apiLoader)
 
         assertEquals(
-          reader.findExpanderClass("externalDebug"),
-          MetadataLookupResult.Found("demo.ExternalDebugExpander")
+          reader.findExpanderClass("legacyExternalDebug"),
+          MetadataLookupResult.Found("demo.LegacyExternalDebugExpander")
         )
         assertEquals(
           Files
             .readString(traceFile)
             .linesIterator
-            .filter(_.contains("paradise3.externalDebug"))
+            .filter(_.contains("paradise3.legacyExternalDebug"))
             .toList,
           List(
-            "runtime paradise3.externalDebug Found(demo.ExternalDebugExpander)"
+            "runtime paradise3.legacyExternalDebug NotFound",
+            "structured paradise3.legacyExternalDebug NotFound",
+            "string paradise3.legacyExternalDebug Found(demo.LegacyExternalDebugExpander)"
           )
         )
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
-        Files.deleteIfExists(traceFile)
+    finally Files.deleteIfExists(traceFile)
+  }
+
+  test("production current marker still short-circuits after a real runtime Found") {
+    val traceFile =
+      Files.createTempFile("macroparadise-current-production-reader", ".trace")
+
+    try
+      val reader =
+        AnnotationMetadataReader.production(
+          apiLoader,
+          Nil,
+          MetadataReaderTrace.fromPath(Some(traceFile))
+        )
+
+      assertEquals(
+        reader.findExpanderClass("externalDebug"),
+        MetadataLookupResult.Found("demo.ExternalDebugExpander")
+      )
+      assertEquals(
+        Files
+          .readString(traceFile)
+          .linesIterator
+          .filter(_.contains("paradise3.externalDebug"))
+          .toList,
+        List(
+          "runtime paradise3.externalDebug Found(demo.ExternalDebugExpander)"
+        )
+      )
+    finally Files.deleteIfExists(traceFile)
   }
 
   test("runtime metadata reader finds the exact expander metadata on a precompiled marker") {
@@ -678,75 +659,64 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
   }
 
   test("runtime-first trace is deterministic and stops after Found") {
-    withMetadataReaderTraceLock:
-      val traceFile = Files.createTempFile("macroparadise-runtime-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      System.setProperty(propertyName, traceFile.toString)
+    val traceFile = Files.createTempFile("macroparadise-runtime-reader", ".trace")
 
-      try
-        var compatibilityInvoked = false
-        val reader =
-          RuntimeFirstAnnotationMetadataReader(
-            new AnnotationMetadataReader:
-              def findExpanderClass(annotationName: String): MetadataLookupResult =
-                MetadataLookupResult.Found("demo.RuntimeExpander"),
-            new AnnotationMetadataReader:
-              def findExpanderClass(annotationName: String): MetadataLookupResult =
-                compatibilityInvoked = true
-                MetadataLookupResult.NotFound,
-            MetadataReaderTrace.fromSystemProperty()
-          )
+    try
+      var compatibilityInvoked = false
+      val reader =
+        RuntimeFirstAnnotationMetadataReader(
+          new AnnotationMetadataReader:
+            def findExpanderClass(annotationName: String): MetadataLookupResult =
+              MetadataLookupResult.Found("demo.RuntimeExpander"),
+          new AnnotationMetadataReader:
+            def findExpanderClass(annotationName: String): MetadataLookupResult =
+              compatibilityInvoked = true
+              MetadataLookupResult.NotFound,
+          MetadataReaderTrace.fromPath(Some(traceFile))
+        )
 
-        assertEquals(
-          reader.findExpanderClass("runtimeAnnotation"),
-          MetadataLookupResult.Found("demo.RuntimeExpander")
-        )
-        assertEquals(
-          Files
-            .readString(traceFile)
-            .linesIterator
-            .filter(_.contains("paradise3.runtimeAnnotation"))
-            .toList,
-          List("runtime paradise3.runtimeAnnotation Found(demo.RuntimeExpander)")
-        )
-        assertEquals(compatibilityInvoked, false)
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
-        Files.deleteIfExists(traceFile)
+      assertEquals(
+        reader.findExpanderClass("runtimeAnnotation"),
+        MetadataLookupResult.Found("demo.RuntimeExpander")
+      )
+      assertEquals(
+        Files
+          .readString(traceFile)
+          .linesIterator
+          .filter(_.contains("paradise3.runtimeAnnotation"))
+          .toList,
+        List("runtime paradise3.runtimeAnnotation Found(demo.RuntimeExpander)")
+      )
+      assertEquals(compatibilityInvoked, false)
+    finally Files.deleteIfExists(traceFile)
   }
 
   test("production trace records every attempted reader in deterministic order") {
-    withMetadataReaderTraceLock:
-      val traceFile = Files.createTempFile("macroparadise-production-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      System.setProperty(propertyName, traceFile.toString)
+    val traceFile = Files.createTempFile("macroparadise-production-reader", ".trace")
 
-      try
-        val reader = AnnotationMetadataReader.production(apiLoader)
+    try
+      val reader =
+        AnnotationMetadataReader.production(
+          apiLoader,
+          Nil,
+          MetadataReaderTrace.fromPath(Some(traceFile))
+        )
 
-        assertEquals(
-          reader.findExpanderClass("externalMarker"),
-          MetadataLookupResult.NotFound
+      assertEquals(
+        reader.findExpanderClass("externalMarker"),
+        MetadataLookupResult.NotFound
+      )
+      assertEquals(
+        Files
+          .readString(traceFile)
+          .linesIterator
+          .filter(_.contains("paradise3.externalMarker"))
+          .toList,
+        List(
+          "runtime paradise3.externalMarker NotFound",
+          "structured paradise3.externalMarker NotFound",
+          "string paradise3.externalMarker NotFound"
         )
-        assertEquals(
-          Files
-            .readString(traceFile)
-            .linesIterator
-            .filter(_.contains("paradise3.externalMarker"))
-            .toList,
-          List(
-            "runtime paradise3.externalMarker NotFound",
-            "structured paradise3.externalMarker NotFound",
-            "string paradise3.externalMarker NotFound"
-          )
-        )
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
-        Files.deleteIfExists(traceFile)
+      )
+    finally Files.deleteIfExists(traceFile)
   }

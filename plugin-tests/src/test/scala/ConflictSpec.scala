@@ -42,11 +42,6 @@ class ConflictSpec extends munit.FunSuite:
       markerJar
     ).distinct.mkString(File.pathSeparator)
 
-  private def withMetadataReaderTraceLock[A](body: => A): A =
-    // AnnotationMetadataReaderSpec runs in another aggregated sbt project but
-    // shares this JVM-global property during root `test`.
-    System.getProperties.synchronized(body)
-
   private final class CollectingReporter extends SimpleReporter:
     val messages = scala.collection.mutable.ListBuffer.empty[String]
 
@@ -95,21 +90,16 @@ class ConflictSpec extends munit.FunSuite:
       source: String,
       pluginOptions: Seq[String]
   ): (CompileOutcome, List[String]) =
-    withMetadataReaderTraceLock:
-      val property = "macroparadise.externalHandlerInvocationTrace"
-      val trace = Files.createTempFile("macroparadise-composition-invocations", ".txt")
-      val previous = Option(System.getProperty(property))
-      System.setProperty(property, trace.toString)
-      try
-        val outcome = compileSnippet(source, pluginOptions)
-        val lines =
-          if Files.size(trace) == 0 then Nil
-          else Files.readAllLines(trace).toArray.toList.map(_.toString)
-        (outcome, lines)
-      finally
-        previous match
-          case Some(value) => System.setProperty(property, value)
-          case None => System.clearProperty(property)
+    val trace = Files.createTempFile("macroparadise-composition-invocations", ".txt")
+    val outcome =
+      compileSnippet(
+        source,
+        pluginOptions :+ s"-P:helloWorld:externalHandlerInvocationTrace=$trace"
+      )
+    val lines =
+      if Files.size(trace) == 0 then Nil
+      else Files.readAllLines(trace).toArray.toList.map(_.toString)
+    (outcome, lines)
 
   private def regularFiles(directory: java.nio.file.Path): List[String] =
     val paths = Files.walk(directory)
@@ -699,44 +689,35 @@ class ConflictSpec extends munit.FunSuite:
   }
 
   test("metadata discovery uses runtime reader and short-circuits TASTy readers during plugin compilation") {
-    withMetadataReaderTraceLock:
-      val traceFile = Files.createTempFile("macroparadise-metadata-reader", ".trace")
-      val propertyName = "macroparadise.metadataReaderTrace"
-      val previousTraceFile = Option(System.getProperty(propertyName))
-      System.setProperty(propertyName, traceFile.toString)
-
-      try
-        val outcome =
-          compileSnippet(
-            """package conflicts
-              |
-              |import paradise3.metadataMissing
-              |
-              |@metadataMissing
-              |class StructuredMetadataUser
-              |""".stripMargin,
-            pluginOptions = Seq(
-              s"-P:helloWorld:handlerClasspath=$handlerJar"
-            )
-          )
-
-        assertBoundaryDiagnostic(
-          outcome,
-          "loading",
-          "category=HANDLER_LOAD_FAILURE",
-          "could not load external annotation handler `missing.DoesNotExist`"
+    val traceFile = Files.createTempFile("macroparadise-metadata-reader", ".trace")
+    val outcome =
+      compileSnippet(
+        """package conflicts
+          |
+          |import paradise3.metadataMissing
+          |
+          |@metadataMissing
+          |class StructuredMetadataUser
+          |""".stripMargin,
+        pluginOptions = Seq(
+          s"-P:helloWorld:handlerClasspath=$handlerJar",
+          s"-P:helloWorld:metadataReaderTrace=$traceFile"
         )
-        val trace = Files.readString(traceFile)
-        assert(
-          trace.contains("runtime paradise3.metadataMissing Found(missing.DoesNotExist)"),
-          trace
-        )
-        assert(!trace.contains("structured paradise3.metadataMissing "), trace)
-        assert(!trace.contains("string paradise3.metadataMissing "), trace)
-      finally
-        previousTraceFile match
-          case Some(value) => System.setProperty(propertyName, value)
-          case None => System.clearProperty(propertyName)
+      )
+
+    assertBoundaryDiagnostic(
+      outcome,
+      "loading",
+      "category=HANDLER_LOAD_FAILURE",
+      "could not load external annotation handler `missing.DoesNotExist`"
+    )
+    val trace = Files.readString(traceFile)
+    assert(
+      trace.contains("runtime paradise3.metadataMissing Found(missing.DoesNotExist)"),
+      trace
+    )
+    assert(!trace.contains("structured paradise3.metadataMissing "), trace)
+    assert(!trace.contains("string paradise3.metadataMissing "), trace)
   }
 
   test("non-expander explicit handler reports a clear diagnostic") {

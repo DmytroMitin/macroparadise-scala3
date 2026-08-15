@@ -366,8 +366,6 @@ object IndependentExternalSbtConsumer {
     val invocationTrace = new File(layout.work, "positive-invocation.trace")
     val positiveLog = new File(layout.evidence, "commands/05-consumer-positive.log")
     val positiveProperties = Map(
-      "macroparadise.metadataReaderTrace" -> metadataTrace.getAbsolutePath,
-      "macroparadise.externalHandlerInvocationTrace" -> invocationTrace.getAbsolutePath,
       "externalConsumer.mode" -> "positive"
     )
     require(runSbt(layout.consumer, layout, Vector("clean", "externalConsumerAudit", "compile", "externalConsumerRuntime"), positiveProperties, positiveLog) == 0, "positive external consumer failed")
@@ -579,6 +577,8 @@ object IndependentExternalSbtConsumer {
        |lazy val externalConsumerRuntime = taskKey[Unit](\"Run the external consumer consumer and capture exact raw output\")
        |
        |val externalConsumerMode = sys.props.getOrElse(\"externalConsumer.mode\", \"positive\")
+       |val externalConsumerMetadataTrace = \"${scalaString(new File(layout.work, "positive-metadata.trace").getAbsolutePath)}\"
+       |val externalConsumerInvocationTrace = \"${scalaString(new File(layout.work, "positive-invocation.trace").getAbsolutePath)}\"
        |val externalConsumerVersion = \"$Version\"
        |val externalConsumerRepoOrg = \"$RepositoryOrganization\"
        |val externalConsumerProducerOrg = \"$ProducerOrganization\"
@@ -643,7 +643,12 @@ object IndependentExternalSbtConsumer {
        |      val providers = ((Compile / dependencyClasspath).value.files ++ (PluginLane / update).value.allFiles).filter(externalConsumerContainsApi).map(_.getCanonicalFile).distinct
        |      if (externalConsumerMode == \"duplicate-api\") require(providers.size == 1, \"DUPLICATE_API_PROVIDER: expected one paradise3.api provider, found \" + providers.mkString(\",\"))
        |      else if (externalConsumerMode != \"missing-marker\") require(providers.size == 1, \"expected singular paradise3.api provider, found \" + providers.mkString(\",\"))
-       |      val base = Seq(\"-Xplugin:\" + Seq(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator), \"-Xplugin-require:helloWorld\")
+       |      val base = Seq(
+       |        \"-Xplugin:\" + Seq(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator),
+       |        \"-Xplugin-require:helloWorld\",
+       |        \"-P:helloWorld:metadataReaderTrace=\" + externalConsumerMetadataTrace,
+       |        \"-P:helloWorld:externalHandlerInvocationTrace=\" + externalConsumerInvocationTrace
+       |      )
        |      if (externalConsumerMode == \"positive\" || externalConsumerMode == \"duplicate-api\") base ++ Seq(\"-P:helloWorld:handlerClasspath=\" + externalConsumerExactlyOne(handler, \"handler\").getAbsolutePath)
        |      else base
        |    },
@@ -816,9 +821,13 @@ object IndependentExternalSbtConsumer {
   private def auditPluginOptions(options: Vector[String]): Unit = {
     val plugin = options.filter(_.startsWith("-Xplugin:"))
     val handler = options.filter(_.startsWith("-P:helloWorld:handlerClasspath="))
+    val metadataTrace = options.filter(_.startsWith("-P:helloWorld:metadataReaderTrace="))
+    val invocationTrace = options.filter(_.startsWith("-P:helloWorld:externalHandlerInvocationTrace="))
     require(plugin.size == 1 && plugin.head.contains(PluginModule) && plugin.head.contains(PluginApiModule), "coordinate-resolved plugin option is invalid")
     require(options.count(_ == "-Xplugin-require:helloWorld") == 1, "plugin require option is invalid")
     require(handler.size == 1 && handler.head.contains(IndependentModule), "coordinate-resolved handler option is invalid")
+    require(metadataTrace.size == 1, "coordinate-resolved metadata trace option is invalid")
+    require(invocationTrace.size == 1, "coordinate-resolved invocation trace option is invalid")
     val rendered = options.mkString("\n")
     forbiddenModuleFragments.foreach(fragment => require(!rendered.contains(fragment), s"plugin options leaked $fragment"))
   }

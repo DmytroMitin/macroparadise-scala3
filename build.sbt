@@ -872,12 +872,12 @@ def packagedStructuredTastyConsumerProject(
         val tracePath =
           (target.value / "packaged-structured-tasty.trace").getAbsolutePath
         IO.delete(file(tracePath))
-        System.setProperty("macroparadise.metadataReaderTrace", tracePath)
 
         Seq(
           s"-Xplugin:${Seq(pluginJar, pluginApiJar, currentMarkerJar, legacyMarkerJar, inspectorJar).mkString(java.io.File.pathSeparator)}",
           "-Xplugin-require:helloWorld",
           s"-P:helloWorld:handlerClasspath=$handlerJar",
+          s"-P:helloWorld:metadataReaderTrace=$tracePath",
           s"-P:helloWorld:structuredMetadataPath=$legacyMarkerJar"
         )
       },
@@ -916,7 +916,6 @@ def packagedStructuredTastyConsumerProject(
         streams.value.log.info(
           s"$id: legacy runtime=NotFound -> structured=Found -> string=not-attempted; current runtime=Found -> compatibility=not-attempted; both consumers ran"
         )
-        System.clearProperty("macroparadise.metadataReaderTrace")
       },
       publish / skip := true
     )

@@ -25,13 +25,19 @@ private[macroparadise] enum MetadataLookupResult:
 
 private[macroparadise] object AnnotationMetadataReader:
   def production(apiLoader: ClassLoader): AnnotationMetadataReader =
-    production(apiLoader, Nil)
+    production(apiLoader, Nil, MetadataReaderTrace.disabled)
 
   def production(
       apiLoader: ClassLoader,
       structuredMetadataPaths: List[ValidatedStructuredMetadataPath]
   ): AnnotationMetadataReader =
-    val trace = MetadataReaderTrace.fromSystemProperty()
+    production(apiLoader, structuredMetadataPaths, MetadataReaderTrace.disabled)
+
+  def production(
+      apiLoader: ClassLoader,
+      structuredMetadataPaths: List[ValidatedStructuredMetadataPath],
+      trace: MetadataReaderTrace
+  ): AnnotationMetadataReader =
     val explicitStructuredInputs =
       if structuredMetadataPaths.isEmpty then None
       else
@@ -296,15 +302,11 @@ private[macroparadise] final class MetadataReaderTrace private (path: Option[Pat
         case NonFatal(_) => ()
 
 private[macroparadise] object MetadataReaderTrace:
-  private val PropertyName = "macroparadise.metadataReaderTrace"
-
   def disabled: MetadataReaderTrace =
     MetadataReaderTrace(None)
 
-  def fromSystemProperty(): MetadataReaderTrace =
-    Option(System.getProperty(PropertyName)).map(_.trim).filter(_.nonEmpty) match
-      case Some(path) => MetadataReaderTrace(Some(Path.of(path)))
-      case None => disabled
+  def fromPath(path: Option[Path]): MetadataReaderTrace =
+    MetadataReaderTrace(path)
 
 private[macroparadise] final case class ExplicitStructuredTastyInputs(
     paths: List[ValidatedStructuredMetadataPath],

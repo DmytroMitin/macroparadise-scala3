@@ -575,11 +575,13 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
         "-Xplugin-require:helloWorld"
-      ) ++ pluginOptions ++ List(sourceFile.toString),
+      ) ++ pluginOptions ++ List(
+        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+        sourceFile.toString
+      ),
       List(
-        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString,
-        "macroparadise.externalHandlerInvocationTrace" -> invocationTrace.toString,
-        "macroparadise.metadataReaderTrace" -> metadataTrace.toString
+        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString
       )
     )
     CompileResult(
@@ -621,11 +623,13 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
         "-Xplugin-require:helloWorld"
-      ) ++ pluginOptions ++ List(sourceFile.toString),
+      ) ++ pluginOptions ++ List(
+        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+        sourceFile.toString
+      ),
       List(
-        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString,
-        "macroparadise.externalHandlerInvocationTrace" -> invocationTrace.toString,
-        "macroparadise.metadataReaderTrace" -> metadataTrace.toString
+        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString
       )
     )
     CompileResult(
@@ -669,11 +673,12 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
         "-Xplugin-require:helloWorld"
-      ) ++ pluginOptions ++ sourceFiles.map(_.toString),
+      ) ++ pluginOptions ++ List(
+        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:helloWorld:metadataReaderTrace=$metadataTrace"
+      ) ++ sourceFiles.map(_.toString),
       List(
-        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString,
-        "macroparadise.externalHandlerInvocationTrace" -> invocationTrace.toString,
-        "macroparadise.metadataReaderTrace" -> metadataTrace.toString
+        "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString
       )
     )
     CompileResult(
