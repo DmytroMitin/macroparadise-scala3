@@ -44,6 +44,21 @@ The build rejects other JDK feature versions before normal tasks run. The
 plugin and handler contract expose Scala compiler internals, so a nearby Scala
 version is not an interchangeable substitute.
 
+### IntelliJ IDEA import
+
+IntelliJ must launch **sbt itself** on JDK 25; setting only the source language
+level or Scala SDK is insufficient. For this project, open
+`Settings | Build, Execution, Deployment | Build Tools | sbt`, set
+`JVM | JRE` to a JDK 25 installation, and also set the project SDK to JDK 25
+under `File | Project Structure | Project`.
+
+If an import command starts with a Java 8 executable such as
+`.../corretto-1.8.../bin/java`, IntelliJ has selected the wrong sbt JVM.
+Changing the Scala version is not the fix. Select JDK 25 in both locations,
+then refresh or reimport the sbt project. An unsupported importer JVM is
+rejected during meta-build settings load, before the ordinary `project/*.scala`
+helpers compile.
+
 Run the complete product gate from the repository root:
 
 ```sh

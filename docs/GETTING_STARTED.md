@@ -20,6 +20,20 @@ Confirm the active JVM before loading sbt:
 java -version
 ```
 
+## Import into IntelliJ IDEA
+
+The JVM that launches sbt must be JDK 25; the project language level and Scala
+SDK do not select that process. Open
+`Settings | Build, Execution, Deployment | Build Tools | sbt`, set
+`JVM | JRE` to JDK 25, and set the project SDK to JDK 25 under
+`File | Project Structure | Project`. Then refresh or reimport the sbt project.
+
+If the import command begins with a Java 8 path such as
+`.../corretto-1.8.../bin/java`, the sbt JVM is wrong. Do not change the pinned
+Scala version to compensate. The repository's bootstrap check rejects that JVM
+before compiling the ordinary meta-build helpers and tells you to select JDK
+25.
+
 ## Run the product gate
 
 From the repository root:

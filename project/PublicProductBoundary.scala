@@ -74,6 +74,7 @@ object PublicProductBoundary {
     "project/IndependentPrecompiledHandlerPackagedConsumerSpec.scala",
     "project/JdkVersionEnforcement.scala",
     "project/JdkVersionEnforcementSpec.scala",
+    "project/jdk25-bootstrap.sbt",
     "project/LegacyMetadataMatrixArtifact.scala",
     "project/PluginApiCleanResolution.scala",
     "project/PluginApiSourceProjectSplitPolicy.scala",

@@ -23,8 +23,14 @@ reporting a non-sensitive problem.
 
 ### JDK rejection during project load
 
-The build requires JDK feature version 25. Select a JDK 25 installation before
-rerunning sbt. There is no supported bypass.
+The build requires JDK feature version 25. A bootstrap setting rejects an
+unsupported JVM before ordinary `project/*.scala` helper compilation. In
+IntelliJ IDEA, select JDK 25 under
+`Settings | Build, Execution, Deployment | Build Tools | sbt | JVM | JRE`, set
+the project SDK to JDK 25 as well, and refresh or reimport the sbt project. If
+the import command starts with a Java 8 executable, the wrong sbt JVM is
+selected; changing the Scala SDK or version is not a fix. There is no supported
+bypass.
 
 ### Exact compiler mismatch
 
