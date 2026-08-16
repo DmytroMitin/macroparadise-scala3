@@ -8,9 +8,10 @@ the repository-root task:
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
-The root task supplies explicit paths to the packaged production plugin and
-`pluginApi`, isolates the child sbt state under the repository `target/`
-directory, and runs both the positive flow and the P1-P7 fail-closed matrix.
+The root task supplies local packaged production plugin and `pluginApi` paths,
+isolates the child sbt state under the repository `target/` directory, and runs
+both explicit and compact positive prechecks. It preserves the P1-P7 explicit
+fail-closed matrix and adds the focused C1-C6 compact matrix.
 
 The projects are intentionally separate:
 
@@ -47,6 +48,14 @@ use the production plugin and its exact runtime classpath:
 java -cp <plugin-and-exact-runtime-classpath> \
   macroparadise.ExternalHandlerPrecheckMain --help
 ```
+
+Explicit mode repeats all ten logical inputs for maximum independent caller
+expectations. Compact mode retains seven: marker, handler, handler compile
+classpath, expected handler, expected annotation, exact Scala version, and JDK
+major. It derives the running plugin and parent-loaded `pluginApi` JAR paths
+from their code sources and derives marker class from the retained qualified
+annotation expectation. It does not derive toolchain expectations from the
+observed runtime.
 
 See
 [`docs/EXTERNAL_HANDLER_AUTHORING.md`](../../docs/EXTERNAL_HANDLER_AUTHORING.md)

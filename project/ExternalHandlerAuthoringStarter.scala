@@ -48,6 +48,9 @@ object ExternalHandlerAuthoringStarter {
       generatedMethodPresent: Boolean,
       expansionCount: Int,
       negatives: Vector[NegativeEvidence],
+      compactNegatives: Vector[NegativeEvidence],
+      explicitPrecheckArguments: Int,
+      compactPrecheckArguments: Int,
       childStateDeleted: Boolean,
       evidenceDirectory: File
   ) {
@@ -60,6 +63,8 @@ object ExternalHandlerAuthoringStarter {
         s"consumerClasspathEntries=${consumerClasspath.size} pluginOptions=${pluginOptions.mkString("|")} " +
         s"runtimeOutput=${runtimeOutput.trim} generatedMethodPresent=$generatedMethodPresent " +
         s"expansionCount=$expansionCount negatives=${negatives.map(_.render).mkString(";")} " +
+        s"compactNegatives=${compactNegatives.map(_.render).mkString(";")} " +
+        s"explicitPrecheckArguments=$explicitPrecheckArguments compactPrecheckArguments=$compactPrecheckArguments " +
         s"childStateDeleted=$childStateDeleted"
   }
 
@@ -121,6 +126,46 @@ object ExternalHandlerAuthoringStarter {
       "auxify"
     ).foreach { forbidden =>
       if (normalized.exists(_.contains(forbidden))) errors += s"forbidden handler classpath fragment $forbidden"
+    }
+    errors.result()
+  }
+
+  def validatePrecheckCommandShapes(
+      explicit: Vector[String],
+      compact: Vector[String]
+  ): Vector[String] = {
+    val errors = Vector.newBuilder[String]
+    val explicitKeys = explicit.filter(_.startsWith("--")).map(_.takeWhile(_ != '='))
+    val compactKeys = compact.filter(_.startsWith("--")).map(_.takeWhile(_ != '='))
+    val explicitRequired = Vector(
+      "--plugin",
+      "--plugin-api",
+      "--marker",
+      "--handler",
+      "--handler-compile-classpath",
+      "--marker-class",
+      "--expected-handler-class",
+      "--expected-annotation",
+      "--expected-scala-version",
+      "--expected-jdk-major"
+    )
+    val compactRequired = Vector(
+      "--compact",
+      "--marker",
+      "--handler",
+      "--handler-compile-classpath",
+      "--expected-handler-class",
+      "--expected-annotation",
+      "--expected-scala-version",
+      "--expected-jdk-major"
+    )
+
+    if (explicitKeys != explicitRequired)
+      errors += s"explicit precheck argument shape changed: ${explicitKeys.mkString(",")}"
+    if (compactKeys != compactRequired)
+      errors += s"compact precheck argument shape changed: ${compactKeys.mkString(",")}"
+    Vector("--plugin", "--plugin-api", "--marker-class").foreach { forbidden =>
+      if (compactKeys.contains(forbidden)) errors += s"compact precheck repeats derived $forbidden"
     }
     errors.result()
   }
@@ -191,6 +236,15 @@ object ExternalHandlerAuthoringStarter {
     val precheckLog = read(new File(evidence, "precheck-positive.log"))
     require(precheckLog.contains("parentFirstContractIdentity=true"), "parent-first contract identity was not proven")
     require(precheckLog.contains("expansionInvoked=false"), "precheck zero-expansion evidence is missing")
+    val compactPrecheckLog = read(new File(evidence, "precheck-compact-positive.log"))
+    require(compactPrecheckLog.contains("parentFirstContractIdentity=true"), "compact parent-first contract identity was not proven")
+    require(compactPrecheckLog.contains("expansionInvoked=false"), "compact precheck zero-expansion evidence is missing")
+    val explicitPrecheckArguments = readLines(new File(evidence, "precheck-command.txt")).filter(_.startsWith("--"))
+    val compactPrecheckArguments = readLines(new File(evidence, "precheck-compact-command.txt")).filter(_.startsWith("--"))
+    require(
+      validatePrecheckCommandShapes(explicitPrecheckArguments, compactPrecheckArguments).isEmpty,
+      validatePrecheckCommandShapes(explicitPrecheckArguments, compactPrecheckArguments).mkString("; ")
+    )
 
     val expectedCategories = Vector(
       "P1" -> "INVALID_HANDLER_ANNOTATION_NAME",
@@ -207,6 +261,24 @@ object ExternalHandlerAuthoringStarter {
       require(validateNegativeFlow(flow).isEmpty, s"$id: ${validateNegativeFlow(flow).mkString("; ")}")
       val log = read(new File(directory, "precheck.log"))
       require(log.contains(s"category=$category"), s"$id lacked $category")
+      NegativeEvidence(id, category, flow)
+    }
+    val expectedCompactCategories = Vector(
+      "C1" -> "METADATA_HANDLER_CLASS_MISMATCH",
+      "C2" -> "WRONG_ARTIFACT_ROLE",
+      "C3" -> "EXACT_COMPILER_MISMATCH",
+      "C4" -> "EXACT_JDK_MISMATCH",
+      "C5" -> "FORBIDDEN_HANDLER_DEPENDENCY",
+      "C6" -> "HANDLER_CONTRACT_CLASSPATH_MISMATCH"
+    )
+    val compactNegatives = expectedCompactCategories.map { case (id, category) =>
+      val directory = new File(evidence, s"negative-compact/$id")
+      val flow = readLines(new File(directory, "flow.trace"))
+      require(validateNegativeFlow(flow).isEmpty, s"$id: ${validateNegativeFlow(flow).mkString("; ")}")
+      val log = read(new File(directory, "precheck.log"))
+      require(log.contains(s"category=$category"), s"$id lacked $category")
+      require(log.contains("consumerCompilationStarted=false"), s"$id lacked consumer stop evidence")
+      require(log.contains("expansionInvoked=false"), s"$id lacked expansion stop evidence")
       NegativeEvidence(id, category, flow)
     }
 
@@ -255,6 +327,9 @@ object ExternalHandlerAuthoringStarter {
       generatedMethodPresent,
       expansions,
       negatives,
+      compactNegatives,
+      explicitPrecheckArguments.size,
+      compactPrecheckArguments.count(_ != "--compact"),
       childStateDeleted,
       evidence
     )

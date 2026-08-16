@@ -77,7 +77,9 @@ The fixture-independent starter separates a marker, a precompiled handler, and
 an ordinary consumer. It verifies qualified annotation identity, metadata
 binding, exact compiler/JDK compatibility, class-loader identity, dependency
 boundaries, generated-member typing, runtime behavior, and a fail-closed
-precheck matrix.
+precheck matrix. Its packaged precheck retains the maximum-witness explicit
+form and adds a bounded compact form without changing the experimental handler
+API.
 
 ```sh
 sbt -batch verifyExternalHandlerAuthoringStarter

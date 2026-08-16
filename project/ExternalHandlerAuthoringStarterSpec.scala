@@ -1,5 +1,5 @@
 object ExternalHandlerAuthoringStarterSpec {
-  val CaseCount = 6
+  val CaseCount = 8
 
   def run(): Unit = {
     import ExternalHandlerAuthoringStarter._
@@ -48,5 +48,35 @@ object ExternalHandlerAuthoringStarterSpec {
     )
     assert(validateHandlerClasspath(allowedClasspath).isEmpty)
     assert(validateHandlerClasspath(allowedClasspath :+ "/tmp/plugin-test-handlers.jar").nonEmpty)
+
+    val explicitPrecheck = Vector(
+      "--plugin=/tmp/plugin.jar",
+      "--plugin-api=/tmp/plugin-api.jar",
+      "--marker=/tmp/marker.jar",
+      "--handler=/tmp/handler.jar",
+      "--handler-compile-classpath=/tmp/plugin-api.jar:/tmp/compiler.jar",
+      "--marker-class=starter.marker.generateGreeting",
+      "--expected-handler-class=starter.handler.GenerateGreetingHandler",
+      "--expected-annotation=starter.marker.generateGreeting",
+      "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      "--expected-jdk-major=25"
+    )
+    val compactPrecheck = Vector(
+      "--compact",
+      "--marker=/tmp/marker.jar",
+      "--handler=/tmp/handler.jar",
+      "--handler-compile-classpath=/tmp/plugin-api.jar:/tmp/compiler.jar",
+      "--expected-handler-class=starter.handler.GenerateGreetingHandler",
+      "--expected-annotation=starter.marker.generateGreeting",
+      "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      "--expected-jdk-major=25"
+    )
+    assert(validatePrecheckCommandShapes(explicitPrecheck, compactPrecheck).isEmpty)
+    assert(
+      validatePrecheckCommandShapes(
+        explicitPrecheck,
+        compactPrecheck :+ "--plugin=/tmp/echoed-plugin.jar"
+      ).nonEmpty
+    )
   }
 }

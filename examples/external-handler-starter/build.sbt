@@ -91,6 +91,35 @@ def javaCommand(
   )
 }
 
+def compactJavaCommand(
+    runtimeClasspath: Seq[File],
+    plugin: File,
+    marker: File,
+    handler: File,
+    handlerCompileClasspath: Seq[File],
+    expectedHandlerClass: String,
+    expectedAnnotation: String,
+    expectedScala: String = ExactScalaVersion,
+    expectedJdk: Int = 25
+): Seq[String] = {
+  val java = file(sys.props("java.home")) / "bin" / "java"
+  val parentClasspath = (plugin +: runtimeClasspath).map(_.getCanonicalFile).distinct
+  Seq(
+    java.getAbsolutePath,
+    "-cp",
+    parentClasspath.map(_.getAbsolutePath).mkString(File.pathSeparator),
+    "macroparadise.ExternalHandlerPrecheckMain",
+    "--compact",
+    s"--marker=${marker.getAbsolutePath}",
+    s"--handler=${handler.getAbsolutePath}",
+    s"--handler-compile-classpath=${handlerCompileClasspath.map(_.getCanonicalPath).mkString(File.pathSeparator)}",
+    s"--expected-handler-class=$expectedHandlerClass",
+    s"--expected-annotation=$expectedAnnotation",
+    s"--expected-scala-version=$expectedScala",
+    s"--expected-jdk-major=$expectedJdk"
+  )
+}
+
 def contractSettings: Seq[Setting[_]] = Seq(
   Compile / unmanagedJars += Attributed.blank(requiredArtifact(PluginApiProperty)),
   libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
@@ -133,6 +162,24 @@ lazy val handler: Project = project.in(file("handler"))
       val exit = runCommand(command, baseDirectory.value, evidence / "precheck-positive.log")
       require(exit == 0, s"positive precheck failed with exit $exit")
       require(!expansionTrace.isFile, "precheck invoked handler expansion")
+
+      val compactCommand = compactJavaCommand(
+        runtimeClasspath = handlerClasspath,
+        plugin = plugin,
+        marker = markerJar,
+        handler = handlerJar,
+        handlerCompileClasspath = handlerClasspath,
+        expectedHandlerClass = "starter.handler.GenerateGreetingHandler",
+        expectedAnnotation = "starter.marker.generateGreeting"
+      )
+      writeLines(evidence / "precheck-compact-command.txt", compactCommand)
+      val compactExit = runCommand(
+        compactCommand,
+        baseDirectory.value,
+        evidence / "precheck-compact-positive.log"
+      )
+      require(compactExit == 0, s"compact positive precheck failed with exit $compactExit")
+      require(!expansionTrace.isFile, "compact precheck invoked handler expansion")
       appendEvent(flow, "precheck-success")
     }
   )
@@ -254,6 +301,65 @@ lazy val root: Project = project.in(file("."))
         require(exit != 0, s"${lane.id} unexpectedly passed precheck")
         val diagnostic = IO.read(log, StandardCharsets.UTF_8)
         require(diagnostic.contains(s"category=${lane.category}"), s"${lane.id} lacked ${lane.category}: $diagnostic")
+        require(diagnostic.contains("consumerCompilationStarted=false"), s"${lane.id} lacked consumer stop evidence")
+        require(diagnostic.contains("expansionInvoked=false"), s"${lane.id} lacked expansion stop evidence")
+        require(!IO.readLines(sentinel).contains("consumer-compile-start"), s"${lane.id} reached consumer compile")
+        appendEvent(sentinel, "precheck-failed")
+      }
+
+      val duplicatePluginApi = evidence / "duplicate-plugin-api.jar"
+      IO.copyFile(pluginApi, duplicatePluginApi)
+
+      final case class CompactLane(
+          id: String,
+          category: String,
+          marker: File = markerJar,
+          handler: File = handlerJar,
+          runtimeClasspath: Seq[File] = handlerClasspath,
+          compileClasspath: Seq[File] = handlerClasspath,
+          expectedHandler: String = "starter.handler.GenerateGreetingHandler",
+          expectedAnnotation: String = "starter.marker.generateGreeting",
+          expectedScala: String = ExactScalaVersion,
+          expectedJdk: Int = 25
+      )
+
+      val compactLanes = Vector(
+        CompactLane("C1", "METADATA_HANDLER_CLASS_MISMATCH", expectedHandler = "starter.handler.OtherHandler"),
+        CompactLane("C2", "WRONG_ARTIFACT_ROLE", expectedAnnotation = "starter.marker.otherGreeting"),
+        CompactLane("C3", "EXACT_COMPILER_MISMATCH", expectedScala = "3.8.4"),
+        CompactLane("C4", "EXACT_JDK_MISMATCH", expectedJdk = 26),
+        CompactLane("C5", "FORBIDDEN_HANDLER_DEPENDENCY", compileClasspath = handlerClasspath :+ plugin),
+        CompactLane(
+          "C6",
+          "HANDLER_CONTRACT_CLASSPATH_MISMATCH",
+          runtimeClasspath = duplicatePluginApi +: handlerClasspath
+        )
+      )
+
+      compactLanes.foreach { lane =>
+        val laneDirectory = evidenceDirectory / "negative-compact" / lane.id
+        val sentinel = laneDirectory / "flow.trace"
+        appendEvent(sentinel, "precheck-start")
+        val command = compactJavaCommand(
+          runtimeClasspath = lane.runtimeClasspath,
+          plugin = plugin,
+          marker = lane.marker,
+          handler = lane.handler,
+          handlerCompileClasspath = lane.compileClasspath,
+          expectedHandlerClass = lane.expectedHandler,
+          expectedAnnotation = lane.expectedAnnotation,
+          expectedScala = lane.expectedScala,
+          expectedJdk = lane.expectedJdk
+        )
+        writeLines(laneDirectory / "command.txt", command)
+        val log = laneDirectory / "precheck.log"
+        val exit = runCommand(command, baseDirectory.value, log)
+        if (exit == 0) appendEvent(sentinel, "consumer-compile-start")
+        require(exit != 0, s"${lane.id} unexpectedly passed compact precheck")
+        val diagnostic = IO.read(log, StandardCharsets.UTF_8)
+        require(diagnostic.contains(s"category=${lane.category}"), s"${lane.id} lacked ${lane.category}: $diagnostic")
+        require(diagnostic.contains("consumerCompilationStarted=false"), s"${lane.id} lacked consumer stop evidence")
+        require(diagnostic.contains("expansionInvoked=false"), s"${lane.id} lacked expansion stop evidence")
         require(!IO.readLines(sentinel).contains("consumer-compile-start"), s"${lane.id} reached consumer compile")
         appendEvent(sentinel, "precheck-failed")
       }

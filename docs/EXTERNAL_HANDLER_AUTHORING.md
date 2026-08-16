@@ -131,9 +131,47 @@ java -cp <plugin-and-exact-runtime-classpath> \
   macroparadise.ExternalHandlerPrecheckMain --help
 ```
 
-The help output names all four artifact roles, the separately recorded handler
-compile classpath, qualified identities, and exact toolchain expectations. A
-failed precheck exits with status 2 and reports
+The help output presents two additive modes. Explicit mode keeps the maximum
+caller-supplied independent expectations:
+
+```text
+--plugin=<plugin.jar>
+--plugin-api=<plugin-api.jar>
+--marker=<marker.jar>
+--handler=<handler.jar>
+--handler-compile-classpath=<path-list>
+--marker-class=<qualified-marker-class>
+--expected-handler-class=<qualified-handler-class>
+--expected-annotation=<qualified-annotation-name>
+--expected-scala-version=<exact-version>
+--expected-jdk-major=<major>
+```
+
+Compact mode removes only three duplicated inputs:
+
+```text
+--compact
+--marker=<marker.jar>
+--handler=<handler.jar>
+--handler-compile-classpath=<path-list>
+--expected-handler-class=<qualified-handler-class>
+--expected-annotation=<qualified-annotation-name>
+--expected-scala-version=<exact-version>
+--expected-jdk-major=<major>
+```
+
+The running `ExternalHandlerPrecheckMain` code source supplies the production
+plugin JAR, the parent-loaded `ParadiseAnnotationExpander` code source supplies
+the `pluginApi` JAR, and the canonical expected annotation supplies the marker
+class. Both code sources must be local regular JARs with the expected artifact
+roles. The separately recorded handler compile classpath must contain the
+derived parent API path exactly once, so a duplicate runtime API path fails
+rather than being guessed or silently accepted.
+
+The expected handler, expected annotation, exact Scala version, and JDK major
+remain caller-supplied independent witnesses. They are intentionally not
+derived from marker/handler metadata or observed runtime versions. A failed
+precheck exits with status 2 and reports
 `stage=preconsumer consumerCompilationStarted=false expansionInvoked=false`
 before its category, detail, and usage. `--help` exits successfully without
 loading artifacts or running the precheck.
@@ -146,4 +184,5 @@ marker/handler/consumer path on the pinned toolchain.
 
 It does not prove same-module handlers, stable coordinates, arbitrary targets,
 arbitrary composition, import resolution, cross-compiler compatibility, or
-release readiness.
+release readiness. The compact command is source-build ergonomics for local
+packaged artifacts; public source visibility does not mean artifact publication.

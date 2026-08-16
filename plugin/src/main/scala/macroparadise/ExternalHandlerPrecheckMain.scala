@@ -1,11 +1,14 @@
 package macroparadise
 
 import dotty.tools.dotc.config.Properties
+import paradise3.api.ParadiseAnnotationExpander
 
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
 
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /** Narrow executable preconsumer precheck packaged with the production plugin.
   *
@@ -18,6 +21,7 @@ object ExternalHandlerPrecheckMain:
 
   private[macroparadise] val usage: String =
     """Usage:
+      |  Explicit mode (maximum caller-supplied independent expectations):
       |  java -cp <plugin-and-exact-runtime-classpath> macroparadise.ExternalHandlerPrecheckMain \
       |    --plugin=<plugin.jar> \
       |    --plugin-api=<plugin-api.jar> \
@@ -29,6 +33,22 @@ object ExternalHandlerPrecheckMain:
       |    --expected-annotation=<qualified-annotation-name> \
       |    --expected-scala-version=<exact-version> \
       |    --expected-jdk-major=<major>
+      |
+      |  Compact mode (bounded runtime derivation):
+      |  java -cp <plugin-and-exact-runtime-classpath> macroparadise.ExternalHandlerPrecheckMain \
+      |    --compact \
+      |    --marker=<marker.jar> \
+      |    --handler=<handler.jar> \
+      |    --handler-compile-classpath=<path-list> \
+      |    --expected-handler-class=<qualified-handler-class> \
+      |    --expected-annotation=<qualified-annotation-name> \
+      |    --expected-scala-version=<exact-version> \
+      |    --expected-jdk-major=<major>
+      |
+      |Compact derived witnesses:
+      |  plugin: executing ExternalHandlerPrecheckMain code source
+      |  plugin-api: parent-loaded ParadiseAnnotationExpander code source
+      |  marker-class: canonical expected-annotation identity
       |
       |Artifact roles:
       |  plugin: packaged production compiler plugin containing this command
@@ -56,6 +76,21 @@ object ExternalHandlerPrecheckMain:
     "expected-jdk-major"
   )
 
+  private val CompactRequiredKeys = Vector(
+    "marker",
+    "handler",
+    "handler-compile-classpath",
+    "expected-handler-class",
+    "expected-annotation",
+    "expected-scala-version",
+    "expected-jdk-major"
+  )
+
+  private[macroparadise] final case class RuntimeArtifacts(
+      plugin: Path,
+      pluginApi: Path
+  )
+
   def main(args: Array[String]): Unit =
     if helpRequested(args) then println(usage)
     else
@@ -80,12 +115,22 @@ object ExternalHandlerPrecheckMain:
       args: Array[String],
       parentLoader: ClassLoader
   ): Either[Failure, Success] =
-    parse(
-      args,
-      parentLoader,
-      actualScalaVersion = Properties.versionNumberString,
-      actualJdkMajor = Runtime.version().feature()
-    ).flatMap(ExternalHandlerPrecheck.run)
+    if args.contains("--compact") then
+      deriveRuntimeArtifacts().flatMap: runtimeArtifacts =>
+        parseCompact(
+          args,
+          parentLoader,
+          actualScalaVersion = Properties.versionNumberString,
+          actualJdkMajor = Runtime.version().feature(),
+          runtimeArtifacts
+        ).flatMap(ExternalHandlerPrecheck.run)
+    else
+      parse(
+        args,
+        parentLoader,
+        actualScalaVersion = Properties.versionNumberString,
+        actualJdkMajor = Runtime.version().feature()
+      ).flatMap(ExternalHandlerPrecheck.run)
 
   private[macroparadise] def parse(
       args: Array[String],
@@ -93,9 +138,69 @@ object ExternalHandlerPrecheckMain:
       actualScalaVersion: String,
       actualJdkMajor: Int
   ): Either[Failure, Request] =
+    parseRequest(
+      args,
+      RequiredKeys,
+      parentLoader,
+      actualScalaVersion,
+      actualJdkMajor
+    )(
+      values =>
+        ArtifactPaths(
+          plugin = Path.of(values("plugin")),
+          pluginApi = Path.of(values("plugin-api")),
+          marker = Path.of(values("marker")),
+          handler = Path.of(values("handler"))
+        ),
+      values => values("marker-class")
+    )
+
+  private[macroparadise] def parseCompact(
+      args: Array[String],
+      parentLoader: ClassLoader,
+      actualScalaVersion: String,
+      actualJdkMajor: Int,
+      runtimeArtifacts: RuntimeArtifacts
+  ): Either[Failure, Request] =
+    val modeCount = args.count(_ == "--compact")
+    if modeCount != 1 then
+      Left(
+        Failure(
+          "PRECHECK_ARGUMENT_FAILURE",
+          s"compact mode requires exactly one --compact flag; found $modeCount"
+        )
+      )
+    else
+      parseRequest(
+        args.filterNot(_ == "--compact"),
+        CompactRequiredKeys,
+        parentLoader,
+        actualScalaVersion,
+        actualJdkMajor
+      )(
+        values =>
+          ArtifactPaths(
+            plugin = runtimeArtifacts.plugin,
+            pluginApi = runtimeArtifacts.pluginApi,
+            marker = Path.of(values("marker")),
+            handler = Path.of(values("handler"))
+          ),
+        values => values("expected-annotation")
+      )
+
+  private def parseRequest(
+      args: Array[String],
+      requiredKeys: Vector[String],
+      parentLoader: ClassLoader,
+      actualScalaVersion: String,
+      actualJdkMajor: Int
+  )(
+      artifacts: Map[String, String] => ArtifactPaths,
+      markerClassName: Map[String, String] => String
+  ): Either[Failure, Request] =
     for
-      values <- parseArguments(args.toVector)
-      missing = RequiredKeys.filterNot(values.contains)
+      values <- parseArguments(args.toVector, requiredKeys)
+      missing = requiredKeys.filterNot(values.contains)
       _ <-
         missing.headOption match
           case Some(key) =>
@@ -132,14 +237,9 @@ object ExternalHandlerPrecheckMain:
           )
     yield
       Request(
-        artifacts = ArtifactPaths(
-          plugin = Path.of(values("plugin")),
-          pluginApi = Path.of(values("plugin-api")),
-          marker = Path.of(values("marker")),
-          handler = Path.of(values("handler"))
-        ),
+        artifacts = artifacts(values),
         handlerCompileClasspath = compileClasspath,
-        markerClassName = values("marker-class"),
+        markerClassName = markerClassName(values),
         expectedHandlerClassName = values("expected-handler-class"),
         expectedAnnotationName = values("expected-annotation"),
         environment = Environment(
@@ -152,7 +252,8 @@ object ExternalHandlerPrecheckMain:
       )
 
   private def parseArguments(
-      args: Vector[String]
+      args: Vector[String],
+      allowedKeys: Vector[String]
   ): Either[Failure, Map[String, String]] =
     args.foldLeft[Either[Failure, Map[String, String]]](Right(Map.empty)):
       (result, argument) =>
@@ -162,7 +263,7 @@ object ExternalHandlerPrecheckMain:
               val separator = value.indexOf('=')
               val key = value.substring(2, separator)
               val raw = value.substring(separator + 1)
-              if !RequiredKeys.contains(key) then
+              if !allowedKeys.contains(key) then
                 Left(
                   Failure(
                     "PRECHECK_ARGUMENT_FAILURE",
@@ -191,3 +292,50 @@ object ExternalHandlerPrecheckMain:
                   s"expected --key=value argument, found `$other`"
                 )
               )
+
+  private def deriveRuntimeArtifacts(): Either[Failure, RuntimeArtifacts] =
+    for
+      plugin <- artifactPathFromCodeSource(getClass, "plugin")
+      pluginApi <- artifactPathFromCodeSource(
+        classOf[ParadiseAnnotationExpander],
+        "plugin-api"
+      )
+    yield RuntimeArtifacts(plugin, pluginApi)
+
+  private[macroparadise] def artifactPathFromCodeSource(
+      clazz: Class[?],
+      role: String
+  ): Either[Failure, Path] =
+    val location =
+      Option(clazz.getProtectionDomain)
+        .flatMap(domain => Option(domain.getCodeSource))
+        .flatMap(source => Option(source.getLocation))
+
+    location match
+      case None =>
+        Left(
+          Failure(
+            "COMPACT_PRECHECK_DERIVATION_FAILURE",
+            s"$role runtime class `${clazz.getName}` has no code-source location"
+          )
+        )
+      case Some(url) =>
+        try
+          val path = Path.of(url.toURI).toAbsolutePath.normalize
+          if url.getProtocol == "file" && Files.isRegularFile(path) && path.getFileName.toString.endsWith(".jar") then
+            Right(path)
+          else
+            Left(
+              Failure(
+                "COMPACT_PRECHECK_DERIVATION_FAILURE",
+                s"$role runtime class `${clazz.getName}` must come from one local regular JAR file; found `$url`"
+              )
+            )
+        catch
+          case NonFatal(error) =>
+            Left(
+              Failure(
+                "COMPACT_PRECHECK_DERIVATION_FAILURE",
+                s"$role runtime class `${clazz.getName}` has unreadable code source `$url`: ${error.getClass.getName}"
+              )
+            )

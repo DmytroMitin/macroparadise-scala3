@@ -228,6 +228,15 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     assert(!ExternalHandlerPrecheckMain.helpRequested(Array("--help=true")))
   }
 
+  test("precheck help presents additive compact mode and names each derived witness") {
+    val usage = ExternalHandlerPrecheckMain.usage
+
+    assert(usage.contains("--compact"), usage)
+    assert(usage.contains("plugin: executing ExternalHandlerPrecheckMain code source"), usage)
+    assert(usage.contains("plugin-api: parent-loaded ParadiseAnnotationExpander code source"), usage)
+    assert(usage.contains("marker-class: canonical expected-annotation identity"), usage)
+  }
+
   test("precheck argument failure output identifies the stopped stage before usage") {
     val rendered = ExternalHandlerPrecheckMain.renderFailure(
       Failure("PRECHECK_ARGUMENT_FAILURE", "missing required argument --plugin")
@@ -285,6 +294,100 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
       Vector(Path.of("/artifacts/plugin-api.jar"), Path.of("/artifacts/compiler.jar"))
     )
     assertEquals(request.environment.actualJdkMajor, 25)
+  }
+
+  test("compact command derives runtime artifacts and marker class without dropping independent expectations") {
+    val separator = java.io.File.pathSeparator
+    val request = ExternalHandlerPrecheckMain.parseCompact(
+      Array(
+        "--compact",
+        "--marker=/artifacts/marker.jar",
+        "--handler=/artifacts/handler.jar",
+        s"--handler-compile-classpath=/runtime/plugin-api.jar${separator}/artifacts/compiler.jar",
+        "--expected-handler-class=starter.handler.GenerateGreetingHandler",
+        "--expected-annotation=starter.marker.generateGreeting",
+        "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        "--expected-jdk-major=25"
+      ),
+      getClass.getClassLoader,
+      actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      actualJdkMajor = 25,
+      ExternalHandlerPrecheckMain.RuntimeArtifacts(
+        plugin = Path.of("/runtime/plugin.jar"),
+        pluginApi = Path.of("/runtime/plugin-api.jar")
+      )
+    ) match
+      case Right(value) => value
+      case Left(failure) => fail(failure.render)
+
+    assertEquals(request.artifacts.plugin, Path.of("/runtime/plugin.jar"))
+    assertEquals(request.artifacts.pluginApi, Path.of("/runtime/plugin-api.jar"))
+    assertEquals(request.markerClassName, "starter.marker.generateGreeting")
+    assertEquals(request.expectedHandlerClassName, "starter.handler.GenerateGreetingHandler")
+    assertEquals(request.environment.expectedJdkMajor, 25)
+  }
+
+  test("compact runtime derivation rejects an unpackaged classes directory") {
+    val failure = failed(
+      ExternalHandlerPrecheckMain.artifactPathFromCodeSource(
+        getClass,
+        role = "plugin"
+      )
+    )
+
+    assertEquals(failure.category, "COMPACT_PRECHECK_DERIVATION_FAILURE")
+    assert(failure.detail.contains("regular JAR file"), failure.detail)
+  }
+
+  test("compact derived plugin API is checked against independent handler compile evidence") {
+    val root = Files.createTempDirectory("external-handler-precheck-compact-api-")
+    try
+      val plugin = jar(root.resolve("plugin.jar"), Map(
+        "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+        "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
+        "plugin.properties" -> Array[Byte](1)
+      ))
+      val runtimeApi = jar(root.resolve("runtime-api.jar"), Map(
+        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/expander.class" -> Array[Byte](1)
+      ))
+      val echoedApi = jar(root.resolve("echoed-api.jar"), Map(
+        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/expander.class" -> Array[Byte](1)
+      ))
+      val marker = jar(root.resolve("marker.jar"), Map(
+        "starter/marker/generateGreeting.class" -> Array[Byte](1)
+      ))
+      val handler = jar(root.resolve("handler.jar"), Map(
+        "starter/handler/GenerateGreetingHandler.class" -> Array[Byte](1)
+      ))
+      val compiler = jar(root.resolve("compiler.jar"), Map(
+        "dotty/tools/dotc/Main.class" -> Array[Byte](1)
+      ))
+      val separator = java.io.File.pathSeparator
+      val request = ExternalHandlerPrecheckMain.parseCompact(
+        Array(
+          "--compact",
+          s"--marker=$marker",
+          s"--handler=$handler",
+          s"--handler-compile-classpath=$echoedApi${separator}$compiler",
+          "--expected-handler-class=starter.handler.GenerateGreetingHandler",
+          "--expected-annotation=starter.marker.generateGreeting",
+          "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+          "--expected-jdk-major=25"
+        ),
+        getClass.getClassLoader,
+        actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        actualJdkMajor = 25,
+        ExternalHandlerPrecheckMain.RuntimeArtifacts(plugin, runtimeApi)
+      ) match
+        case Right(value) => value
+        case Left(failure) => fail(failure.render)
+
+      val failure = failed(ExternalHandlerPrecheck.run(request))
+      assertEquals(failure.category, "HANDLER_CONTRACT_CLASSPATH_MISMATCH")
+      assert(failure.detail.contains("found 0"), failure.detail)
+    finally deleteRecursively(root)
   }
 
   private def jarFromResources(path: Path, resources: List[String]): Path =

@@ -92,8 +92,15 @@ java -cp <plugin-and-exact-runtime-classpath> \
   macroparadise.ExternalHandlerPrecheckMain --help
 ```
 
-Argument and precheck failures exit with status 2 and explicitly report that
-consumer compilation and expansion did not start.
+The help distinguishes the ten-input explicit form from the seven-input compact
+form. Compact mode derives only the running plugin JAR, the parent-loaded
+`pluginApi` JAR, and marker class; expected handler, annotation, Scala version,
+and JDK major remain independent caller inputs. A runtime class loaded from a
+directory, a non-file code source, or an API path absent from the handler
+compile evidence fails closed.
+
+Argument, compact-derivation, and precheck failures exit with status 2 and
+explicitly report that consumer compilation and expansion did not start.
 
 Whitespace and patch sanity:
 
