@@ -60,6 +60,13 @@ object ExternalHandlerPrecheckMain:
       |Preconsumer guarantee:
       |  failures stop with stage=preconsumer consumerCompilationStarted=false expansionInvoked=false
       |
+      |Metadata authoring failure context (when available):
+      |  failureStage=<metadata-selection|handler-artifact|handler-loading|handler-contract|handler-construction|handler-declaration|metadata-binding>
+      |  markerIdentity=<qualified-marker-class> expectedAnnotation=<qualified-annotation-name>
+      |  metadataHandler=<marker-declared-handler> expectedHandler=<caller-expected-handler>
+      |  markerArtifact=<marker.jar> handlerArtifact=<handler.jar>
+      |  malformed marker handler metadata uses category=INVALID_METADATA_HANDLER_CLASS_NAME
+      |
       |Use --help to print this usage without running the precheck.
       |""".stripMargin
 

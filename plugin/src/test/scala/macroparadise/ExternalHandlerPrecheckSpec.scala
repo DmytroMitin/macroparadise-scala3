@@ -206,6 +206,90 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
       deleteRecursively(root)
   }
 
+  test("missing metadata handler names the selecting marker expectations and supplied artifact") {
+    val failure = packagedFailure(
+      markerClassName = "starter.precheckfixtures.MissingHandlerMarker",
+      markerResource = "starter/precheckfixtures/MissingHandlerMarker.class",
+      expectedHandlerClassName = "starter.precheckfixtures.DoesNotExist",
+      expectedAnnotationName = "starter.precheckfixtures.MissingHandlerMarker",
+      handlerResources = List("starter/precheckfixtures/NotAHandler.class")
+    )
+
+    assertEquals(failure.category, "HANDLER_CLASS_LOADING_FAILURE")
+    Vector(
+      "failureStage=handler-artifact",
+      "markerIdentity=starter.precheckfixtures.MissingHandlerMarker",
+      "expectedAnnotation=starter.precheckfixtures.MissingHandlerMarker",
+      "metadataHandler=starter.precheckfixtures.DoesNotExist",
+      "expectedHandler=starter.precheckfixtures.DoesNotExist",
+      "markerArtifact=",
+      "handlerArtifact=",
+      "does not contain expected handler class"
+    ).foreach(fragment => assert(failure.detail.contains(fragment), failure.detail))
+  }
+
+  test("non-handler metadata target retains full authoring context at contract failure") {
+    val failure = packagedFailure(
+      markerClassName = "starter.precheckfixtures.InvalidContractMarker",
+      markerResource = "starter/precheckfixtures/InvalidContractMarker.class",
+      expectedHandlerClassName = "starter.precheckfixtures.NotAHandler",
+      expectedAnnotationName = "starter.precheckfixtures.InvalidContractMarker",
+      handlerResources = List("starter/precheckfixtures/NotAHandler.class")
+    )
+
+    assertEquals(failure.category, "HANDLER_CONTRACT_IDENTITY_FAILURE")
+    Vector(
+      "failureStage=handler-contract",
+      "markerIdentity=starter.precheckfixtures.InvalidContractMarker",
+      "expectedAnnotation=starter.precheckfixtures.InvalidContractMarker",
+      "metadataHandler=starter.precheckfixtures.NotAHandler",
+      "expectedHandler=starter.precheckfixtures.NotAHandler",
+      "handlerArtifact="
+    ).foreach(fragment => assert(failure.detail.contains(fragment), failure.detail))
+  }
+
+  test("descriptor mismatch exposes deterministic independent binding facts") {
+    val failure = packagedFailure(
+      markerClassName = "starter.precheckfixtures.BindingMismatchMarker",
+      markerResource = "starter/precheckfixtures/BindingMismatchMarker.class",
+      expectedHandlerClassName = "starter.precheckfixtures.BindingMismatchHandler",
+      expectedAnnotationName = "starter.precheckfixtures.BindingMismatchMarker",
+      handlerResources = List("starter/precheckfixtures/BindingMismatchHandler.class")
+    )
+
+    assertEquals(failure.category, "METADATA_HANDLER_ANNOTATION_MISMATCH")
+    Vector(
+      "failureStage=metadata-binding",
+      "markerIdentity=starter.precheckfixtures.BindingMismatchMarker",
+      "expectedAnnotation=starter.precheckfixtures.BindingMismatchMarker",
+      "metadataHandler=starter.precheckfixtures.BindingMismatchHandler",
+      "expectedHandler=starter.precheckfixtures.BindingMismatchHandler",
+      "declaredAnnotation=starter.precheckfixtures.OtherMarker",
+      "markerArtifact=",
+      "handlerArtifact="
+    ).foreach(fragment => assert(failure.detail.contains(fragment), failure.detail))
+    assert(!failure.detail.contains("requestedLoader="), failure.detail)
+  }
+
+  test("whitespace marker metadata has a specific syntax failure with authoring context") {
+    val failure = packagedFailure(
+      markerClassName = "starter.precheckfixtures.WhitespaceMetadataMarker",
+      markerResource = "starter/precheckfixtures/WhitespaceMetadataMarker.class",
+      expectedHandlerClassName = "   ",
+      expectedAnnotationName = "starter.precheckfixtures.WhitespaceMetadataMarker",
+      handlerResources = List("starter/precheckfixtures/NotAHandler.class")
+    )
+
+    assertEquals(failure.category, "INVALID_METADATA_HANDLER_CLASS_NAME")
+    Vector(
+      "failureStage=metadata-selection",
+      "markerIdentity=starter.precheckfixtures.WhitespaceMetadataMarker",
+      "metadataHandler=<whitespace>",
+      "expectedHandler=<whitespace>",
+      "expected a canonical simple or dot-qualified handler class name"
+    ).foreach(fragment => assert(failure.detail.contains(fragment), failure.detail))
+  }
+
   test("precheck help names every required role and the preconsumer boundary") {
     val usage = ExternalHandlerPrecheckMain.usage
 
@@ -223,6 +307,15 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     ).foreach(option => assert(usage.contains(option), usage))
     assert(usage.contains("consumerCompilationStarted=false"), usage)
     assert(usage.contains("expansionInvoked=false"), usage)
+    Vector(
+      "failureStage",
+      "markerIdentity",
+      "expectedAnnotation",
+      "metadataHandler",
+      "expectedHandler",
+      "markerArtifact",
+      "handlerArtifact"
+    ).foreach(field => assert(usage.contains(field), usage))
     assert(ExternalHandlerPrecheckMain.helpRequested(Array("--help")))
     assert(!ExternalHandlerPrecheckMain.helpRequested(Array.empty[String]))
     assert(!ExternalHandlerPrecheckMain.helpRequested(Array("--help=true")))
@@ -400,6 +493,50 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         finally stream.close()
       .toMap
     )
+
+  private def packagedFailure(
+      markerClassName: String,
+      markerResource: String,
+      expectedHandlerClassName: String,
+      expectedAnnotationName: String,
+      handlerResources: List[String]
+  ): Failure =
+    val root = Files.createTempDirectory("external-handler-precheck-authoring-")
+    try
+      val plugin = jar(root.resolve("plugin.jar"), Map(
+        "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+        "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
+        "plugin.properties" -> Array[Byte](1)
+      ))
+      val pluginApi = jar(root.resolve("plugin-api.jar"), Map(
+        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/expander.class" -> Array[Byte](1)
+      ))
+      val marker = jarFromResources(root.resolve("marker.jar"), List(markerResource))
+      val handler = jarFromResources(root.resolve("handler.jar"), handlerResources)
+      val compiler = jar(root.resolve("scala3-compiler.jar"), Map(
+        "dotty/tools/dotc/Main.class" -> Array[Byte](1)
+      ))
+
+      failed(
+        ExternalHandlerPrecheck.run(
+          Request(
+            artifacts = ArtifactPaths(plugin, pluginApi, marker, handler),
+            handlerCompileClasspath = Vector(pluginApi, compiler),
+            markerClassName = markerClassName,
+            expectedHandlerClassName = expectedHandlerClassName,
+            expectedAnnotationName = expectedAnnotationName,
+            environment = Environment(
+              expectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+              actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+              expectedJdkMajor = 25,
+              actualJdkMajor = 25
+            ),
+            parentLoader = getClass.getClassLoader
+          )
+        )
+      )
+    finally deleteRecursively(root)
 
   private def jar(path: Path, entries: Map[String, Array[Byte]]): Path =
     Files.createDirectories(path.getParent)

@@ -23,3 +23,23 @@ final class ValidHandler extends ParadiseAnnotationExpander:
         StandardOpenOption.APPEND
       )
     ExpansionOutcome.NotApplicable
+
+@expander("starter.precheckfixtures.DoesNotExist")
+final class MissingHandlerMarker extends StaticAnnotation
+
+@expander("starter.precheckfixtures.NotAHandler")
+final class InvalidContractMarker extends StaticAnnotation
+
+final class NotAHandler
+
+@expander("starter.precheckfixtures.BindingMismatchHandler")
+final class BindingMismatchMarker extends StaticAnnotation
+
+final class BindingMismatchHandler extends ParadiseAnnotationExpander:
+  val annotationName: String = "starter.precheckfixtures.OtherMarker"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionOutcome.NotApplicable
+
+@expander("   ")
+final class WhitespaceMetadataMarker extends StaticAnnotation

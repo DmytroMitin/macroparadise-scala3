@@ -35,6 +35,16 @@ object ExternalHandlerAuthoringStarter {
     def render: String = s"$id(category=$category flow=${flow.mkString(",")})"
   }
 
+  final case class MetadataNegativeEvidence(
+      id: String,
+      category: String,
+      explicitFlow: Vector[String],
+      compactFlow: Vector[String]
+  ) {
+    def render: String =
+      s"$id(category=$category explicitFlow=${explicitFlow.mkString(",")} compactFlow=${compactFlow.mkString(",")})"
+  }
+
   final case class VerificationResult(
       plugin: ArtifactIdentity,
       pluginApi: ArtifactIdentity,
@@ -49,6 +59,7 @@ object ExternalHandlerAuthoringStarter {
       expansionCount: Int,
       negatives: Vector[NegativeEvidence],
       compactNegatives: Vector[NegativeEvidence],
+      metadataNegatives: Vector[MetadataNegativeEvidence],
       explicitPrecheckArguments: Int,
       compactPrecheckArguments: Int,
       childStateDeleted: Boolean,
@@ -64,6 +75,7 @@ object ExternalHandlerAuthoringStarter {
         s"runtimeOutput=${runtimeOutput.trim} generatedMethodPresent=$generatedMethodPresent " +
         s"expansionCount=$expansionCount negatives=${negatives.map(_.render).mkString(";")} " +
         s"compactNegatives=${compactNegatives.map(_.render).mkString(";")} " +
+        s"metadataNegatives=${metadataNegatives.map(_.render).mkString(";")} " +
         s"explicitPrecheckArguments=$explicitPrecheckArguments compactPrecheckArguments=$compactPrecheckArguments " +
         s"childStateDeleted=$childStateDeleted"
   }
@@ -166,6 +178,40 @@ object ExternalHandlerAuthoringStarter {
       errors += s"compact precheck argument shape changed: ${compactKeys.mkString(",")}"
     Vector("--plugin", "--plugin-api", "--marker-class").foreach { forbidden =>
       if (compactKeys.contains(forbidden)) errors += s"compact precheck repeats derived $forbidden"
+    }
+    errors.result()
+  }
+
+  def validateMetadataDiagnosticParity(
+      explicit: String,
+      compact: String,
+      expectedCategory: String
+  ): Vector[String] = {
+    val errors = Vector.newBuilder[String]
+    val categoryToken = s"category=$expectedCategory"
+    if (!explicit.contains(categoryToken)) errors += s"explicit diagnostic lacks $categoryToken"
+    if (!compact.contains(categoryToken)) errors += s"compact diagnostic lacks $categoryToken"
+
+    val coreFields = Vector(
+      "failureStage",
+      "markerIdentity",
+      "expectedAnnotation",
+      "metadataHandler",
+      "expectedHandler",
+      "markerArtifact",
+      "handlerArtifact"
+    )
+
+    def field(log: String, name: String): Option[String] =
+      log.split("\\s+").find(_.startsWith(name + "=")).map(_.substring(name.length + 1))
+
+    coreFields.foreach { name =>
+      val explicitValue = field(explicit, name)
+      val compactValue = field(compact, name)
+      if (explicitValue.isEmpty) errors += s"explicit diagnostic lacks $name"
+      if (compactValue.isEmpty) errors += s"compact diagnostic lacks $name"
+      if (explicitValue.nonEmpty && compactValue.nonEmpty && explicitValue != compactValue)
+        errors += s"diagnostic field $name differs: explicit=${explicitValue.get} compact=${compactValue.get}"
     }
     errors.result()
   }
@@ -281,6 +327,35 @@ object ExternalHandlerAuthoringStarter {
       require(log.contains("expansionInvoked=false"), s"$id lacked expansion stop evidence")
       NegativeEvidence(id, category, flow)
     }
+    val expectedMetadataCategories = Vector(
+      "M1" -> "HANDLER_CLASS_LOADING_FAILURE",
+      "M2" -> "HANDLER_CONTRACT_IDENTITY_FAILURE",
+      "M3" -> "HANDLER_CLASS_LOADING_FAILURE",
+      "M4" -> "METADATA_HANDLER_ANNOTATION_MISMATCH",
+      "M5" -> "METADATA_HANDLER_ANNOTATION_MISMATCH",
+      "M6" -> "METADATA_HANDLER_ANNOTATION_MISMATCH",
+      "M7" -> "INVALID_METADATA_HANDLER_CLASS_NAME",
+      "M8" -> "INVALID_METADATA_HANDLER_CLASS_NAME",
+      "M9" -> "INVALID_METADATA_HANDLER_CLASS_NAME"
+    )
+    val metadataNegatives = expectedMetadataCategories.map { case (id, category) =>
+      val directory = new File(evidence, s"negative-metadata/$id")
+      val explicitFlow = readLines(new File(directory, "explicit/flow.trace"))
+      val compactFlow = readLines(new File(directory, "compact/flow.trace"))
+      require(validateNegativeFlow(explicitFlow).isEmpty, s"$id explicit: ${validateNegativeFlow(explicitFlow).mkString("; ")}")
+      require(validateNegativeFlow(compactFlow).isEmpty, s"$id compact: ${validateNegativeFlow(compactFlow).mkString("; ")}")
+      val explicitLog = read(new File(directory, "explicit/precheck.log"))
+      val compactLog = read(new File(directory, "compact/precheck.log"))
+      Vector("consumerCompilationStarted=false", "expansionInvoked=false").foreach { fragment =>
+        require(explicitLog.contains(fragment), s"$id explicit lacked $fragment")
+        require(compactLog.contains(fragment), s"$id compact lacked $fragment")
+      }
+      require(
+        validateMetadataDiagnosticParity(explicitLog, compactLog, category).isEmpty,
+        s"$id: ${validateMetadataDiagnosticParity(explicitLog, compactLog, category).mkString("; ")}"
+      )
+      MetadataNegativeEvidence(id, category, explicitFlow, compactFlow)
+    }
 
     val markerArtifact = singleJar(new File(starter, "marker/target"), "external-handler-starter-marker_3-")
     val handlerArtifact = singleJar(new File(starter, "handler/target"), "external-handler-starter-handler_3-")
@@ -328,6 +403,7 @@ object ExternalHandlerAuthoringStarter {
       expansions,
       negatives,
       compactNegatives,
+      metadataNegatives,
       explicitPrecheckArguments.size,
       compactPrecheckArguments.count(_ != "--compact"),
       childStateDeleted,

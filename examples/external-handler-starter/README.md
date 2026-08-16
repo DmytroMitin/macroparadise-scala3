@@ -11,7 +11,9 @@ sbt -batch verifyExternalHandlerAuthoringStarter
 The root task supplies local packaged production plugin and `pluginApi` paths,
 isolates the child sbt state under the repository `target/` directory, and runs
 both explicit and compact positive prechecks. It preserves the P1-P7 explicit
-fail-closed matrix and adds the focused C1-C6 compact matrix.
+fail-closed matrix and the focused C1-C6 compact matrix. M1-M9 then run paired
+explicit/compact metadata-authoring failures and compare their category and
+core diagnostic fields.
 
 The projects are intentionally separate:
 
@@ -22,7 +24,9 @@ The projects are intentionally separate:
 - `consumer` uses `@starter.marker.generateGreeting` and ordinarily typechecks
   `new Greeter().generatedGreeting`;
 - `precheck-fixtures/marker` and `precheck-fixtures/handler` exist only for the
-  metadata/descriptor mismatch negative lane.
+  metadata/descriptor robustness lanes;
+- `metadata-fixtures/handler-b` packages only handler B so the marker-A versus
+  supplied-artifact-B case is real rather than simulated.
 
 Direct use of the nested build requires JDK 25 and explicit local artifact
 properties:
@@ -56,6 +60,11 @@ major. It derives the running plugin and parent-loaded `pluginApi` JAR paths
 from their code sources and derives marker class from the retained qualified
 annotation expectation. It does not derive toolchain expectations from the
 observed runtime.
+
+Metadata failures report `failureStage`, marker/expected annotation identities,
+metadata/expected handler identities, and marker/handler artifact paths. Both
+command forms retain the same category and core fields for the same fault, and
+every negative lane proves consumer compilation and expansion stayed stopped.
 
 See
 [`docs/EXTERNAL_HANDLER_AUTHORING.md`](../../docs/EXTERNAL_HANDLER_AUTHORING.md)

@@ -33,7 +33,9 @@ final class generateGreeting extends scala.annotation.StaticAnnotation
 
 The handler must already be compiled and available through the explicit
 handler classpath. New markers should use an exact qualified annotation
-identity.
+identity. The `@expander` value is also a canonical simple or dot-qualified JVM
+class name; empty, whitespace-only, or malformed values fail precheck as
+`INVALID_METADATA_HANDLER_CLASS_NAME`.
 
 ## Handler
 
@@ -124,6 +126,19 @@ Failures stop before consumer compilation. Categories cover malformed handler
 identity, metadata/descriptor mismatch, exact compiler or JDK mismatch,
 forbidden handler dependencies, and missing artifacts.
 
+Metadata-authoring failures expose the independent facts already known to the
+precheck in a stable order: `failureStage`, `markerIdentity`,
+`expectedAnnotation`, `metadataHandler`, `expectedHandler`, `markerArtifact`,
+and `handlerArtifact`. A descriptor mismatch also includes
+`declaredAnnotation`. For example, a marker selecting handler A while the
+supplied handler JAR contains only B remains a `HANDLER_CLASS_LOADING_FAILURE`,
+but now identifies the marker, both handler witnesses, and the exact JAR that
+lacks A.
+
+Explicit and compact commands classify the same underlying metadata fault with
+the same category and core fields. Compact derivation does not remove the
+independent expected-handler or expected-annotation witnesses.
+
 The packaged plugin also exposes deterministic command help:
 
 ```sh
@@ -175,6 +190,12 @@ precheck exits with status 2 and reports
 `stage=preconsumer consumerCompilationStarted=false expansionInvoked=false`
 before its category, detail, and usage. `--help` exits successfully without
 loading artifacts or running the precheck.
+
+The starter preserves P1-P7 and C1-C6 and adds M1-M9 paired metadata-authoring
+lanes: nonexistent or non-handler classes, an A/B artifact mismatch,
+descriptor/stale/qualified-identity mismatches, and empty, whitespace, or
+malformed handler metadata. Every M lane runs in both modes and proves the
+preconsumer stop boundary.
 
 ## What the starter proves
 

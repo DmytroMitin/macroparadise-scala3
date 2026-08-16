@@ -1,5 +1,5 @@
 object ExternalHandlerAuthoringStarterSpec {
-  val CaseCount = 8
+  val CaseCount = 10
 
   def run(): Unit = {
     import ExternalHandlerAuthoringStarter._
@@ -76,6 +76,27 @@ object ExternalHandlerAuthoringStarterSpec {
       validatePrecheckCommandShapes(
         explicitPrecheck,
         compactPrecheck :+ "--plugin=/tmp/echoed-plugin.jar"
+      ).nonEmpty
+    )
+
+    val explicitDiagnostic =
+      "category=HANDLER_CLASS_LOADING_FAILURE failureStage=handler-artifact " +
+        "markerIdentity=robust.marker.missing expectedAnnotation=robust.marker.missing " +
+        "metadataHandler=robust.handlers.Missing expectedHandler=robust.handlers.Missing " +
+        "markerArtifact=/tmp/marker.jar handlerArtifact=/tmp/handler.jar detail=missing"
+    val compactDiagnostic = explicitDiagnostic
+    assert(
+      validateMetadataDiagnosticParity(
+        explicitDiagnostic,
+        compactDiagnostic,
+        "HANDLER_CLASS_LOADING_FAILURE"
+      ).isEmpty
+    )
+    assert(
+      validateMetadataDiagnosticParity(
+        explicitDiagnostic,
+        compactDiagnostic.replace("expectedHandler=robust.handlers.Missing", "expectedHandler=robust.handlers.Other"),
+        "HANDLER_CLASS_LOADING_FAILURE"
       ).nonEmpty
     )
   }

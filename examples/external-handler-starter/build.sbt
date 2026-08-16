@@ -192,6 +192,10 @@ lazy val negativeHandler: Project = project.in(file("precheck-fixtures/handler")
   .settings(contractSettings)
   .settings(name := "external-handler-starter-negative-handler")
 
+lazy val metadataHandlerB: Project = project.in(file("metadata-fixtures/handler-b"))
+  .settings(contractSettings)
+  .settings(name := "external-handler-starter-metadata-handler-b")
+
 lazy val consumer: Project = project.in(file("consumer"))
   .settings(
     name := "external-handler-starter-consumer",
@@ -228,7 +232,7 @@ lazy val consumer: Project = project.in(file("consumer"))
   )
 
 lazy val root: Project = project.in(file("."))
-  .aggregate(marker, handler, negativeMarker, negativeHandler, consumer)
+  .aggregate(marker, handler, negativeMarker, negativeHandler, metadataHandlerB, consumer)
   .settings(
     name := "external-handler-starter",
     verifyNegativeMatrix := {
@@ -242,8 +246,10 @@ lazy val root: Project = project.in(file("."))
       val handlerJar = (handler / Compile / packageBin).value
       val negativeMarkerJar = (negativeMarker / Compile / packageBin).value
       val negativeHandlerJar = (negativeHandler / Compile / packageBin).value
+      val metadataHandlerBJar = (metadataHandlerB / Compile / packageBin).value
       val handlerClasspath = (handler / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile)
       val negativeHandlerClasspath = (negativeHandler / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile)
+      val metadataHandlerBClasspath = (metadataHandlerB / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile)
 
       final case class Lane(
           id: String,
@@ -362,6 +368,126 @@ lazy val root: Project = project.in(file("."))
         require(diagnostic.contains("expansionInvoked=false"), s"${lane.id} lacked expansion stop evidence")
         require(!IO.readLines(sentinel).contains("consumer-compile-start"), s"${lane.id} reached consumer compile")
         appendEvent(sentinel, "precheck-failed")
+      }
+
+      final case class MetadataLane(
+          id: String,
+          category: String,
+          markerClass: String,
+          expectedHandler: String,
+          expectedAnnotation: String,
+          handler: File = negativeHandlerJar,
+          compileClasspath: Seq[File] = negativeHandlerClasspath
+      )
+
+      val metadataLanes = Vector(
+        MetadataLane(
+          "M1",
+          "HANDLER_CLASS_LOADING_FAILURE",
+          "starter.metadata.missingHandler",
+          "starter.metadata.DoesNotExist",
+          "starter.metadata.missingHandler"
+        ),
+        MetadataLane(
+          "M2",
+          "HANDLER_CONTRACT_IDENTITY_FAILURE",
+          "starter.metadata.invalidContract",
+          "starter.metadata.NotAHandler",
+          "starter.metadata.invalidContract"
+        ),
+        MetadataLane(
+          "M3",
+          "HANDLER_CLASS_LOADING_FAILURE",
+          "starter.metadata.handlerA",
+          "starter.metadata.HandlerA",
+          "starter.metadata.handlerA",
+          handler = metadataHandlerBJar,
+          compileClasspath = metadataHandlerBClasspath
+        ),
+        MetadataLane(
+          "M4",
+          "METADATA_HANDLER_ANNOTATION_MISMATCH",
+          "starter.metadata.descriptorMismatch",
+          "starter.metadata.DescriptorMismatchHandler",
+          "starter.metadata.descriptorMismatch"
+        ),
+        MetadataLane(
+          "M5",
+          "METADATA_HANDLER_ANNOTATION_MISMATCH",
+          "starter.metadata.stale",
+          "starter.metadata.StableHandler",
+          "starter.metadata.stale"
+        ),
+        MetadataLane(
+          "M6",
+          "METADATA_HANDLER_ANNOTATION_MISMATCH",
+          "starter.alpha.audit",
+          "starter.metadata.QualifiedMismatchHandler",
+          "starter.alpha.audit"
+        ),
+        MetadataLane(
+          "M7",
+          "INVALID_METADATA_HANDLER_CLASS_NAME",
+          "starter.metadata.emptyMetadata",
+          "starter.metadata.EmptyHandler",
+          "starter.metadata.emptyMetadata"
+        ),
+        MetadataLane(
+          "M8",
+          "INVALID_METADATA_HANDLER_CLASS_NAME",
+          "starter.metadata.whitespaceMetadata",
+          "   ",
+          "starter.metadata.whitespaceMetadata"
+        ),
+        MetadataLane(
+          "M9",
+          "INVALID_METADATA_HANDLER_CLASS_NAME",
+          "starter.metadata.malformedMetadata",
+          "starter.metadata..Broken",
+          "starter.metadata.malformedMetadata"
+        )
+      )
+
+      metadataLanes.foreach { lane =>
+        Vector("explicit", "compact").foreach { mode =>
+          val laneDirectory = evidenceDirectory / "negative-metadata" / lane.id / mode
+          val sentinel = laneDirectory / "flow.trace"
+          appendEvent(sentinel, "precheck-start")
+          val command =
+            if (mode == "explicit")
+              javaCommand(
+                runtimeClasspath = lane.compileClasspath,
+                plugin = plugin,
+                pluginApi = pluginApi,
+                marker = negativeMarkerJar,
+                handler = lane.handler,
+                handlerCompileClasspath = lane.compileClasspath,
+                markerClass = lane.markerClass,
+                expectedHandlerClass = lane.expectedHandler,
+                expectedAnnotation = lane.expectedAnnotation
+              )
+            else
+              compactJavaCommand(
+                runtimeClasspath = lane.compileClasspath,
+                plugin = plugin,
+                marker = negativeMarkerJar,
+                handler = lane.handler,
+                handlerCompileClasspath = lane.compileClasspath,
+                expectedHandlerClass = lane.expectedHandler,
+                expectedAnnotation = lane.expectedAnnotation
+              )
+          writeLines(laneDirectory / "command.txt", command)
+          val log = laneDirectory / "precheck.log"
+          val exit = runCommand(command, baseDirectory.value, log)
+          if (exit == 0) appendEvent(sentinel, "consumer-compile-start")
+          require(exit != 0, s"${lane.id} $mode unexpectedly passed metadata precheck")
+          val diagnostic = IO.read(log, StandardCharsets.UTF_8)
+          require(diagnostic.contains(s"category=${lane.category}"), s"${lane.id} $mode lacked ${lane.category}: $diagnostic")
+          require(diagnostic.contains("consumerCompilationStarted=false"), s"${lane.id} $mode lacked consumer stop evidence")
+          require(diagnostic.contains("expansionInvoked=false"), s"${lane.id} $mode lacked expansion stop evidence")
+          require(!IO.readLines(sentinel).contains("consumer-compile-start"), s"${lane.id} $mode reached consumer compile")
+          appendEvent(sentinel, "precheck-failed")
+        }
       }
     },
     verifyStarter := {

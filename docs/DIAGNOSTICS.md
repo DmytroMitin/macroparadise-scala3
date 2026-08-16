@@ -36,7 +36,18 @@ participant with another compiler line is unsupported.
 
 Confirm the handler JAR exists and is supplied through
 `handlerClasspath`. Marker metadata names a class; it does not package or load
-the implementation by itself.
+the implementation by itself. The packaged precheck reports
+`failureStage=handler-artifact` when the supplied handler JAR does not contain
+the independently expected class, together with `markerIdentity`,
+`metadataHandler`, `expectedHandler`, and `handlerArtifact`.
+
+### Invalid marker handler metadata
+
+The `@expander` value must be a canonical simple or dot-qualified JVM class
+name. Empty, whitespace-only, or malformed names fail as
+`INVALID_METADATA_HANDLER_CLASS_NAME` at
+`failureStage=metadata-selection`; the precheck does not pass the malformed
+value to generic JVM class loading or scan other classpaths for a guess.
 
 ### Annotation identity mismatch
 
@@ -101,6 +112,9 @@ compile evidence fails closed.
 
 Argument, compact-derivation, and precheck failures exit with status 2 and
 explicitly report that consumer compilation and expansion did not start.
+Equivalent explicit and compact metadata faults retain the same category and
+core authoring fields; `declaredAnnotation` is added when a loaded handler
+descriptor disagrees with the marker identity.
 
 Whitespace and patch sanity:
 

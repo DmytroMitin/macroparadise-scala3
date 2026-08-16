@@ -20,7 +20,9 @@ import scala.util.control.NonFatal
   */
 private[macroparadise] object ExternalHandlerPrecheck:
   final case class Failure(category: String, detail: String):
-    def render: String = s"category=$category detail=$detail"
+    def render: String =
+      if detail.startsWith("failureStage=") then s"category=$category $detail"
+      else s"category=$category detail=$detail"
 
   final case class Environment(
       expectedScalaVersion: String,
@@ -75,6 +77,32 @@ private[macroparadise] object ExternalHandlerPrecheck:
       marker: ArtifactSnapshot,
       handler: ArtifactSnapshot
   )
+
+  private final case class AuthoringDiagnosticContext(
+      markerIdentity: String,
+      expectedAnnotation: String,
+      expectedHandler: String,
+      markerArtifact: Path,
+      handlerArtifact: Path
+  ):
+    def render(
+        failureStage: String,
+        metadataHandler: Option[String],
+        declaredAnnotation: Option[String] = None,
+        detail: String
+    ): String =
+      val fields = Vector(
+        "failureStage" -> failureStage,
+        "markerIdentity" -> markerIdentity,
+        "expectedAnnotation" -> expectedAnnotation,
+        "metadataHandler" -> metadataHandler.getOrElse("<unavailable>"),
+        "expectedHandler" -> expectedHandler,
+        "markerArtifact" -> normalize(markerArtifact).toString,
+        "handlerArtifact" -> normalize(handlerArtifact).toString
+      ) ++ declaredAnnotation.map("declaredAnnotation" -> _)
+
+      (fields.map((name, value) => s"$name=${diagnosticValue(value)}") :+
+        s"detail=${ExternalHandlerDiagnostics.normalize(detail)}").mkString(" ")
 
   def run(request: Request): Either[Failure, Success] =
     for
@@ -142,16 +170,25 @@ private[macroparadise] object ExternalHandlerPrecheck:
               s"configured annotation `$canonicalExpected` does not equal marker class identity `$canonicalMarker`"
             )
           )
+      _ <- validateMetadataHandlerClassName(metadataHandlerClass)
       _ <-
         if metadataHandlerClass == expectedHandlerClass then Right(())
         else
           Left(
             Failure(
               "METADATA_HANDLER_CLASS_MISMATCH",
-              s"marker metadata selects `$metadataHandlerClass`, but starter configuration expects `$expectedHandlerClass`"
+              s"marker metadata selects `$metadataHandlerClass`, but the independent caller expectation is `$expectedHandlerClass`"
             )
           )
     yield ()
+
+  private def validateMetadataHandlerClassName(value: String): Either[Failure, String] =
+    SyntacticAnnotationIdentity.fromDeclaredName(value).left.map: _ =>
+      Failure(
+        "INVALID_METADATA_HANDLER_CLASS_NAME",
+        s"marker metadata handler `${diagnosticValue(value)}` is invalid: expected a canonical simple or dot-qualified handler class name"
+      )
+    .map(_.value)
 
   def validateArtifactRoles(
       paths: ArtifactPaths,
@@ -306,30 +343,72 @@ private[macroparadise] object ExternalHandlerPrecheck:
                   s"marker `${request.markerClassName}` has no runtime paradise3.api.expander metadata"
                 )
               )
+        context = AuthoringDiagnosticContext(
+          markerIdentity = markerClass.getName,
+          expectedAnnotation = request.expectedAnnotationName,
+          expectedHandler = request.expectedHandlerClassName,
+          markerArtifact = artifacts.marker.path,
+          handlerArtifact = artifacts.handler.path
+        )
         _ <- validateMetadataSelection(
           markerClass.getName,
           metadata.value(),
           request.expectedAnnotationName,
           request.expectedHandlerClassName
+        ).left.map: failure =>
+          contextualize(
+            failure,
+            context,
+            failureStage = "metadata-selection",
+            metadataHandler = Some(metadata.value())
+          )
+        _ <- requireExpectedHandlerEntry(
+          artifacts.handler,
+          request.expectedHandlerClassName,
+          metadata.value(),
+          context
         )
         handlerClass <- loadClass(
           request.expectedHandlerClassName,
           initialize = true,
           loader,
           "HANDLER_CLASS_LOADING_FAILURE"
-        )
+        ).left.map: failure =>
+          contextualize(
+            failure,
+            context,
+            failureStage = "handler-loading",
+            metadataHandler = Some(metadata.value())
+          )
         _ <-
           if parentApi.isAssignableFrom(handlerClass) then Right(())
           else
             Left(
               Failure(
                 "HANDLER_CONTRACT_IDENTITY_FAILURE",
-                s"handler `${handlerClass.getName}` does not implement the supplied parent-first ParadiseAnnotationExpander identity"
+                context.render(
+                  failureStage = "handler-contract",
+                  metadataHandler = Some(metadata.value()),
+                  detail = s"handler `${handlerClass.getName}` does not implement the supplied parent-first ParadiseAnnotationExpander identity"
+                )
               )
             )
-        instance <- constructHandler(handlerClass)
+        instance <- constructHandler(handlerClass).left.map: failure =>
+          contextualize(
+            failure,
+            context,
+            failureStage = "handler-construction",
+            metadataHandler = Some(metadata.value())
+          )
         loaded <- ExternalHandlerDescriptor.capture(instance, loader).left.map: failure =>
-          Failure("HANDLER_DECLARATION_FAILURE", failure.diagnostic)
+          Failure(
+            "HANDLER_DECLARATION_FAILURE",
+            context.render(
+              failureStage = "handler-declaration",
+              metadataHandler = Some(metadata.value()),
+              detail = failure.diagnostic
+            )
+          )
         binding <- MetadataHandlerBinding
           .validate(
             markerClass.getName,
@@ -338,8 +417,16 @@ private[macroparadise] object ExternalHandlerPrecheck:
             loader
           )
           .left
-          .map: failure =>
-            Failure("METADATA_HANDLER_ANNOTATION_MISMATCH", failure.diagnostic)
+          .map: _ =>
+            Failure(
+              "METADATA_HANDLER_ANNOTATION_MISMATCH",
+              context.render(
+                failureStage = "metadata-binding",
+                metadataHandler = Some(metadata.value()),
+                declaredAnnotation = Some(loaded.descriptor.annotationName),
+                detail = s"marker metadata selects `${metadata.value()}`, but its captured descriptor declares `${loaded.descriptor.annotationName}`"
+              )
+            )
       yield
         Success(
           annotationName = binding.metadataAnnotationName,
@@ -366,6 +453,46 @@ private[macroparadise] object ExternalHandlerPrecheck:
           )
         )
     finally loader.close()
+
+  private def requireExpectedHandlerEntry(
+      handler: ArtifactSnapshot,
+      expectedHandlerClassName: String,
+      metadataHandlerClassName: String,
+      context: AuthoringDiagnosticContext
+  ): Either[Failure, Unit] =
+    if handler.entries.contains(classEntry(expectedHandlerClassName)) then Right(())
+    else
+      Left(
+        Failure(
+          "HANDLER_CLASS_LOADING_FAILURE",
+          context.render(
+            failureStage = "handler-artifact",
+            metadataHandler = Some(metadataHandlerClassName),
+            detail = s"supplied handler artifact `${handler.path}` does not contain expected handler class `$expectedHandlerClassName`"
+          )
+        )
+      )
+
+  private def contextualize(
+      failure: Failure,
+      context: AuthoringDiagnosticContext,
+      failureStage: String,
+      metadataHandler: Option[String]
+  ): Failure =
+    failure.copy(
+      detail = context.render(
+        failureStage,
+        metadataHandler,
+        detail = failure.detail
+      )
+    )
+
+  private def diagnosticValue(value: String): String =
+    Option(value) match
+      case None => "<null>"
+      case Some(raw) if raw.isEmpty => "<empty>"
+      case Some(raw) if raw.trim.isEmpty => "<whitespace>"
+      case Some(raw) => ExternalHandlerDiagnostics.normalize(raw)
 
   private def constructHandler(
       handlerClass: Class[?]
