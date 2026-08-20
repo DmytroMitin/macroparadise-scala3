@@ -16,9 +16,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val MetadataClassification = "INDEPENDENT_MARKER_METADATA_DISCOVERY_AND_HANDLER_INVOCATION_PROVEN"
   val ContractClassification = "CONTRACT_ONLY_PLUGIN_API_SUFFICIENT_FOR_EXTERNAL_END_TO_END_USE"
   val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-  val ExpectedSbtVersion = "1.12.8"
-  val ExpectedProjectVersion = "0.1.0-SNAPSHOT"
-  val IndependentArtifactBasename = "independent-marker-handler_3-0.1.0-SNAPSHOT.jar"
+  val ExpectedSbtVersion = "1.12.15"
+  val ExpectedProjectVersion = "0.1.0"
+  val IndependentArtifactBasename = "independent-marker-handler_3-0.1.0.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
@@ -231,8 +231,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       compilerJars, apiArtifact, pluginArtifact, Some(independentArtifact), Some(independentArtifact),
       source, output,
       Vector(
-        s"-P:helloWorld:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
-        s"-P:helloWorld:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
       )
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
@@ -322,8 +322,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       "-cp", classpath(compilerJars), "dotty.tools.dotc.Main",
       "-classpath", classpath(sourceClasspath), "-d", output.getAbsolutePath,
       s"-Xplugin:${classpath(Vector(pluginArtifact, apiArtifact))}",
-      "-Xplugin-require:helloWorld"
-    ) ++ handlerClasspath.toVector.map(file => s"-P:helloWorld:handlerClasspath=${file.getAbsolutePath}") ++ extraPluginOptions ++ Vector(source.getAbsolutePath)
+      "-Xplugin-require:macroparadise"
+    ) ++ handlerClasspath.toVector.map(file => s"-P:macroparadise:handlerClasspath=${file.getAbsolutePath}") ++ extraPluginOptions ++ Vector(source.getAbsolutePath)
   }
 
   private def validatePluginCommand(
@@ -337,9 +337,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     forbiddenClasspathFragments.foreach(fragment => require(!rendered.contains(fragment), s"plugin command leaked forbidden `$fragment`"))
     val pluginOption = command.find(_.startsWith("-Xplugin:")).getOrElse(throw new IllegalStateException("plugin command lacks -Xplugin"))
     require(pluginOption == s"-Xplugin:${classpath(Vector(pluginArtifact, apiArtifact))}", s"plugin path order changed: $pluginOption")
-    require(command.contains("-Xplugin-require:helloWorld"), "plugin command lacks -Xplugin-require")
-    val handlerOptions = command.filter(_.startsWith("-P:helloWorld:handlerClasspath="))
-    if (requireHandler) require(handlerOptions == Vector(s"-P:helloWorld:handlerClasspath=${independentArtifact.getAbsolutePath}"), s"handler classpath changed: ${handlerOptions.mkString(",")}")
+    require(command.contains("-Xplugin-require:macroparadise"), "plugin command lacks -Xplugin-require")
+    val handlerOptions = command.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
+    if (requireHandler) require(handlerOptions == Vector(s"-P:macroparadise:handlerClasspath=${independentArtifact.getAbsolutePath}"), s"handler classpath changed: ${handlerOptions.mkString(",")}")
     else require(handlerOptions.isEmpty, s"missing-handler lane retained handler classpath: ${handlerOptions.mkString(",")}")
   }
 

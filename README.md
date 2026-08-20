@@ -7,8 +7,9 @@ ordinary Scala typing in the same compilation run.
 
 The core mechanism and a precompiled external-handler path are executable and
 well tested. The project is still compiler-sensitive research: its API,
-configuration, supported shapes, and compatibility policy may change, and no
-artifact is available from a remote package repository.
+configuration, supported shapes, and compatibility policy may change. The
+`0.1.0` candidate is locally publishable from a clone but is not available from
+Maven Central or another remote package repository.
 
 ## A small example
 
@@ -37,7 +38,7 @@ mechanism, not a general-purpose macro-annotation API.
 The source build requires:
 
 - JDK feature version 25;
-- sbt 1.12.8;
+- sbt 1.12.15;
 - Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`.
 
 The build rejects other JDK feature versions before normal tasks run. The
@@ -68,7 +69,8 @@ sbt -batch verifyPublicProductBoundary
 The gate runs nonempty plugin and consumer suites, packages the plugin and
 experimental handler contract, checks the normalized API surface, exercises
 independent consumers, verifies the external-handler starter, and confirms
-that publishing remains disabled.
+that only the two selected user artifacts are locally publishable while remote
+publishing remains fail closed.
 
 For an additional product-only isolation proof, run the same canonical gate in
 a disposable source copy with fresh dependency and build caches:
@@ -85,6 +87,36 @@ For a smaller ordinary development pass:
 ```sh
 sbt -batch test
 ```
+
+## Local candidate installation
+
+The source checkout, local installation, and a future Central release are
+separate states. Build and test the checkout with the commands above. To put
+the selected `0.1.0` candidate in your machine's sbt/Ivy local repository, run:
+
+```sh
+sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
+```
+
+Then an external sbt build using the exact Scala nightly can load the full-cross
+compiler plugin with:
+
+```scala
+ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+ThisBuild / resolvers += Resolver.scalaNightlyRepository
+
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
+```
+
+`CrossVersion.full` is required; `%%` produces only a binary Scala suffix and
+does not name this exact-compiler plugin. These are the selected future Maven
+Central coordinates, but `0.1.0` is not available from Maven Central until a
+separately authorized release is completed.
+
+Authors of precompiled annotation markers and handlers also use the exact
+full-cross `macroparadise-scala3-plugin-api` coordinate described in
+[External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md). Ordinary
+plugin-only users do not add implementation or repository test artifacts.
 
 ## External-handler starter
 
@@ -138,8 +170,9 @@ positive evidence remains bounded to the combinations in the test suite.
   public API.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
-- Publishing is disabled. There are no supported remote coordinates, release
-  cadence, or production support commitment.
+- Local publication is enabled only for the exact-cross plugin and handler API.
+  There is no remotely released coordinate, release cadence, or production
+  support commitment.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.
@@ -167,4 +200,5 @@ explained in the [Security policy](SECURITY.md).
 The source is licensed under the [Apache License 2.0](LICENSE). The plugin and
 handler-facing API remain experimental, compiler-version-specific, and without
 stability guarantees. No plugin or handler-contract artifact is published
-remotely, and all build projects remain configured with publishing disabled.
+remotely. Only the plugin and plugin API support `publishLocal`; internal
+fixtures, tests, examples, consumers, and spikes remain unpublished.

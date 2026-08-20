@@ -81,8 +81,8 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
           ),
           ClasspathArtifact(
             plugin,
-            Set("macroparadise/HelloWorldPlugin.class"),
-            Set("macroparadise/HelloWorldPlugin")
+            Set("macroparadise/MacroParadisePlugin.class"),
+            Set("macroparadise/MacroParadisePlugin")
           )
         )
       )
@@ -128,7 +128,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         validateArtifactRoles(
           ArtifactPaths(
             plugin = jar(root.resolve("plugin.jar"), Map(
-              "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+              "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
               "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
               "plugin.properties" -> Array[Byte](1)
             )),
@@ -156,7 +156,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     try
       System.setProperty(property, expansionTrace.toString)
       val plugin = jar(root.resolve("plugin.jar"), Map(
-        "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+        "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
         "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
         "plugin.properties" -> Array[Byte](1)
       ))
@@ -436,7 +436,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     val root = Files.createTempDirectory("external-handler-precheck-compact-api-")
     try
       val plugin = jar(root.resolve("plugin.jar"), Map(
-        "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+        "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
         "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
         "plugin.properties" -> Array[Byte](1)
       ))
@@ -504,7 +504,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     val root = Files.createTempDirectory("external-handler-precheck-authoring-")
     try
       val plugin = jar(root.resolve("plugin.jar"), Map(
-        "macroparadise/HelloWorldPlugin.class" -> Array[Byte](1),
+        "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
         "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
         "plugin.properties" -> Array[Byte](1)
       ))

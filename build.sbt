@@ -1,8 +1,14 @@
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.0"
 ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
 ThisBuild / resolvers += Resolver.scalaNightlyRepository
 ThisBuild / publish / skip := true
-ThisBuild / organization := "io.github.dmytromitin"
+ThisBuild / organization := "com.github.dmytromitin"
+ThisBuild / organizationName := "com.github.dmytromitin"
+ThisBuild / versionScheme := Some("early-semver")
+ThisBuild / publishMavenStyle := true
+ThisBuild / Compile / packageSrc / publishArtifact := true
+ThisBuild / Compile / packageDoc / publishArtifact := true
+ThisBuild / Test / publishArtifact := false
 ThisBuild / licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 ThisBuild / homepage := Some(url("https://github.com/DmytroMitin/macroparadise-scala3"))
 ThisBuild / scmInfo := Some(
@@ -16,7 +22,7 @@ ThisBuild / developers := List(
   Developer(
     "DmytroMitin",
     "Dmytro Mitin",
-    "",
+    "dmitin3@gmail.com",
     url("https://github.com/DmytroMitin")
   )
 )
@@ -30,6 +36,13 @@ Global / onLoad ~= { previous =>
 
 lazy val commonSettings = Seq(
   libraryDependencies += "org.scalameta" %% "munit" % "1.2.4" % Test
+)
+
+lazy val selectedPublicationSettings = Seq(
+  publish / skip := false,
+  Compile / packageBin / mappings += file("LICENSE") -> "META-INF/LICENSE",
+  Compile / packageSrc / mappings += file("LICENSE") -> "META-INF/LICENSE",
+  Compile / packageDoc / mappings += file("LICENSE") -> "META-INF/LICENSE"
 )
 
 lazy val verifyJdkVersionEnforcement =
@@ -50,8 +63,11 @@ lazy val verifyApache2LicensePolicy =
 lazy val verifyFreshPublicProductCopyScript =
   taskKey[Unit]("Verify the product-owned fresh-copy isolation script without recursively running sbt")
 
-lazy val verifyPublicProductPublishingDisabled =
-  taskKey[Unit]("Verify every public-product project remains unpublished")
+lazy val verifyPublicProductPublicationPolicy =
+  taskKey[Unit]("Verify only the selected user artifacts are locally publishable and remote publishing remains fail-closed")
+
+lazy val verifyConsumerReleaseConfiguration =
+  taskKey[Unit]("Verify selected coordinates, plugin identity, local publication, and public installation documentation")
 
 lazy val verifyPublicProductBoundary =
   taskKey[Unit]("Run the canonical self-contained public-product build boundary")
@@ -120,8 +136,15 @@ verifyPublicProductTestsNonzero := {
   )
 }
 
-verifyPublicProductPublishingDisabled := {
-  val skips = Vector(
+verifyConsumerReleaseConfiguration := {
+  val script = baseDirectory.value / "scripts" / "test-release-configuration.py"
+  val exit = scala.sys.process.Process(Seq("python3", script.getAbsolutePath), baseDirectory.value).!
+  require(exit == 0, s"consumer/release configuration checks failed with exit $exit")
+  streams.value.log.info("consumer/release configuration verified")
+}
+
+verifyPublicProductPublicationPolicy := {
+  val internalSkips = Vector(
     "root" -> (root / publish / skip).value,
     "legacyMetadataMarkerFixture" -> (legacyMetadataMarkerFixture / publish / skip).value,
     "legacyMetadataProducer384" -> (legacyMetadataProducer384 / publish / skip).value,
@@ -135,16 +158,21 @@ verifyPublicProductPublishingDisabled := {
     "sameModuleHandlerSpike" -> (sameModuleHandlerSpike / publish / skip).value,
     "sameModuleHandlerSameFileSpike" -> (sameModuleHandlerSameFileSpike / publish / skip).value,
     "sameModuleHandlerCycleSpike" -> (sameModuleHandlerCycleSpike / publish / skip).value,
-    "pluginApi" -> (pluginApi / publish / skip).value,
-    "plugin" -> (plugin / publish / skip).value,
     "pluginTestMarkers" -> (pluginTestMarkers / publish / skip).value,
     "pluginTestHandlers" -> (pluginTestHandlers / publish / skip).value,
     "pluginTests" -> (pluginTests / publish / skip).value
   )
-  require(skips.forall(_._2), s"public-product publishing enabled: ${skips.filterNot(_._2).map(_._1).mkString(", ")}")
+  val publishable = Vector(
+    "pluginApi" -> (pluginApi / publish / skip).value,
+    "plugin" -> (plugin / publish / skip).value
+  )
+  require(internalSkips.forall(_._2), s"internal publication enabled: ${internalSkips.filterNot(_._2).map(_._1).mkString(", ")}")
+  require(publishable.forall(!_._2), s"selected user artifact remains skipped: ${publishable.filter(_._2).map(_._1).mkString(", ")}")
   require((plugin / publishTo).value.isEmpty && (pluginApi / publishTo).value.isEmpty, "product publication destination is configured")
   require((plugin / credentials).value.isEmpty && (pluginApi / credentials).value.isEmpty, "product publication credentials are configured")
-  streams.value.log.info(s"public-product publishing disabled: projects=${skips.size} publishTo=none credentials=none")
+  require((plugin / Compile / packageSrc / publishArtifact).value && (pluginApi / Compile / packageSrc / publishArtifact).value, "source artifacts are disabled")
+  require((plugin / Compile / packageDoc / publishArtifact).value && (pluginApi / Compile / packageDoc / publishArtifact).value, "documentation artifacts are disabled")
+  streams.value.log.info(s"public-product publication policy verified: publishable=${publishable.map(_._1).mkString(",")} internalSkipped=${internalSkips.size} publishTo=none credentials=none")
 }
 
 verifyPublicProductBoundary := Def
@@ -154,6 +182,7 @@ verifyPublicProductBoundary := Def
     verifyPublicDocumentationPolicy,
     verifyApache2LicensePolicy,
     verifyFreshPublicProductCopyScript,
+    verifyConsumerReleaseConfiguration,
     verifyBuildDependencyCoordinatePolicy,
     verifyPublicProductTestsNonzero,
     plugin / Test / test,
@@ -168,7 +197,7 @@ verifyPublicProductBoundary := Def
     verifyIndependentPrecompiledHandlerPackagedConsumer,
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
-    verifyPublicProductPublishingDisabled
+    verifyPublicProductPublicationPolicy
   )
   .value
 
@@ -250,6 +279,7 @@ lazy val legacyMetadataMarkerFixture =
   (project in file("legacy-metadata-marker-fixture"))
     .settings(
       name := "macroparadise-scala3-legacy-metadata-marker-fixture",
+      publish / skip := true,
       Compile / packageBin / mappings ~= {
         _.filterNot {
           case (_, path) =>
@@ -353,9 +383,9 @@ lazy val sameModuleHandlerSpike = (project in file("same-module-handler-spike"))
 
       Seq(
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
-        "-Xplugin-require:helloWorld",
-        s"-P:helloWorld:handlerClasspath=$currentOutput",
-        "-P:helloWorld:sameModuleHandler=sameModuleDebug:demo.SameModuleDebugExpander:demo/SameModuleDebugExpander.scala",
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=$currentOutput",
+        "-P:macroparadise:sameModuleHandler=sameModuleDebug:demo.SameModuleDebugExpander:demo/SameModuleDebugExpander.scala",
         "-Xprint-suspension"
       )
     }
@@ -377,9 +407,9 @@ lazy val sameModuleHandlerSameFileSpike =
 
         Seq(
           s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$currentOutput",
-          "-P:helloWorld:sameModuleHandler=sameFileDebug:demo.SameFileDebugExpander:demo/SameFileDebug.scala",
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$currentOutput",
+          "-P:macroparadise:sameModuleHandler=sameFileDebug:demo.SameFileDebugExpander:demo/SameFileDebug.scala",
           "-Xprint-suspension"
         )
       }
@@ -401,15 +431,16 @@ lazy val sameModuleHandlerCycleSpike =
 
         Seq(
           s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$currentOutput",
-          "-P:helloWorld:sameModuleHandler=impossibleDebug:demo.DoesNotExistExpander:demo/MissingHandler.scala",
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$currentOutput",
+          "-P:macroparadise:sameModuleHandler=impossibleDebug:demo.DoesNotExistExpander:demo/MissingHandler.scala",
           "-Xprint-suspension"
         )
       }
     )
 
 lazy val pluginApi = (project in file("plugin-api"))
+  .settings(selectedPublicationSettings)
   .settings(
     name := "Macro Paradise Scala 3 Experimental Plugin API",
     moduleName := "macroparadise-scala3-plugin-api",
@@ -751,6 +782,7 @@ verifyIndependentExternalSbtConsumerFromLocalRepository := {
 lazy val plugin = (project in file("plugin"))
   .dependsOn(pluginApi, pluginTestMarkers % "test->compile")
   .settings(commonSettings)
+  .settings(selectedPublicationSettings)
   .settings(
     name := "Macro Paradise Scala 3 Experimental Compiler Plugin",
     moduleName := "macroparadise-scala3-plugin",
@@ -772,7 +804,8 @@ lazy val pluginTestHandlers = (project in file("plugin-test-handlers"))
   .dependsOn(pluginApi)
   .settings(
     name := "macroparadise-scala3-plugin-test-handlers",
-    libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+    libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
+    publish / skip := true
   )
 
 def legacyMetadataConsumerProject(
@@ -806,8 +839,8 @@ def legacyMetadataConsumerProject(
 
         Seq(
           s"-Xplugin:${Seq(pluginJar, pluginApiJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       },
       publish / skip := true
@@ -875,10 +908,10 @@ def packagedStructuredTastyConsumerProject(
 
         Seq(
           s"-Xplugin:${Seq(pluginJar, pluginApiJar, currentMarkerJar, legacyMarkerJar, inspectorJar).mkString(java.io.File.pathSeparator)}",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          s"-P:helloWorld:metadataReaderTrace=$tracePath",
-          s"-P:helloWorld:structuredMetadataPath=$legacyMarkerJar"
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          s"-P:macroparadise:metadataReaderTrace=$tracePath",
+          s"-P:macroparadise:structuredMetadataPath=$legacyMarkerJar"
         )
       },
       verifyPackagedStructuredTastyLane := {
@@ -1078,6 +1111,7 @@ lazy val pluginTests = (project in file("plugin-tests"))
   .settings(commonSettings)
   .settings(
     name := "macroparadise-scala3-plugin-tests",
+    publish / skip := true,
     libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value % Test,
     Compile / unmanagedJars +=
       Attributed.blank((legacyMetadataMarkerFixture / Compile / packageBin).value),
@@ -1101,9 +1135,9 @@ lazy val pluginTests = (project in file("plugin-tests"))
 
       Seq(
         s"-Xplugin:${Seq(pluginJar, pluginApiJar, markerJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
-        "-Xplugin-require:helloWorld",
-        s"-P:helloWorld:handlerClasspath=$handlerJar",
-        "-P:helloWorld:handler=demo.ExternalMarkerExpander"
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=$handlerJar",
+        "-P:macroparadise:handler=demo.ExternalMarkerExpander"
       )
     },
     Test / test := (Test / test)

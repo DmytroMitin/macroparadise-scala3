@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 18
+  val CaseCount = 19
 
   def run(): Unit = {
     var completed = 0
@@ -121,6 +121,13 @@ object ExperimentalPluginApiSurfaceSpec {
       assert(
         ExperimentalPluginApiSurface
           .entryPolicyErrors(Vector("META-INF/MANIFEST.MF"))
+          .isEmpty
+      )
+    }
+    check("standard license metadata acceptance") {
+      assert(
+        ExperimentalPluginApiSurface
+          .entryPolicyErrors(Vector("META-INF/LICENSE"))
           .isEmpty
       )
     }

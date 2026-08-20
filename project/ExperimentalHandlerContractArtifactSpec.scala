@@ -38,6 +38,7 @@ object ExperimentalHandlerContractArtifactSpec {
       "CLASS|paradise3/Fixture.class|INTEGRATION_FIXTURE_MARKER|public class Fixture",
       "CLASS|paradise3/Support.class|INTEGRATION_FIXTURE_SUPPORT|public class Support",
       ExperimentalHandlerContractArtifact.ExpectedMetadataRecord,
+      "RESOURCE|META-INF/LICENSE|STANDARD_JAR_METADATA",
       "RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA",
       "RESOURCE|paradise3/api/Handler.tasty|SCALA_TASTY",
       "RESOURCE|paradise3/api/Nested.tasty|SCALA_TASTY"
@@ -53,6 +54,7 @@ object ExperimentalHandlerContractArtifactSpec {
         "paradise3/api/Nested.tasty"
       ))
       assert(plan.metadataCarrier == "paradise3/api/expander.class")
+      assert(plan.allowedEntries.contains("META-INF/LICENSE"))
     }
     check("malformed class record") {
       fails("malformed class/category record") {
@@ -120,7 +122,7 @@ object ExperimentalHandlerContractArtifactSpec {
     check("forbidden implementation package") {
       val errors = ExperimentalHandlerContractArtifact.validateCandidateEntries(
         plan,
-        plan.allowedEntries :+ "macroparadise/HelloWorldPlugin.class"
+        plan.allowedEntries :+ "macroparadise/MacroParadisePlugin.class"
       )
       assert(errors.exists(_.contains("forbidden implementation/dependency package")))
     }

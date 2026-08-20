@@ -1,8 +1,8 @@
 format-version=1
 scala-compiler=3.8.5-RC1-bin-20260405-9478256-NIGHTLY
-sbt=1.12.8
+sbt=1.12.15
 jdk-feature=25
-project-version=0.1.0-SNAPSHOT
+project-version=0.1.0
 artifact-role=exact-build-experimental-precompiled-handler-contract-and-fixtures
 CLASS|paradise3/MetadataInitializationProbe.class|INTEGRATION_FIXTURE_SUPPORT|public final class paradise3.MetadataInitializationProbe
 CLASS|paradise3/PreservedRuntimeMarker.class|INTEGRATION_FIXTURE_MARKER|public interface paradise3.PreservedRuntimeMarker extends java.lang.annotation.Annotation
@@ -820,7 +820,8 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|withAnnotatedClassVie
 METADATA|paradise3/api/expander.class|retention=RUNTIME|targets=ANNOTATION_TYPE,TYPE|member=value|descriptor=()Ljava/lang/String;
 POLICY|forbidden-package-identity|plugin-api-thin-ownership-v1
 POLICY|forbidden-prefixes|demo/,dotty/,macroparadise/,quasiquotes/,scala/,scala3/,tasty/
-POLICY|standard-metadata|META-INF/MANIFEST.MF
+POLICY|standard-metadata|META-INF/LICENSE,META-INF/MANIFEST.MF
+RESOURCE|META-INF/LICENSE|STANDARD_JAR_METADATA
 RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA
 RESOURCE|paradise3/api/AnnotatedClassView.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/AnnotationApplication.tasty|SCALA_TASTY
@@ -875,4 +876,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=6194ab649847ed6ff42344c8eb054443f7ead655cfa50f1da9ca4e3aacb31a84
+normalized-sha256=7db377da74d763c7daa9faefd84f58fad2029fa06858df9893bb5b2f272aa876

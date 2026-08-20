@@ -13,19 +13,19 @@ class RejectedTargetRecoverySpec extends munit.FunSuite:
     )
   private val pluginJar =
     new File(
-      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val pluginApiJar =
     new File(
-      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val markerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
     ).getAbsolutePath
   private val handlerJar =
     new File(
-      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar"
     ).getAbsolutePath
   private val pluginPath =
     Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
@@ -43,7 +43,7 @@ class RejectedTargetRecoverySpec extends munit.FunSuite:
       .distinct
       .mkString(File.pathSeparator)
   private val externalHandlerOptions =
-    Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+    Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
 
   private final class CollectingReporter extends SimpleReporter:
     val messages = scala.collection.mutable.ListBuffer.empty[String]
@@ -85,7 +85,7 @@ class RejectedTargetRecoverySpec extends munit.FunSuite:
             "-d",
             outDir.toString,
             s"-Xplugin:$pluginPath",
-            "-Xplugin-require:helloWorld"
+            "-Xplugin-require:macroparadise"
           ) ++ probe.pluginOptions.toArray ++ Array(sourceFile.toString),
           reporter,
           null

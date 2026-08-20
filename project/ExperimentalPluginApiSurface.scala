@@ -15,12 +15,16 @@ object ExperimentalPluginApiSurface {
   val FormatVersion = "1"
   val ExpectedScalaVersion =
     "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-  val ExpectedSbtVersion = "1.12.8"
-  val ExpectedProjectVersion = "0.1.0-SNAPSHOT"
+  val ExpectedSbtVersion = "1.12.15"
+  val ExpectedProjectVersion = "0.1.0"
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
     "exact-build-experimental-precompiled-handler-contract-and-fixtures"
   val ForbiddenPolicyIdentity = "plugin-api-thin-ownership-v1"
+  val StandardMetadataEntries = Set(
+    "META-INF/LICENSE",
+    "META-INF/MANIFEST.MF"
+  )
 
   val FixtureSupportEntries = Set(
     "paradise3/MetadataInitializationProbe.class"
@@ -400,8 +404,8 @@ object ExperimentalPluginApiSurface {
     val resourceRecords = entries
       .filterNot(entry => entry.endsWith("/") || entry.endsWith(".class"))
       .map {
-        case "META-INF/MANIFEST.MF" =>
-          "RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA"
+        case entry if StandardMetadataEntries.contains(entry) =>
+          s"RESOURCE|$entry|STANDARD_JAR_METADATA"
         case entry if entry.endsWith(".tasty") =>
           s"RESOURCE|$entry|SCALA_TASTY"
         case entry =>
@@ -411,7 +415,7 @@ object ExperimentalPluginApiSurface {
     val policyRecords = Vector(
       s"POLICY|forbidden-package-identity|$ForbiddenPolicyIdentity",
       s"POLICY|forbidden-prefixes|${ForbiddenPrefixes.sorted.mkString(",")}",
-      "POLICY|standard-metadata|META-INF/MANIFEST.MF"
+      s"POLICY|standard-metadata|${StandardMetadataEntries.toVector.sorted.mkString(",")}"
     )
     val records = canonicalizeRecords(
       classRecords ++ memberRecords ++ Vector(metadataRecord) ++ resourceRecords ++ policyRecords
@@ -500,8 +504,8 @@ object ExperimentalPluginApiSurface {
         .distinct
         .sorted
     val resourceRecords = combinedResources.map {
-      case "META-INF/MANIFEST.MF" =>
-        "RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA"
+      case entry if StandardMetadataEntries.contains(entry) =>
+        s"RESOURCE|$entry|STANDARD_JAR_METADATA"
       case entry if entry.endsWith(".tasty") =>
         s"RESOURCE|$entry|SCALA_TASTY"
       case entry =>
@@ -510,7 +514,7 @@ object ExperimentalPluginApiSurface {
     val policyRecords = Vector(
       s"POLICY|forbidden-package-identity|$ForbiddenPolicyIdentity",
       s"POLICY|forbidden-prefixes|${ForbiddenPrefixes.sorted.mkString(",")}",
-      "POLICY|standard-metadata|META-INF/MANIFEST.MF"
+      s"POLICY|standard-metadata|${StandardMetadataEntries.toVector.sorted.mkString(",")}"
     )
     val records = canonicalizeRecords(
       classRecords ++ memberRecords ++
@@ -550,13 +554,13 @@ object ExperimentalPluginApiSurface {
     val contractFiles = contractEntries.filterNot(_.endsWith("/")).toSet
     val markerFiles = markerEntries.filterNot(_.endsWith("/")).toSet
     val duplicates =
-      (contractFiles intersect markerFiles) - "META-INF/MANIFEST.MF"
+      (contractFiles intersect markerFiles) -- StandardMetadataEntries
     if (duplicates.nonEmpty)
       errors += s"duplicate entries across split artifacts: ${duplicates.toVector.sorted.mkString(", ")}"
 
     contractFiles.foreach { entry =>
       val allowed =
-        entry == "META-INF/MANIFEST.MF" ||
+        StandardMetadataEntries.contains(entry) ||
           entry.startsWith("paradise3/api/") &&
             (entry.endsWith(".class") || entry.endsWith(".tasty"))
       if (!allowed)
@@ -564,7 +568,7 @@ object ExperimentalPluginApiSurface {
     }
     markerFiles.foreach { entry =>
       val allowed =
-        entry == "META-INF/MANIFEST.MF" ||
+        StandardMetadataEntries.contains(entry) ||
           FixtureMarkerEntries.contains(entry) ||
           FixtureSupportEntries.contains(entry) ||
           FixtureMarkerTastyEntries.contains(entry) ||
@@ -741,7 +745,7 @@ object ExperimentalPluginApiSurface {
         errors += s"forbidden packaged ownership `$prefix` in `$entry`"
       )
       val allowed =
-        entry == "META-INF/MANIFEST.MF" ||
+        StandardMetadataEntries.contains(entry) ||
           entry == "paradise3/" ||
           entry == "paradise3/api/" ||
           entry == "paradise3/api/helpers/" ||

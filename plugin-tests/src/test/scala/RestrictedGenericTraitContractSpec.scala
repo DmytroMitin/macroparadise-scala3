@@ -12,13 +12,13 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
       "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
     )
   private val pluginJar =
-    new File(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar").getAbsolutePath
+    new File(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar").getAbsolutePath
   private val pluginApiJar =
-    new File(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar").getAbsolutePath
+    new File(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar").getAbsolutePath
   private val markerJar =
-    new File(s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0-SNAPSHOT.jar").getAbsolutePath
+    new File(s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar").getAbsolutePath
   private val handlerJar =
-    new File(s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0-SNAPSHOT.jar").getAbsolutePath
+    new File(s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar").getAbsolutePath
   private val pluginPath = Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
 
   private def codeSourcePath(clazz: Class[?]): String =
@@ -57,12 +57,12 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
     Files.writeString(sourceFile, source)
 
     val options =
-      Seq(s"-P:helloWorld:handlerClasspath=$handlerJar") ++
+      Seq(s"-P:macroparadise:handlerClasspath=$handlerJar") ++
         Option.when(explicitHandler)(
-          "-P:helloWorld:handler=demo.ExternalRestrictedTraitApplyExpander"
+          "-P:macroparadise:handler=demo.ExternalRestrictedTraitApplyExpander"
         ) ++
         Option.when(traceInvocations)(
-          s"-P:helloWorld:externalHandlerInvocationTrace=$traceFile"
+          s"-P:macroparadise:externalHandlerInvocationTrace=$traceFile"
         )
     val reporter = new CollectingReporter
     val result =
@@ -73,7 +73,7 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
           "-d",
           outDir.toString,
           s"-Xplugin:$pluginPath",
-          "-Xplugin-require:helloWorld"
+          "-Xplugin-require:macroparadise"
         ) ++ options.toArray ++ Array(sourceFile.toString),
         reporter,
         null

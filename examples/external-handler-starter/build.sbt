@@ -210,8 +210,8 @@ lazy val consumer: Project = project.in(file("consumer"))
       val handlerJar = (handler / Compile / packageBin).value
       Seq(
         s"-Xplugin:${Seq(plugin, pluginApi, markerJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
-        "-Xplugin-require:helloWorld",
-        s"-P:helloWorld:handlerClasspath=${handlerJar.getAbsolutePath}"
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
       )
     },
     markConsumerCompileStart := {

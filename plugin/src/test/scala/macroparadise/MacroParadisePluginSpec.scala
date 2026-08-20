@@ -3,10 +3,10 @@ package macroparadise
 import scala.io.Source
 import scala.util.Using
 
-class HelloWorldPluginSpec extends munit.FunSuite:
+class MacroParadisePluginSpec extends munit.FunSuite:
   test("plugin metadata is stable") {
-    val plugin = new HelloWorldPlugin
-    assertEquals(plugin.name, "helloWorld")
+    val plugin = new MacroParadisePlugin
+    assertEquals(plugin.name, "macroparadise")
     assertEquals(
       plugin.description,
       "research plugin that expands narrow built-in annotations before typer"
@@ -17,5 +17,5 @@ class HelloWorldPluginSpec extends munit.FunSuite:
     val content =
       Using.resource(Source.fromResource("plugin.properties"))(_.mkString.trim)
 
-    assertEquals(content, "pluginClass=macroparadise.HelloWorldPlugin")
+    assertEquals(content, "pluginClass=macroparadise.MacroParadisePlugin")
   }

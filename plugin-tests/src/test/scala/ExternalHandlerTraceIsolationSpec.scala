@@ -14,19 +14,19 @@ class ExternalHandlerTraceIsolationSpec extends munit.FunSuite:
     )
   private val pluginJar =
     new File(
-      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val pluginApiJar =
     new File(
-      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val markerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
     ).getAbsolutePath
   private val handlerJar =
     new File(
-      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar"
     ).getAbsolutePath
   private val pluginPath =
     Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
@@ -146,10 +146,10 @@ class ExternalHandlerTraceIsolationSpec extends munit.FunSuite:
           "-d",
           output.toString,
           s"-Xplugin:$pluginPath",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
-          s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          s"-P:macroparadise:externalHandlerInvocationTrace=$invocationTrace",
+          s"-P:macroparadise:metadataReaderTrace=$metadataTrace",
           sourceFile.toString
         ),
         reporter,

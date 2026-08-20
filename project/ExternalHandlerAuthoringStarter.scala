@@ -12,10 +12,11 @@ object ExternalHandlerAuthoringStarter {
   val SplitClassification = "FIXTURE_INDEPENDENT_MARKER_HANDLER_CONSUMER_SPLIT_PROVED"
   val PrecheckClassification = "PRECONSUMER_HANDLER_DECLARATION_AND_BINDING_PRECHECK_READY"
   val TypedClassification = "ORDINARY_TYPED_CONSUMER_VISIBILITY_PROVED"
-  val PublishingClassification = "PRODUCTION_PUBLISHING_REMAINS_DISABLED"
+  val PublishingClassification =
+    "REMOTE_PUBLISHING_REMAINS_DISABLED_LOCAL_SELECTED_ARTIFACTS_ONLY"
 
   val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-  val ExpectedSbtVersion = "1.12.8"
+  val ExpectedSbtVersion = "1.12.15"
 
   final case class Config(scalaVersion: String, sbtVersion: String, jdkMajor: Int)
 
@@ -272,7 +273,7 @@ object ExternalHandlerAuthoringStarter {
     val consumerClasspath = readLines(new File(evidence, "consumer-compile-classpath.txt"))
     val pluginOptions = readLines(new File(evidence, "consumer-scalac-options.txt"))
     require(pluginOptions.exists(_.startsWith("-Xplugin:")), "consumer plugin path option missing")
-    require(pluginOptions.exists(_.startsWith("-P:helloWorld:handlerClasspath=")), "consumer handler path option missing")
+    require(pluginOptions.exists(_.startsWith("-P:macroparadise:handlerClasspath=")), "consumer handler path option missing")
     require(pluginOptions.forall(value => !value.contains("plugin-test")), "consumer plugin options contain repository fixtures")
 
     val runtimeOutput = read(new File(evidence, "runtime.log"))

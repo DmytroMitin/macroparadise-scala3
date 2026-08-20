@@ -17,15 +17,15 @@ object IndependentExternalSbtConsumer {
   val CoordinateClassification = "COORDINATE_RESOLVED_METADATA_DISCOVERY_AND_HANDLER_INVOCATION_PROVEN"
   val PublicationClassification = "NO_GLOBAL_OR_REMOTE_PUBLICATION_PERFORMED"
 
-  val RepositoryOrganization = "local.macroparadise.externalConsumer"
+  val RepositoryOrganization = "com.github.dmytromitin"
   val ProducerOrganization = "local.contractprobe.externalConsumer"
-  val Version = "0.1.0-SNAPSHOT"
+  val Version = "0.1.0"
   val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
   val PluginApiModule = s"macroparadise-scala3-plugin-api_$ExpectedScalaVersion"
   val PluginModule = s"macroparadise-scala3-plugin_$ExpectedScalaVersion"
   val IndependentModule = "independent-handler_3"
   val DuplicateApiModule = "duplicate-plugin-api_3"
-  val ExpectedSbtVersion = "1.12.8"
+  val ExpectedSbtVersion = "1.12.15"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
   val ExpectedHandler = "contractprobe.IndependentHandler"
 
@@ -167,16 +167,19 @@ object IndependentExternalSbtConsumer {
   def producerCoordinate: Coordinate =
     Coordinate(ProducerOrganization, IndependentModule, Version)
 
-  def validateSyntheticCoordinate(coordinate: Coordinate): Vector[String] = {
+  def validateTaskCoordinate(coordinate: Coordinate): Vector[String] = {
     val errors = Vector.newBuilder[String]
-    if (!coordinate.organization.startsWith("local."))
-      errors += "organization must use the synthetic local namespace"
+    val expectedOrganization =
+      if (coordinate.module == IndependentModule) ProducerOrganization
+      else RepositoryOrganization
+    if (coordinate.organization != expectedOrganization)
+      errors += s"organization must equal $expectedOrganization"
     if (coordinate.organization.exists(_.isWhitespace))
       errors += "organization must not contain whitespace"
     if (coordinate.module.isEmpty || coordinate.module.exists(_.isWhitespace))
       errors += "module must be non-empty and contain no whitespace"
     if (coordinate.version != Version)
-      errors += s"version must equal task-local $Version"
+      errors += s"version must equal candidate $Version"
     errors.result()
   }
 
@@ -190,8 +193,8 @@ object IndependentExternalSbtConsumer {
   def pluginOptions(plugin: File, api: File, handler: Option[File]): Vector[String] =
     Vector(
       "-Xplugin:" + Vector(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator),
-      "-Xplugin-require:helloWorld"
-    ) ++ handler.toVector.map(file => "-P:helloWorld:handlerClasspath=" + file.getAbsolutePath)
+      "-Xplugin-require:macroparadise"
+    ) ++ handler.toVector.map(file => "-P:macroparadise:handlerClasspath=" + file.getAbsolutePath)
 
   def validateResolvedGraph(
       modules: Vector[(String, String, String, String)],
@@ -301,18 +304,8 @@ object IndependentExternalSbtConsumer {
 
     val publisherLog = new File(layout.evidence, "commands/01-source-publisher.log")
     val publisherCommands = Vector(
-      s"""set ThisBuild / organization := "$RepositoryOrganization"""",
-      s"""set ThisBuild / version := "$Version"""",
-      "set ThisBuild / publishMavenStyle := true",
       s"""set ThisBuild / publishTo := Some(Resolver.file("externalConsumer-task-repository", file("${scalaString(layout.repository.getAbsolutePath)}"))(Resolver.mavenStylePatterns))""",
       "set ThisBuild / credentials := Nil",
-      "set pluginApi / publish / skip := false",
-      "set plugin / publish / skip := false",
-      s"""set plugin / projectDependencies := Seq("$RepositoryOrganization" % "$PluginApiModule" % "$Version")""",
-      "set pluginApi / Compile / packageSrc / publishArtifact := false",
-      "set pluginApi / Compile / packageDoc / publishArtifact := false",
-      "set plugin / Compile / packageSrc / publishArtifact := false",
-      "set plugin / Compile / packageDoc / publishArtifact := false",
       "pluginApi/publish",
       "plugin/publish"
     )
@@ -645,11 +638,11 @@ object IndependentExternalSbtConsumer {
        |      else if (externalConsumerMode != \"missing-marker\") require(providers.size == 1, \"expected singular paradise3.api provider, found \" + providers.mkString(\",\"))
        |      val base = Seq(
        |        \"-Xplugin:\" + Seq(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator),
-       |        \"-Xplugin-require:helloWorld\",
-       |        \"-P:helloWorld:metadataReaderTrace=\" + externalConsumerMetadataTrace,
-       |        \"-P:helloWorld:externalHandlerInvocationTrace=\" + externalConsumerInvocationTrace
+       |        \"-Xplugin-require:macroparadise\",
+       |        \"-P:macroparadise:metadataReaderTrace=\" + externalConsumerMetadataTrace,
+       |        \"-P:macroparadise:externalHandlerInvocationTrace=\" + externalConsumerInvocationTrace
        |      )
-       |      if (externalConsumerMode == \"positive\" || externalConsumerMode == \"duplicate-api\") base ++ Seq(\"-P:helloWorld:handlerClasspath=\" + externalConsumerExactlyOne(handler, \"handler\").getAbsolutePath)
+       |      if (externalConsumerMode == \"positive\" || externalConsumerMode == \"duplicate-api\") base ++ Seq(\"-P:macroparadise:handlerClasspath=\" + externalConsumerExactlyOne(handler, \"handler\").getAbsolutePath)
        |      else base
        |    },
        |    externalConsumerAudit := {
@@ -729,7 +722,7 @@ object IndependentExternalSbtConsumer {
   }
 
   private def auditRepository(root: File, coordinates: Vector[Coordinate]): Vector[String] = {
-    coordinates.foreach(coordinate => require(validateSyntheticCoordinate(coordinate).isEmpty, s"invalid coordinate ${coordinate.render}"))
+    coordinates.foreach(coordinate => require(validateTaskCoordinate(coordinate).isEmpty, s"invalid coordinate ${coordinate.render}"))
     val files = regularRelativeFiles(root)
     require(files.nonEmpty, "task-owned Maven repository is empty")
     val allowedExtensions = Set("jar", "pom", "xml", "module", "sha1", "md5", "sha256")
@@ -748,7 +741,7 @@ object IndependentExternalSbtConsumer {
     coordinates.foreach { coordinate =>
       val versions = files.filter(_.startsWith(coordinate.rootRelative + "/")).flatMap { relative =>
         val suffix = relative.stripPrefix(coordinate.rootRelative + "/")
-        suffix.split('/').headOption.filter(_.contains("SNAPSHOT"))
+        suffix.split('/').headOption.filterNot(_.startsWith("maven-metadata"))
       }.distinct
       require(versions == Vector(Version), s"duplicate or unexpected versions for ${coordinate.render}: $versions")
       require(files.contains(coordinate.artifactRelative("jar")), s"missing staged JAR for ${coordinate.render}")
@@ -766,9 +759,9 @@ object IndependentExternalSbtConsumer {
         case PluginApiModule =>
           require(dependencies.exists(value => value.organization == "org.scala-lang" && value.module == "scala3-compiler_3" && value.version == ExpectedScalaVersion), "pluginApi POM lacks exact compiler dependency")
         case PluginModule =>
-          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "plugin POM lacks synthetic pluginApi dependency")
+          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "plugin POM lacks selected pluginApi dependency")
         case IndependentModule =>
-          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "producer POM lacks synthetic pluginApi dependency")
+          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "producer POM lacks selected pluginApi dependency")
           require(!dependencies.exists(_.module == PluginModule), "producer POM depends on plugin implementation")
         case other => throw new IllegalStateException("unclassified POM " + other)
       }
@@ -820,11 +813,11 @@ object IndependentExternalSbtConsumer {
 
   private def auditPluginOptions(options: Vector[String]): Unit = {
     val plugin = options.filter(_.startsWith("-Xplugin:"))
-    val handler = options.filter(_.startsWith("-P:helloWorld:handlerClasspath="))
-    val metadataTrace = options.filter(_.startsWith("-P:helloWorld:metadataReaderTrace="))
-    val invocationTrace = options.filter(_.startsWith("-P:helloWorld:externalHandlerInvocationTrace="))
+    val handler = options.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
+    val metadataTrace = options.filter(_.startsWith("-P:macroparadise:metadataReaderTrace="))
+    val invocationTrace = options.filter(_.startsWith("-P:macroparadise:externalHandlerInvocationTrace="))
     require(plugin.size == 1 && plugin.head.contains(PluginModule) && plugin.head.contains(PluginApiModule), "coordinate-resolved plugin option is invalid")
-    require(options.count(_ == "-Xplugin-require:helloWorld") == 1, "plugin require option is invalid")
+    require(options.count(_ == "-Xplugin-require:macroparadise") == 1, "plugin require option is invalid")
     require(handler.size == 1 && handler.head.contains(IndependentModule), "coordinate-resolved handler option is invalid")
     require(metadataTrace.size == 1, "coordinate-resolved metadata trace option is invalid")
     require(invocationTrace.size == 1, "coordinate-resolved invocation trace option is invalid")
@@ -921,7 +914,7 @@ object IndependentExternalSbtConsumer {
     require(config.projectVersion == Version, s"requires project $Version")
     require(Runtime.version().feature() == 25, "requires JDK 25")
     Vector(repositoryCoordinate(PluginApiModule), repositoryCoordinate(PluginModule), producerCoordinate).foreach(coordinate =>
-      require(validateSyntheticCoordinate(coordinate).isEmpty, s"invalid task coordinate ${coordinate.render}")
+      require(validateTaskCoordinate(coordinate).isEmpty, s"invalid task coordinate ${coordinate.render}")
     )
   }
 

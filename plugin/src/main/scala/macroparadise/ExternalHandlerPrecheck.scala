@@ -204,7 +204,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
         plugin,
         "plugin",
         Set(
-          "macroparadise/HelloWorldPlugin.class",
+          "macroparadise/MacroParadisePlugin.class",
           "macroparadise/ExternalHandlerPrecheckMain.class",
           "plugin.properties"
         )
@@ -270,7 +270,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
       normalizedArtifacts.find: artifact =>
         artifact.path == normalizedPlugin ||
           forbiddenPath(artifact.path) ||
-          artifact.entries.contains("macroparadise/HelloWorldPlugin.class") ||
+          artifact.entries.contains("macroparadise/MacroParadisePlugin.class") ||
           artifact.referencedNames.exists(forbiddenReference)
       match
         case Some(forbidden) =>

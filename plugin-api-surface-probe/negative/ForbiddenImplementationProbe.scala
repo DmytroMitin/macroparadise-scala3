@@ -1,6 +1,6 @@
 package surfaceprobe
 
-import macroparadise.HelloWorldPlugin
+import macroparadise.MacroParadisePlugin
 
 object ForbiddenImplementationProbe:
-  val leakedImplementation: Class[?] = classOf[HelloWorldPlugin]
+  val leakedImplementation: Class[?] = classOf[MacroParadisePlugin]

@@ -19,7 +19,7 @@ object ExperimentalHandlerContractArtifact {
   val SourceBuiltMatchClassification =
     "SOURCE_BUILT_PLUGIN_API_MATCHES_FILTERED_CONTRACT_CANDIDATE"
   val CandidateBasename =
-    "macroparadise-scala3-plugin-api-handler-contract_3-0.1.0-SNAPSHOT.jar"
+    "macroparadise-scala3-plugin-api-handler-contract_3-0.1.0.jar"
   val DeterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val DeterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -214,7 +214,8 @@ object ExperimentalHandlerContractArtifact {
     }.toSet
     val unsupportedResources = resources.collect {
       case (entry, category)
-          if !(entry == "META-INF/MANIFEST.MF" && category == "STANDARD_JAR_METADATA") &&
+          if !(ExperimentalPluginApiSurface.StandardMetadataEntries.contains(entry) &&
+            category == "STANDARD_JAR_METADATA") &&
             category != "SCALA_TASTY" =>
         s"$entry:$category"
     }
@@ -236,7 +237,8 @@ object ExperimentalHandlerContractArtifact {
     )
 
     val allowed =
-      (Vector("META-INF/MANIFEST.MF") ++ handlers ++ metadata ++ requiredTasty).sorted
+      (ExperimentalPluginApiSurface.StandardMetadataEntries.toVector ++
+        handlers ++ metadata ++ requiredTasty).sorted
     val fixtureTasty = (tastyResources -- requiredTasty.toSet).toVector.sorted
     ContractPlan(
       handlers,
@@ -331,7 +333,7 @@ object ExperimentalHandlerContractArtifact {
     val identity = candidateIdentity(destination, plan)
     require(
       surface.normalizedSha256 ==
-        "6194ab649847ed6ff42344c8eb054443f7ead655cfa50f1da9ca4e3aacb31a84",
+        "7db377da74d763c7daa9faefd84f58fad2029fa06858df9893bb5b2f272aa876",
       s"reviewed normalized surface SHA changed to ${surface.normalizedSha256}"
     )
     identity

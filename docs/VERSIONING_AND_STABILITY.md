@@ -1,8 +1,12 @@
 # Versioning and stability
 
 Macro-Paradise for Scala 3 has no stable release and no remotely published
-artifact. The source build currently uses `0.1.0-SNAPSHOT` as development
-metadata.
+artifact. The source build selects `com.github.dmytromitin` / `0.1.0` as a
+local first-release candidate.
+
+The POM uses sbt's `early-semver` tooling hint so dependency tools treat the
+pre-1.0 line conservatively. It does not upgrade the experimental API into a
+stable compatibility promise.
 
 ## Current stability levels
 
@@ -16,8 +20,8 @@ metadata.
   compiler-sensitive.
 - Same-module handling is a deferred research prototype, not supported public
   behavior.
-- Public artifact coordinates, release cadence, and maintained version lines do
-  not exist.
+- The candidate coordinates support local rehearsal, but no release cadence or
+  maintained version line exists.
 
 The normalized handler-facing API inventory detects changes within the pinned
 build. It does not promise source, binary, or behavioral compatibility.
@@ -28,12 +32,12 @@ experimental, exact-compiler-specific, and without compatibility guarantees.
 
 ## Change expectations
 
-Until a versioning policy and first release are explicitly selected:
+Until the first remote release is separately authorized and completed:
 
 - APIs, option names, tree contracts, supported shapes, diagnostics, and build
   structure may change;
 - compiler-version changes require explicit requalification;
-- no compatibility duration is promised for snapshot artifacts;
+- no compatibility duration is promised for locally published candidates;
 - passing tests on another Scala line is evidence for that run only;
 - documentation must distinguish proven fixtures from general support.
 
@@ -42,7 +46,7 @@ Until a versioning policy and first release are explicitly selected:
 These decisions must not be inferred from a passing source build:
 
 - making source publicly visible;
-- choosing artifact coordinates and compiler crossing;
+- changing the selected artifact coordinates or exact full compiler crossing;
 - adopting semantic or early-semantic versioning;
 - publishing, signing, tagging, or supporting a release;
 - declaring any handler API stable.

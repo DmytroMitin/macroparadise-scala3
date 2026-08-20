@@ -85,6 +85,35 @@ The contract is exact-compiler experimental API. It does not promise typed
 trees, stable owners, semantic names, cross-version binary compatibility, or
 general definition builders.
 
+## Local coordinate for marker and handler authors
+
+First publish the plugin API and plugin from a source clone:
+
+```sh
+sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
+```
+
+A separate marker/handler build then compiles against the exact full-cross API
+coordinate, not the plugin implementation or any test fixture:
+
+```scala
+ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+ThisBuild / resolvers += Resolver.scalaNightlyRepository
+
+libraryDependencies += "com.github.dmytromitin" % "macroparadise-scala3-plugin-api_3.8.5-RC1-bin-20260405-9478256-NIGHTLY" % "0.1.0"
+```
+
+The same API artifact supplies the runtime-retained `paradise3.api.expander`
+metadata annotation and the `ParadiseAnnotationExpander` contract. Keep it on
+the marker/handler compile classpath exactly once. The ordinary consumer adds
+the full-cross compiler plugin as shown in [Getting started](GETTING_STARTED.md)
+and supplies the precompiled marker/handler JAR through
+`-P:macroparadise:handlerClasspath=<handler-jar>`.
+
+The candidate coordinates are locally usable but are not available from Maven
+Central. The repository's built-in `@gen` annotation is a fixture and is not
+the supported public authoring API.
+
 ## Qualified identity boundary
 
 `starter.marker.generateGreeting` must match the raw source identity exactly.
@@ -104,7 +133,7 @@ The consumer compiler plugin path contains the packaged plugin, handler API,
 and marker. The handler JAR is supplied through:
 
 ```text
--P:helloWorld:handlerClasspath=<handler-jar>
+-P:macroparadise:handlerClasspath=<handler-jar>
 ```
 
 The loader resolves the shared handler API and compiler types parent first.
@@ -203,7 +232,8 @@ The positive flow typechecks and runs `new Greeter().generatedGreeting`, which
 returns `Hello, Greeter!`. It proves one precompiled qualified
 marker/handler/consumer path on the pinned toolchain.
 
-It does not prove same-module handlers, stable coordinates, arbitrary targets,
+It does not prove same-module handlers, remotely released coordinates, arbitrary targets,
 arbitrary composition, import resolution, cross-compiler compatibility, or
 release readiness. The compact command is source-build ergonomics for local
-packaged artifacts; public source visibility does not mean artifact publication.
+packaged artifacts; public source visibility and local publication do not mean
+Maven Central availability.

@@ -27,8 +27,8 @@ import java.net.URLClassLoader
 import java.nio.file.{Files, InvalidPathException, Path, StandardOpenOption}
 import scala.util.control.NonFatal
 
-class HelloWorldPlugin extends ResearchPlugin:
-  val name: String = "helloWorld"
+class MacroParadisePlugin extends ResearchPlugin:
+  val name: String = "macroparadise"
   override val description: String =
     "research plugin that expands narrow built-in annotations before typer"
 
@@ -110,7 +110,7 @@ private object ExternalHandlerLoading:
       .map(_.trim)
       .filter(_.nonEmpty)
 
-    val pluginLoader = classOf[HelloWorldPlugin].getClassLoader
+    val pluginLoader = classOf[MacroParadisePlugin].getClassLoader
     val loader = handlerLoader(handlerClasspath)
     val metadataLoader = compilerClasspathMetadataLoader(pluginLoader)
 
@@ -383,10 +383,10 @@ private object ExternalHandlerLoading:
     // ASSUMPTION
     // Explicit handler classpath entries are loaded with the plugin/API loader as
     // parent, so the handler and plugin share `paradise3.api` class identity.
-    if classpath.isEmpty then classOf[HelloWorldPlugin].getClassLoader
+    if classpath.isEmpty then classOf[MacroParadisePlugin].getClassLoader
     else
       val urls = classpath.map(path => new File(path).toURI.toURL).toArray
-      URLClassLoader(urls, classOf[HelloWorldPlugin].getClassLoader)
+      URLClassLoader(urls, classOf[MacroParadisePlugin].getClassLoader)
 
   private def compilerClasspathMetadataLoader(
       pluginLoader: ClassLoader
@@ -641,7 +641,7 @@ final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.Loade
       reason: LoadReason,
       result: String
   )(using ctx: Context): Unit =
-    val pluginLoader = classOf[HelloWorldPlugin].getClassLoader
+    val pluginLoader = classOf[MacroParadisePlugin].getClassLoader
     val apiLoader = classOf[ExternalParadiseAnnotationExpander].getClassLoader
     val handlerApiLoader =
       if handler == null then "not-loaded"

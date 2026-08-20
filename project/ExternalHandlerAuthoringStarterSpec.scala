@@ -1,8 +1,13 @@
 object ExternalHandlerAuthoringStarterSpec {
-  val CaseCount = 10
+  val CaseCount = 11
 
   def run(): Unit = {
     import ExternalHandlerAuthoringStarter._
+
+    assert(
+      PublishingClassification ==
+        "REMOTE_PUBLISHING_REMAINS_DISABLED_LOCAL_SELECTED_ARTIFACTS_ONLY"
+    )
 
     assert(
       validatePositiveFlow(

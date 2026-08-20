@@ -7,7 +7,7 @@ changes before investing in a large implementation.
 ## Development baseline
 
 - JDK feature version 25
-- sbt 1.12.8
+- sbt 1.12.15
 - Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`
 
 Run the canonical product gate before proposing a change:

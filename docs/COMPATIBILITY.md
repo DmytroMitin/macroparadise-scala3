@@ -3,7 +3,7 @@
 ## Required source-build toolchain
 
 - JDK feature version 25
-- sbt 1.12.8
+- sbt 1.12.15
 - Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`
 - MUnit 1.2.4 for repository tests
 
@@ -41,10 +41,15 @@ or semantic-versioning commitment.
 
 ## Publication
 
-All projects set `publish / skip := true`; publication destinations and
-credentials are absent. Version `0.1.0-SNAPSHOT` and the configured organization
-are development metadata only. No remote coordinate or released version is
-supported.
+Version `0.1.0` and group `com.github.dmytromitin` identify the selected local
+release candidate. Only `macroparadise-scala3-plugin` and
+`macroparadise-scala3-plugin-api` set `publish / skip := false`, both with
+`CrossVersion.full`; every aggregate, fixture, test, consumer, example, and
+spike remains skipped. `publishLocal` is supported for those two artifacts.
+
+No remote publication destination or credentials are configured, and ordinary
+CI does not publish. The candidate is not available from Maven Central and is
+not a released compatibility promise.
 
 See [Versioning and stability](VERSIONING_AND_STABILITY.md) and
 [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md).

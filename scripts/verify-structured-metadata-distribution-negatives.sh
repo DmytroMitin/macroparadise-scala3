@@ -53,9 +53,9 @@ run_case() {
     -classpath "$consumer_classpath" \
     -d "$output_directory" \
     "-Xplugin:${plugin_path}" \
-    -Xplugin-require:helloWorld \
-    "-P:helloWorld:handlerClasspath=${handler_jar}" \
-    "-P:helloWorld:metadataReaderTrace=${trace_file}" \
+    -Xplugin-require:macroparadise \
+    "-P:macroparadise:handlerClasspath=${handler_jar}" \
+    "-P:macroparadise:metadataReaderTrace=${trace_file}" \
     "$@" \
     "${sources[@]}" \
     >"$log_file" 2>&1
@@ -81,38 +81,38 @@ run_case \
   blank-path 1 \
   "empty experimental" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath="
+  "-P:macroparadise:structuredMetadataPath="
 
 run_case \
   missing-path 1 \
   "does not exist" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${evidence_directory}/absent-marker.jar"
+  "-P:macroparadise:structuredMetadataPath=${evidence_directory}/absent-marker.jar"
 
 run_case \
   duplicate-normalized-path 1 \
   "duplicate experimental structured metadata path" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${marker_jar}" \
-  "-P:helloWorld:structuredMetadataPath=${marker_jar}"
+  "-P:macroparadise:structuredMetadataPath=${marker_jar}" \
+  "-P:macroparadise:structuredMetadataPath=${marker_jar}"
 
 run_case \
   obsolete-carrier 1 \
   "exposes obsolete carrier" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${plugin_api_jar}"
+  "-P:macroparadise:structuredMetadataPath=${plugin_api_jar}"
 
 run_case \
   wrong-inspector-version 1 \
   "active inspector filename mismatch" \
   "$wrong_inspector_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${marker_jar}"
+  "-P:macroparadise:structuredMetadataPath=${marker_jar}"
 
 run_case \
   inspector-absent-controlled-fallback 0 \
   "controlled string compatibility fallback remains enabled" \
   "$inspector_absent_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${marker_jar}"
+  "-P:macroparadise:structuredMetadataPath=${marker_jar}"
 if ! grep -Fq "structured paradise3.legacyExternalDebug Failed" "${evidence_directory}/inspector-absent-controlled-fallback.trace"; then
   echo "FAIL inspector-absent-controlled-fallback: structured failure was not traced"
   exit 1
@@ -127,37 +127,37 @@ run_case \
   unsafe-duplicate-identity 1 \
   "conflicting compiler/Scala/TASTy/API identity" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${compiler_jar}"
+  "-P:macroparadise:structuredMetadataPath=${compiler_jar}"
 
 run_case \
   malformed-jar 1 \
   "is malformed" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${malformed_jar}"
+  "-P:macroparadise:structuredMetadataPath=${malformed_jar}"
 
 run_case \
   non-jar-file 1 \
   "must be a readable JAR or directory" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${non_jar}"
+  "-P:macroparadise:structuredMetadataPath=${non_jar}"
 
 run_case \
   unreadable-jar 1 \
   "is not readable" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${unreadable_jar}"
+  "-P:macroparadise:structuredMetadataPath=${unreadable_jar}"
 
 run_case \
   missing-marker-tasty 1 \
   "contains no" \
   "$normal_plugin_path" legacy \
-  "-P:helloWorld:structuredMetadataPath=${empty_jar}"
+  "-P:macroparadise:structuredMetadataPath=${empty_jar}"
 
 run_case \
   unrelated-annotation-not-found 0 \
   "validated experimental distribution" \
   "$normal_plugin_path" unrelated \
-  "-P:helloWorld:structuredMetadataPath=${marker_jar}"
+  "-P:macroparadise:structuredMetadataPath=${marker_jar}"
 if ! grep -Fq "runtime paradise3.unrelatedMarker NotFound" "${evidence_directory}/unrelated-annotation-not-found.trace"; then
   echo "FAIL unrelated-annotation-not-found: runtime NotFound was not traced"
   exit 1

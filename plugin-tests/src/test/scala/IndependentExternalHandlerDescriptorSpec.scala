@@ -14,9 +14,9 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
       "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
     )
   private val pluginJar =
-    file(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar")
+    file(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar")
   private val pluginApiJar =
-    file(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar")
+    file(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar")
   private val producerSource =
     Path.of("plugin-api-handler-contract-probe/descriptor/IndependentDescriptorHandlers.scala").toAbsolutePath
   private val compilerUniverse =
@@ -541,8 +541,8 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
     finally deleteRecursively(root)
 
   private def handlerOptions(artifact: File, explicit: Option[String]): List[String] =
-    List(s"-P:helloWorld:handlerClasspath=${artifact.getAbsolutePath}") ++
-      explicit.toList.map(name => s"-P:helloWorld:handler=$name")
+    List(s"-P:macroparadise:handlerClasspath=${artifact.getAbsolutePath}") ++
+      explicit.toList.map(name => s"-P:macroparadise:handler=$name")
 
   private def compileConsumer(
       marker: String,
@@ -574,10 +574,10 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         "-d",
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
-        "-Xplugin-require:helloWorld"
+        "-Xplugin-require:macroparadise"
       ) ++ pluginOptions ++ List(
-        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
-        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+        s"-P:macroparadise:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:macroparadise:metadataReaderTrace=$metadataTrace",
         sourceFile.toString
       ),
       List(
@@ -622,10 +622,10 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         "-d",
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
-        "-Xplugin-require:helloWorld"
+        "-Xplugin-require:macroparadise"
       ) ++ pluginOptions ++ List(
-        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
-        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
+        s"-P:macroparadise:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:macroparadise:metadataReaderTrace=$metadataTrace",
         sourceFile.toString
       ),
       List(
@@ -672,10 +672,10 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
         "-d",
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
-        "-Xplugin-require:helloWorld"
+        "-Xplugin-require:macroparadise"
       ) ++ pluginOptions ++ List(
-        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace",
-        s"-P:helloWorld:metadataReaderTrace=$metadataTrace"
+        s"-P:macroparadise:externalHandlerInvocationTrace=$invocationTrace",
+        s"-P:macroparadise:metadataReaderTrace=$metadataTrace"
       ) ++ sourceFiles.map(_.toString),
       List(
         "macroparadise.descriptorProbeTrace" -> descriptorTrace.toString

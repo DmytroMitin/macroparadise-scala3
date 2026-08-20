@@ -12,19 +12,19 @@ class ConflictSpec extends munit.FunSuite:
     )
   private val pluginJar =
     new File(
-      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val pluginApiJar =
     new File(
-      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val markerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
     ).getAbsolutePath
   private val handlerJar =
     new File(
-      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar"
     ).getAbsolutePath
   private val pluginPath =
     Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
@@ -71,7 +71,7 @@ class ConflictSpec extends munit.FunSuite:
             "-d",
             outDir.toString,
             s"-Xplugin:$pluginPath",
-            "-Xplugin-require:helloWorld"
+            "-Xplugin-require:macroparadise"
           ) ++ pluginOptions.toArray ++ Array(
             sourceFile.toString
           ),
@@ -94,7 +94,7 @@ class ConflictSpec extends munit.FunSuite:
     val outcome =
       compileSnippet(
         source,
-        pluginOptions :+ s"-P:helloWorld:externalHandlerInvocationTrace=$trace"
+        pluginOptions :+ s"-P:macroparadise:externalHandlerInvocationTrace=$trace"
       )
     val lines =
       if Files.size(trace) == 0 then Nil
@@ -286,8 +286,8 @@ class ConflictSpec extends munit.FunSuite:
 
   private def protocolOptions(handlerClassName: String): Seq[String] =
     Seq(
-      s"-P:helloWorld:handlerClasspath=$handlerJar",
-      s"-P:helloWorld:handler=$handlerClassName"
+      s"-P:macroparadise:handlerClasspath=$handlerJar",
+      s"-P:macroparadise:handler=$handlerClassName"
     )
 
   private def standaloneProtocolSource(annotationName: String, className: String): String =
@@ -350,7 +350,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalSiblingConflictExternalMeta
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -378,8 +378,8 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalSiblingAccumulatedConflict
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionDuplicatesKnownAdditionalExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionDuplicatesKnownAdditionalExpander"
         )
       )
 
@@ -413,7 +413,7 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = CompanionSiblingKnownConflict.preserved
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -448,8 +448,8 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = CompanionSiblingAccumulatedConflict.preserved
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionDuplicatesKnownAdditionalExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionDuplicatesKnownAdditionalExpander"
         )
       )
 
@@ -485,8 +485,8 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = CompanionSiblingLateFailureUser.preserved
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionFailsAfterCompanionAndSiblingExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionFailsAfterCompanionAndSiblingExpander"
         )
       )
 
@@ -550,7 +550,7 @@ class ConflictSpec extends munit.FunSuite:
           |object User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -631,7 +631,7 @@ class ConflictSpec extends munit.FunSuite:
           |
           |class User
           |""".stripMargin,
-        pluginOptions = Seq("-P:helloWorld:handler=missing.DoesNotExist")
+        pluginOptions = Seq("-P:macroparadise:handler=missing.DoesNotExist")
       )
 
     assertBoundaryDiagnostic(
@@ -653,7 +653,7 @@ class ConflictSpec extends munit.FunSuite:
           |class MissingMetadataUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -676,7 +676,7 @@ class ConflictSpec extends munit.FunSuite:
           |class EmptyMetadataUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -700,8 +700,8 @@ class ConflictSpec extends munit.FunSuite:
           |class StructuredMetadataUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          s"-P:helloWorld:metadataReaderTrace=$traceFile"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          s"-P:macroparadise:metadataReaderTrace=$traceFile"
         )
       )
 
@@ -728,8 +728,8 @@ class ConflictSpec extends munit.FunSuite:
           |class User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.NotAnExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.NotAnExpander"
         )
       )
 
@@ -749,8 +749,8 @@ class ConflictSpec extends munit.FunSuite:
           |class User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.ThrowingExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.ThrowingExpander"
         )
       )
 
@@ -771,9 +771,9 @@ class ConflictSpec extends munit.FunSuite:
           |class User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.ExternalDebugExpander",
-          "-P:helloWorld:handler=demo.DuplicateExternalDebugExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.ExternalDebugExpander",
+          "-P:macroparadise:handler=demo.DuplicateExternalDebugExpander"
         )
       )
 
@@ -793,9 +793,9 @@ class ConflictSpec extends munit.FunSuite:
           |class User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.ExternalDebugExpander",
-          "-P:helloWorld:handler=demo.ExternalDebugExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.ExternalDebugExpander",
+          "-P:macroparadise:handler=demo.ExternalDebugExpander"
         )
       )
 
@@ -817,8 +817,8 @@ class ConflictSpec extends munit.FunSuite:
           |class User
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.GenNameExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.GenNameExpander"
         )
       )
 
@@ -841,7 +841,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalTypedNonLiteral
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -865,7 +865,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalTypedMissingType
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -888,7 +888,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalTypedWrongNamed
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -912,7 +912,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalTypedExtraTerm
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -935,7 +935,7 @@ class ConflictSpec extends munit.FunSuite:
           |class ExternalTypedExtraType
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -954,7 +954,7 @@ class ConflictSpec extends munit.FunSuite:
           |
           |class User
           |""".stripMargin,
-        pluginOptions = Seq("-P:helloWorld:handler=")
+        pluginOptions = Seq("-P:macroparadise:handler=")
       )
 
     assertDiagnostic(
@@ -1244,7 +1244,7 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = InvocationCompositionFailureUser.preserved
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
@@ -1271,8 +1271,8 @@ class ConflictSpec extends munit.FunSuite:
           |class StandaloneParticipantUser
           |""".stripMargin,
         Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.ExternalMarkerExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.ExternalMarkerExpander"
         )
       )
 
@@ -1302,8 +1302,8 @@ class ConflictSpec extends munit.FunSuite:
           |class DropsLaterUser(val name: String)
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionDropsLaterExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionDropsLaterExpander"
         )
       )
 
@@ -1331,8 +1331,8 @@ class ConflictSpec extends munit.FunSuite:
           |class RetainsCurrentUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionRetainsCurrentExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionRetainsCurrentExpander"
         )
       )
 
@@ -1360,8 +1360,8 @@ class ConflictSpec extends munit.FunSuite:
           |class ReconstructsLaterUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionReconstructsLaterExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionReconstructsLaterExpander"
         )
       )
 
@@ -1389,8 +1389,8 @@ class ConflictSpec extends munit.FunSuite:
           |class ReconstructedCurrentUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionReconstructsCurrentExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionReconstructsCurrentExpander"
         )
       )
 
@@ -1418,8 +1418,8 @@ class ConflictSpec extends munit.FunSuite:
           |class DuplicatedLaterUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionDuplicatesLaterExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionDuplicatesLaterExpander"
         )
       )
 
@@ -1451,8 +1451,8 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = 42
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionReintroducesConsumedExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionReintroducesConsumedExpander"
         )
       )
 
@@ -1480,8 +1480,8 @@ class ConflictSpec extends munit.FunSuite:
           |class IntroducedDifferentHandledUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionIntroducesDifferentHandledExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionIntroducesDifferentHandledExpander"
         )
       )
 
@@ -1509,8 +1509,8 @@ class ConflictSpec extends munit.FunSuite:
           |class MixedTargetProfilesUser
           |""".stripMargin,
         Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.CompositionRestrictedProfileExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.CompositionRestrictedProfileExpander"
         )
       )
 
@@ -1536,8 +1536,8 @@ class ConflictSpec extends munit.FunSuite:
           |class ComposedMalformedRawUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedMissingPrimaryExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedMissingPrimaryExpander"
         )
       )
 
@@ -1561,8 +1561,8 @@ class ConflictSpec extends munit.FunSuite:
           |class EmptyOutputUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedEmptyOutputExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedEmptyOutputExpander"
         )
       )
 
@@ -1587,8 +1587,8 @@ class ConflictSpec extends munit.FunSuite:
           |class MissingPrimaryUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedMissingPrimaryExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedMissingPrimaryExpander"
         )
       )
 
@@ -1613,8 +1613,8 @@ class ConflictSpec extends munit.FunSuite:
           |class DuplicatePrimaryUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedDuplicatePrimaryExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedDuplicatePrimaryExpander"
         )
       )
 
@@ -1641,8 +1641,8 @@ class ConflictSpec extends munit.FunSuite:
           |class ConflictingAdditionalUser
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedConflictingAdditionalExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedConflictingAdditionalExpander"
         )
       )
 
@@ -1673,8 +1673,8 @@ class ConflictSpec extends munit.FunSuite:
           |  val preserved: Int = LateCompanionUser.preserved
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.MalformedLateCompanionExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.MalformedLateCompanionExpander"
         )
       )
 
@@ -1781,7 +1781,7 @@ class ConflictSpec extends munit.FunSuite:
         """import paradise3.externalDebug
           |@externalDebug class GenericUser[A]
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
     assertFocusedAdmissionDiagnostic(
       outcome,
@@ -1797,7 +1797,7 @@ class ConflictSpec extends munit.FunSuite:
         """import paradise3.externalDebug
           |@externalDebug trait ExternalTrait
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
     assertFocusedAdmissionDiagnostic(
       outcome,
@@ -1813,7 +1813,7 @@ class ConflictSpec extends munit.FunSuite:
           |object Outer:
           |  @externalDebug class Nested
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
     assertFocusedAdmissionDiagnostic(
       outcome,
@@ -1830,7 +1830,7 @@ class ConflictSpec extends munit.FunSuite:
           |@gen
           |class AtomicInvalid
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
     assertFocusedAdmissionDiagnostic(
       outcome,
@@ -1847,7 +1847,7 @@ class ConflictSpec extends munit.FunSuite:
           |@externalDebug
           |trait MultiTrait
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
     assertFocusedAdmissionDiagnostic(
       outcome,
@@ -1866,7 +1866,7 @@ class ConflictSpec extends munit.FunSuite:
           |  val one = new QualifiedOneUser().qualifiedOneAuditName
           |  val two = new QualifiedTwoUser().qualifiedTwoAuditName
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     outcome match
@@ -1883,7 +1883,7 @@ class ConflictSpec extends munit.FunSuite:
         """import qualifiedone.audit
           |@audit class AmbiguousSimpleAuditUser
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     assertBoundaryDiagnostic(
@@ -1901,7 +1901,7 @@ class ConflictSpec extends munit.FunSuite:
       compileSnippet(
         """@qualifiedwrong.audit class WrongQualifiedBindingUser
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     assertBoundaryDiagnostic(
@@ -1920,7 +1920,7 @@ class ConflictSpec extends munit.FunSuite:
           |object QualifiedGenWitness:
           |  val value = new QualifiedGenUser().qualifiedGenName
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     outcome match
@@ -1933,9 +1933,9 @@ class ConflictSpec extends munit.FunSuite:
       compileSnippet(
         "class DuplicateQualifiedRegistrationUser",
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.QualifiedOneAuditExpander",
-          "-P:helloWorld:handler=demo.DuplicateQualifiedOneAuditExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.QualifiedOneAuditExpander",
+          "-P:macroparadise:handler=demo.DuplicateQualifiedOneAuditExpander"
         )
       )
 
@@ -1957,9 +1957,9 @@ class ConflictSpec extends munit.FunSuite:
           |  val two = new ExplicitQualifiedTwoUser().qualifiedTwoAuditName
           |""".stripMargin,
         pluginOptions = Seq(
-          s"-P:helloWorld:handlerClasspath=$handlerJar",
-          "-P:helloWorld:handler=demo.QualifiedOneAuditExpander",
-          "-P:helloWorld:handler=demo.QualifiedTwoAuditExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.QualifiedOneAuditExpander",
+          "-P:macroparadise:handler=demo.QualifiedTwoAuditExpander"
         )
       )
 
@@ -1986,7 +1986,7 @@ class ConflictSpec extends munit.FunSuite:
           |object QualifiedClosureWitness:
           |  val value = new QualifiedClosureUser().qualifiedOneAuditName
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     outcome match
@@ -2001,7 +2001,7 @@ class ConflictSpec extends munit.FunSuite:
           |@qualifiedtwo.audit
           |class QualifiedSameTargetUser
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     assertBoundaryDiagnostic(
@@ -2018,7 +2018,7 @@ class ConflictSpec extends munit.FunSuite:
         """import qualifiedone.{audit as oneAudit}
           |@oneAudit class AliasedQualifiedAuditUser
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     outcome match
@@ -2032,7 +2032,7 @@ class ConflictSpec extends munit.FunSuite:
         """import qualifiedone.*
           |@audit class WildcardQualifiedAuditUser
           |""".stripMargin,
-        pluginOptions = Seq(s"-P:helloWorld:handlerClasspath=$handlerJar")
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
     assertBoundaryDiagnostic(

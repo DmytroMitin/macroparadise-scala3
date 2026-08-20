@@ -18,9 +18,9 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
       "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
     )
   private val pluginJar =
-    new File(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar").getAbsoluteFile
+    new File(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar").getAbsoluteFile
   private val pluginApiJar =
-    new File(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar").getAbsoluteFile
+    new File(s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar").getAbsoluteFile
   private val producerSource =
     Path.of("plugin-api-handler-contract-probe/restricted-trait/IndependentRestrictedTraitMarkerAndHandler.scala").toAbsolutePath
   private val consumerSource =
@@ -211,12 +211,12 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
     Files.writeString(sourceFile, source)
     val handlerOption =
       Option.when(includeHandlerPath)(
-        s"-P:helloWorld:handlerClasspath=${artifact.getAbsolutePath}"
+        s"-P:macroparadise:handlerClasspath=${artifact.getAbsolutePath}"
       ).toList
     val traceOptions =
       List(
-        s"-P:helloWorld:metadataReaderTrace=$metadataTrace",
-        s"-P:helloWorld:externalHandlerInvocationTrace=$invocationTrace"
+        s"-P:macroparadise:metadataReaderTrace=$metadataTrace",
+        s"-P:macroparadise:externalHandlerInvocationTrace=$invocationTrace"
       )
     val (exitCode, messages) = runCompiler(
       List(
@@ -225,7 +225,7 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
         "-d",
         output.toString,
         s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
-        "-Xplugin-require:helloWorld"
+        "-Xplugin-require:macroparadise"
       ) ++ handlerOption ++ traceOptions ++ List(sourceFile.toString),
       jvmProperties = Nil
     )

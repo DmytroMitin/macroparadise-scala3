@@ -12,19 +12,19 @@ class ExternalHelperDiagnosticProvenanceSpec extends munit.FunSuite:
     )
   private val pluginJar =
     new File(
-      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val pluginApiJar =
     new File(
-      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0-SNAPSHOT.jar"
+      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar"
     ).getAbsolutePath
   private val markerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
     ).getAbsolutePath
   private val handlerJar =
     new File(
-      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0-SNAPSHOT.jar"
+      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar"
     ).getAbsolutePath
   private val pluginPath = Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
 
@@ -68,7 +68,7 @@ class ExternalHelperDiagnosticProvenanceSpec extends munit.FunSuite:
         |""".stripMargin
     val result = compileSnippet(
       source,
-      Seq("-P:helloWorld:handler=demo.MalformedEmptyOutputExpander")
+      Seq("-P:macroparadise:handler=demo.MalformedEmptyOutputExpander")
     )
     val diagnostic = result.errorContaining("invalid raw expansion output")
 
@@ -86,7 +86,7 @@ class ExternalHelperDiagnosticProvenanceSpec extends munit.FunSuite:
         |""".stripMargin
     val result = compileSnippet(
       source,
-      Seq("-P:helloWorld:handler=demo.StructuredNullOutputExpander")
+      Seq("-P:macroparadise:handler=demo.StructuredNullOutputExpander")
     )
     val diagnostic = result.errorContaining("invalid structured expansion output")
 
@@ -108,7 +108,7 @@ class ExternalHelperDiagnosticProvenanceSpec extends munit.FunSuite:
         |""".stripMargin
     val result = compileSnippet(
       source,
-      Seq("-P:helloWorld:handler=demo.CompositionRetainsCurrentExpander")
+      Seq("-P:macroparadise:handler=demo.CompositionRetainsCurrentExpander")
     )
     val diagnostic = result.errorContaining("category=COMPOSITION_ANNOTATION_PRESERVATION")
 
@@ -198,8 +198,8 @@ class ExternalHelperDiagnosticProvenanceSpec extends munit.FunSuite:
           "-d",
           outDir.toString,
           s"-Xplugin:$pluginPath",
-          "-Xplugin-require:helloWorld",
-          s"-P:helloWorld:handlerClasspath=$handlerJar"
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         ) ++ extraPluginOptions.toArray ++ Array(sourceFile.toString),
         reporter,
         null

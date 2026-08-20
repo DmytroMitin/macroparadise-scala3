@@ -1,12 +1,13 @@
 # Getting started
 
-Macro-Paradise for Scala 3 is currently evaluated from source. No plugin or
-handler-contract artifact is available from a remote package repository.
+Macro-Paradise for Scala 3 can be built from source and installed locally. The
+selected `0.1.0` candidate is not available from Maven Central or another
+remote package repository.
 
 ## Requirements
 
 - JDK feature version 25
-- sbt 1.12.8
+- sbt 1.12.15
 - network access to resolve the pinned Scala nightly and ordinary build
   dependencies when they are not already cached
 
@@ -45,7 +46,8 @@ sbt -batch verifyPublicProductBoundary
 This is the canonical source-build gate. It runs the plugin and consumer test
 suites, verifies compatibility fixtures and package boundaries, checks the
 experimental API baseline, exercises independent consumers and the external
-handler starter, and confirms that publishing is disabled.
+handler starter, and confirms that local publication is limited to the plugin
+and handler API with no remote destination or credentials.
 
 The ordinary aggregate test command is useful during development:
 
@@ -55,7 +57,37 @@ sbt -batch test
 
 It is narrower than the canonical product gate.
 
-## Try the built-in fixture
+## Publish the candidate locally
+
+From a clone on the exact toolchain, publish only the two user artifacts to the
+machine-local sbt/Ivy repository:
+
+```sh
+sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
+```
+
+In a fresh external sbt project, use the exact Scala nightly and the
+full-crossed plugin coordinate:
+
+```scala
+ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+ThisBuild / resolvers += Resolver.scalaNightlyRepository
+
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
+```
+
+Do not replace `.cross(CrossVersion.full)` with `%%`: the published artifact is
+`macroparadise-scala3-plugin_3.8.5-RC1-bin-20260405-9478256-NIGHTLY` and is
+tied to that exact compiler. These coordinates are the first-release candidate
+only; `0.1.0` is not available from Maven Central until a later owner-authorized
+release.
+
+The built-in `@gen` below remains a repository fixture, not the promised
+external annotation API. A user-authored annotation uses a precompiled marker
+and `ParadiseAnnotationExpander` handler as described in
+[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md).
+
+## Try the built-in source fixture
 
 The built-in `@gen` annotation demonstrates class, companion, and sibling
 generation:

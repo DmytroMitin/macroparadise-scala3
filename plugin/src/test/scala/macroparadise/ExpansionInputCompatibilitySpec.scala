@@ -36,7 +36,7 @@ class ExpansionInputCompatibilitySpec extends munit.FunSuite:
 
   test("production composition admission maps the snapshotted capability without handler rereads") {
     val source = Files.readString(
-      Path.of("plugin/src/main/scala/macroparadise/HelloWorldPlugin.scala"),
+      Path.of("plugin/src/main/scala/macroparadise/MacroParadisePlugin.scala"),
       StandardCharsets.UTF_8
     )
     val descriptorSource = Files.readString(
@@ -53,7 +53,7 @@ class ExpansionInputCompatibilitySpec extends munit.FunSuite:
 
   test("production target admission maps the snapshotted profile without annotation-name magic") {
     val source = Files.readString(
-      Path.of("plugin/src/main/scala/macroparadise/HelloWorldPlugin.scala"),
+      Path.of("plugin/src/main/scala/macroparadise/MacroParadisePlugin.scala"),
       StandardCharsets.UTF_8
     )
     val descriptorSource = Files.readString(
