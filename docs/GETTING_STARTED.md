@@ -117,6 +117,19 @@ immutable `val name: String`, no default, and an accessible constructor.
 
 ## Try the external-handler starter
 
+Pin the consumer build tool in `project/build.properties`:
+
+```text
+sbt.version=1.12.15
+```
+
+The installed `sbt` command is a runner; its own version does not replace the
+project pin. With this file present, the ordinary CLI runner, a direct
+`sbt-launch.jar` invocation, IntelliJ import, and BSP all select sbt 1.12.15.
+Without it, a runner may choose and even write a different default sbt version.
+That is build-tool divergence, not a Macro-Paradise semantic mode. sbt 2 is not
+part of the supported boundary.
+
 Run:
 
 ```sh
@@ -143,6 +156,7 @@ handler, classpath, output, and diagnostic contracts.
 ## Where to go next
 
 - [Architecture](ARCHITECTURE.md)
+- [Quasiquote and pre-typer AST architecture](QUASIQUOTE_ARCHITECTURE.md)
 - [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 - [Diagnostics and troubleshooting](DIAGNOSTICS.md)
 - [Compatibility](COMPATIBILITY.md)

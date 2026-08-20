@@ -8,6 +8,10 @@ the repository-root task:
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
+The checked-in `project/build.properties` pins `sbt.version=1.12.15` so the
+ordinary runner, direct launcher, IntelliJ, and BSP select the same build-tool
+version. The installed runner's own version is not the build version.
+
 The root task supplies local packaged production plugin and `pluginApi` paths,
 isolates the child sbt state under the repository `target/` directory, and runs
 both explicit and compact positive prechecks. It preserves the P1-P7 explicit

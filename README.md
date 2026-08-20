@@ -195,6 +195,7 @@ for the detailed boundary.
 
 - [Getting started](docs/GETTING_STARTED.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Quasiquote and pre-typer AST architecture](docs/QUASIQUOTE_ARCHITECTURE.md)
 - [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 - [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md)
 - [Diagnostics and troubleshooting](docs/DIAGNOSTICS.md)

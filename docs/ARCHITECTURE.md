@@ -95,4 +95,7 @@ implementation changes must invalidate generated consumers. The supported
 experimental architecture therefore keeps handlers precompiled.
 
 See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
-[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md).
+[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md). The separate
+[quasiquote and pre-typer AST architecture](QUASIQUOTE_ARCHITECTURE.md)
+distinguishes current typed quasiquotes from proposed neutral authoring and
+hypothetical raw-untyped syntax.

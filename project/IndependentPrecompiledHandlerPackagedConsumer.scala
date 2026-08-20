@@ -276,7 +276,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val command = pluginCompileCommand(compilerJars, apiArtifact, pluginArtifact, Some(independentArtifact), None, source, output, Vector.empty)
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = false)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "negative-missing-handler/compile.log"))
-    val diagnostic = "could not load external annotation handler `contractprobe.IndependentHandler`"
+    val diagnostic = "handlerClasspathConfigured=false handlerClasspathEntries=0"
     require(exit != 0, "missing-handler lane unexpectedly compiled")
     require(log.contains(diagnostic), s"missing-handler lane lacked controlled diagnostic: $log")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"missing-handler lane exposed an uncontrolled failure: $log")

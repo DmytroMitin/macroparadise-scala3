@@ -1,7 +1,7 @@
 import java.io.File
 
 object IndependentExternalSbtConsumerSpec {
-  val CaseCount = 29
+  val CaseCount = 41
 
   def run(): Unit = {
     import IndependentExternalSbtConsumer._
@@ -46,6 +46,27 @@ object IndependentExternalSbtConsumerSpec {
     check(options.contains("-Xplugin-require:macroparadise"), "plugin require option is absent")
     check(options.exists(_.contains("handlerClasspath=")), "handler option is absent")
     check(pluginOptions(pluginFile, apiFile, None).forall(!_.contains("handlerClasspath=")), "missing-handler options retained handler path")
+
+    val buildConfig = Config(ExpectedScalaVersion, ExpectedSbtVersion, Version)
+    val positiveMultiProject =
+      multiProjectBuildText("file:/task/repository", buildConfig, positive = true, "/task/evidence")
+    val negativeMultiProject =
+      multiProjectBuildText("file:/task/repository", buildConfig, positive = false, "/task/evidence")
+    check(positiveMultiProject.contains("compilerPlugin("), "positive multi-project build lacks ordinary compilerPlugin activation")
+    check(positiveMultiProject.contains(".cross(CrossVersion.full)"), "positive multi-project build lacks the exact full-cross coordinate")
+    check(positiveMultiProject.contains("(handler / Compile / packageBin).value"), "positive multi-project build does not derive the handler artifact from packageBin")
+    check(positiveMultiProject.contains(".dependsOn(marker)") && !positiveMultiProject.contains(".dependsOn(marker, handler)"), "positive consumer retains an ordinary handler project dependency")
+    check(positiveMultiProject.contains("-P:macroparadise:handlerClasspath="), "positive multi-project build lacks explicit handler wiring")
+    check(negativeMultiProject.contains(".dependsOn(marker, handler)"), "negative multi-project build does not reproduce the intuitive ordinary classpath mistake")
+    check(
+      !negativeMultiProject.contains("base ++ Seq(\"-P:macroparadise:handlerClasspath="),
+      "negative multi-project build unexpectedly wires the handler loader"
+    )
+    check(!positiveMultiProject.contains("/.ivy2/") && !positiveMultiProject.contains("/.cache/coursier/"), "positive multi-project build hard-codes a producer cache path")
+    check(isStableTargetPayload("scala-3/classes/example/User.class"), "class payload was excluded from the repository target guard")
+    check(isStableTargetPayload("scala-3/example.jar"), "packaged payload was excluded from the repository target guard")
+    check(!isStableTargetPayload("streams/compile/compile/_global/streams/out"), "sbt stream bookkeeping was treated as semantic payload")
+    check(!isStableTargetPayload("scala-3/zinc/inc_compile_3.zip"), "Zinc bookkeeping was treated as semantic payload")
 
     val validGraph = Vector(
       (RepositoryOrganization, PluginModule, Version, pluginFile.getAbsolutePath),

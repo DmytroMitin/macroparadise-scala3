@@ -179,7 +179,7 @@ private object ExternalHandlerLoading:
             val deferredSameModule = parseDeferredSameModuleHandler(options)
             val explicitHandlers =
               validateUniqueHandlers(
-                handlerClassNames.flatMap(loadHandler(_, loader))
+                handlerClassNames.flatMap(loadHandler(_, loader, handlerClasspath))
               )
             LoadedHandlers(
               explicit = explicitHandlers,
@@ -288,7 +288,7 @@ private object ExternalHandlerLoading:
           case MetadataLookupResult.Found(className) =>
             val resolution =
               classCache.resolve(className)(
-                loadHandler(className, loaded.handlerLoader)
+                loadHandler(className, loaded.handlerLoader, loaded.handlerClasspath)
               )
             resolution.loadedHandler match
               case Some(handler) =>
@@ -458,7 +458,8 @@ private object ExternalHandlerLoading:
 
   private def loadHandler(
       className: String,
-      loader: ClassLoader
+      loader: ClassLoader,
+      handlerClasspath: List[String]
   )(using Context): Option[LoadedExternalHandler] =
     try
       val handlerClass = loader.loadClass(className)
@@ -501,15 +502,10 @@ private object ExternalHandlerLoading:
         None
       case NonFatal(error) =>
         report.error(
-          ExternalHandlerDiagnostics.render(
-            ExternalHandlerDiagnostics.Stage.Loading,
-            "HANDLER_LOAD_FAILURE",
-            "handler" -> className,
-            "loaderPolicy" -> "parent-first",
-            "requestedLoader" -> ExternalHandlerDiagnostics.loaderIdentity(loader),
-            "cause" -> error.getClass.getName,
-            "message" -> ExternalHandlerDiagnostics.normalize(error.getMessage),
-            "detail" -> s"could not load external annotation handler `$className`"
+          ExternalHandlerDiagnostics.handlerLoadFailure(
+            className,
+            error,
+            handlerClasspath
           )
         )
         None

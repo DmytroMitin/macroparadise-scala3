@@ -40,9 +40,19 @@ participant with another compiler line is unsupported.
 
 ### Missing handler
 
-Confirm the handler JAR exists and is supplied through
-`handlerClasspath`. Marker metadata names a class; it does not package or load
-the implementation by itself. The packaged precheck reports
+The loading diagnostic reports `handlerClasspathConfigured=false` and
+`handlerClasspathEntries=0` when
+`-P:macroparadise:handlerClasspath=<handler-jar-or-path-list>` is absent. If
+entries were supplied but the selected class still cannot load, it reports the
+configured entry count without dumping the producer's local paths.
+
+The ordinary source compilation classpath, compiler-plugin loader classpath,
+explicit external handler classpath, and marker metadata are separate roles.
+In particular, `.dependsOn(handler)` can place handler classes on the ordinary
+source classpath without making them visible to the isolated handler loader.
+Confirm that the handler JAR and any required dependency JARs are supplied
+through the explicit option. Marker metadata names a class; it does not package
+or load the implementation by itself. The packaged precheck reports
 `failureStage=handler-artifact` when the supplied handler JAR does not contain
 the independently expected class, together with `markerIdentity`,
 `metadataHandler`, `expectedHandler`, and `handlerArtifact`.

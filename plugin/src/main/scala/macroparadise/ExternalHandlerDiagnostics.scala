@@ -55,6 +55,31 @@ private[macroparadise] object ExternalHandlerDiagnostics:
           "detail" -> s"external annotation handler `$requestedClassName` does not implement ${expectedApi.getName}; got `${actualClass.getName}`"
         )
 
+  def handlerLoadFailure(
+      requestedClassName: String,
+      error: Throwable,
+      handlerClasspath: List[String]
+  ): String =
+    val configured = handlerClasspath.nonEmpty
+    val guidance =
+      if configured then
+        s"explicit external handler classpath cannot load selected handler `$requestedClassName`; " +
+          "ensure -P:macroparadise:handlerClasspath=<handler-jar-or-path-list> contains the precompiled handler and its required dependencies"
+      else
+        "missing -P:macroparadise:handlerClasspath=<handler-jar-or-path-list>; " +
+          "the ordinary source compilation classpath, compiler-plugin loader classpath, and marker metadata are separate roles and do not supply the selected handler implementation"
+    render(
+      Stage.Loading,
+      "HANDLER_LOAD_FAILURE",
+      "handler" -> requestedClassName,
+      "loaderPolicy" -> "parent-first",
+      "handlerClasspathConfigured" -> configured.toString,
+      "handlerClasspathEntries" -> handlerClasspath.size.toString,
+      "cause" -> error.getClass.getName,
+      "message" -> normalize(error.getMessage),
+      "detail" -> guidance
+    )
+
   def loaderIdentity(loader: ClassLoader): String =
     if loader == null then "bootstrap"
     else s"${loader.getClass.getName}@${System.identityHashCode(loader).toHexString}"

@@ -3,12 +3,13 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 12
+  val CaseCount = 13
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
 
   def run(): Unit = {
+    assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/QUASIQUOTE_ARCHITECTURE.md"))
     val clean = fixture()
     try {
       val result = PublicDocumentationPolicy.verify(clean, PublicDocumentationPolicy.RequiredPaths)

@@ -6,6 +6,40 @@ import java.lang.reflect.{InvocationHandler, Method, Proxy}
 import java.net.{URL, URLClassLoader}
 
 class ExternalHandlerDiagnosticsSpec extends munit.FunSuite:
+  test("missing explicit handler classpath gives stable first-use wiring guidance") {
+    val diagnostic =
+      ExternalHandlerDiagnostics.handlerLoadFailure(
+        "com.example.macro.handlers.IdentityHandler",
+        new ClassNotFoundException("com.example.macro.handlers.IdentityHandler"),
+        Nil
+      )
+
+    assert(diagnostic.contains("stage=loading"), diagnostic)
+    assert(diagnostic.contains("category=HANDLER_LOAD_FAILURE"), diagnostic)
+    assert(diagnostic.contains("handlerClasspathConfigured=false"), diagnostic)
+    assert(diagnostic.contains("handlerClasspathEntries=0"), diagnostic)
+    assert(diagnostic.contains("-P:macroparadise:handlerClasspath=<handler-jar-or-path-list>"), diagnostic)
+    assert(diagnostic.contains("ordinary source compilation classpath"), diagnostic)
+    assert(diagnostic.contains("compiler-plugin loader classpath"), diagnostic)
+    assert(diagnostic.contains("marker metadata"), diagnostic)
+    assert(!diagnostic.contains("requestedLoader="), diagnostic)
+  }
+
+  test("ineffective explicit handler classpath identifies the selected handler and entry count") {
+    val diagnostic =
+      ExternalHandlerDiagnostics.handlerLoadFailure(
+        "com.example.macro.handlers.IdentityHandler",
+        new ClassNotFoundException("com.example.macro.handlers.IdentityHandler"),
+        List("/task/handler.jar", "/task/handler-dependency.jar")
+      )
+
+    assert(diagnostic.contains("handlerClasspathConfigured=true"), diagnostic)
+    assert(diagnostic.contains("handlerClasspathEntries=2"), diagnostic)
+    assert(diagnostic.contains("explicit external handler classpath cannot load selected handler"), diagnostic)
+    assert(diagnostic.contains("com.example.macro.handlers.IdentityHandler"), diagnostic)
+    assert(!diagnostic.contains("/task/handler.jar"), diagnostic)
+  }
+
   test("ordinary non-handler class is classified as a loading type mismatch") {
     val diagnostic =
       ExternalHandlerDiagnostics.typeMismatch(

@@ -638,7 +638,10 @@ class ConflictSpec extends munit.FunSuite:
       outcome,
       "loading",
       "category=HANDLER_LOAD_FAILURE",
-      "could not load external annotation handler `missing.DoesNotExist`"
+      "handlerClasspathConfigured=false",
+      "handlerClasspathEntries=0",
+      "missing -P:macroparadise:handlerClasspath=<handler-jar-or-path-list>",
+      "ordinary source compilation classpath"
     )
   }
 
@@ -661,7 +664,9 @@ class ConflictSpec extends munit.FunSuite:
       outcome,
       "loading",
       "category=HANDLER_LOAD_FAILURE",
-      "could not load external annotation handler `missing.DoesNotExist`"
+      "handlerClasspathConfigured=true",
+      "handlerClasspathEntries=1",
+      "explicit external handler classpath cannot load selected handler `missing.DoesNotExist`"
     )
   }
 
@@ -709,7 +714,9 @@ class ConflictSpec extends munit.FunSuite:
       outcome,
       "loading",
       "category=HANDLER_LOAD_FAILURE",
-      "could not load external annotation handler `missing.DoesNotExist`"
+      "handlerClasspathConfigured=true",
+      "handlerClasspathEntries=1",
+      "explicit external handler classpath cannot load selected handler `missing.DoesNotExist`"
     )
     val trace = Files.readString(traceFile)
     assert(

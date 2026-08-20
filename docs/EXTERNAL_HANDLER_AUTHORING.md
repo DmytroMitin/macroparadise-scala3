@@ -8,6 +8,58 @@ smallest supported authoring example. It separates three roles:
    and exact compiler universe;
 3. an ordinary consumer compiled with the packaged plugin.
 
+## Happy path
+
+Pin the build tool in `project/build.properties`:
+
+```text
+sbt.version=1.12.15
+```
+
+Use JDK feature version 25 and Scala
+`3.8.5-RC1-bin-20260405-9478256-NIGHTLY` exactly. The handler API exposes
+compiler internals; a nearby Scala or JDK version is not an interchangeable
+substitute.
+
+```text
+marker project                 handler project
+     |                              |
+     | consumer dependsOn(marker)   | handler / Compile / packageBin
+     +---------------+--------------+
+                     |
+                consumer project
+                - compilerPlugin(plugin)
+                - handlerClasspath=<handler JAR>
+```
+
+The consumer does not `dependsOn(handler)`. The `packageBin` lookup is the sbt
+task dependency that compiles and packages the handler before consumer
+scalac-options are evaluated. This keeps handler implementation classes off the
+ordinary application compile and runtime classpaths:
+
+```scala
+lazy val consumer = project
+  .dependsOn(marker)
+  .settings(
+    libraryDependencies += compilerPlugin(
+      ("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0")
+        .cross(CrossVersion.full)
+    ),
+    Compile / scalacOptions ++= {
+      val handlerJar = (handler / Compile / packageBin).value
+      Seq(
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
+      )
+    }
+  )
+```
+
+Only the self-contained plugin coordinate activates the compiler plugin. Do
+not construct a second `-Xplugin` path that appends `plugin-api`. The marker is
+an ordinary project dependency; marker metadata selects the handler class, but
+does not load its implementation.
+
 Run it from the repository root:
 
 ```sh
@@ -112,7 +164,7 @@ the full-cross compiler plugin as shown in [Getting started](GETTING_STARTED.md)
 depends on the precompiled marker, and supplies the precompiled handler JAR
 through `-P:macroparadise:handlerClasspath=<handler-jar>`.
 
-The minimal sbt graph is three projects. The marker and handler settings contain
+The complete sbt graph is three projects. The marker and handler settings contain
 no `compilerPlugin` dependency, so Macro-Paradise is not active while either
 producer is compiled:
 
@@ -205,6 +257,31 @@ The handler child loader resolves the embedded shared API and exact compiler
 types parent first. A handler compiled against the separate `plugin-api` JAR
 therefore implements the plugin-owned runtime identity without a shaded alias
 or a second compiler universe.
+
+## Why the handler path stays explicit
+
+The supported default remains an explicit handler path plus the sbt
+`packageBin` setting above.
+
+- Automatically searching the ordinary source classpath would make handler
+  provenance depend on source/runtime dependency resolution and could admit
+  duplicate API or compiler universes.
+- An opt-in source-classpath search would retain those identity and provenance
+  risks while adding another mode for Zinc, BSP, and IDE imports to reproduce.
+- A dedicated sbt plugin would add a separately versioned distribution surface
+  for wiring that one task expression already represents.
+
+The explicit path keeps the plugin loader, marker lookup, and handler loader
+separate; avoids adding handler implementation code to application runtime;
+and makes the selected artifact visible in `scalacOptions`. The direct
+`handler/packageBin` task dependency also gives Zinc an explicit reason to
+repackage the handler before consumer options are evaluated.
+
+If a handler has external runtime dependencies, supply the handler JAR and
+those required dependency JARs as a platform path list. Do not add them to
+`-Xplugin` and do not rely on transitive application dependencies to populate
+the handler loader. The first-use loading diagnostic distinguishes an absent
+path from a configured path that cannot load the metadata-selected class.
 
 ## Preconsumer checks
 

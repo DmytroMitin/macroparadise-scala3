@@ -108,6 +108,8 @@ object IndependentExternalSbtConsumer {
       generatedMethodPresent: Boolean,
       runtimeOutput: String,
       parentFirstApiIdentity: Boolean,
+      multiProjectFirstUseProven: Boolean,
+      handlerRuntimeIsolated: Boolean,
       negatives: Vector[NegativeEvidence],
       globalStateUnchanged: Boolean,
       cleanupVerified: Boolean,
@@ -121,6 +123,7 @@ object IndependentExternalSbtConsumer {
         s"producerComparison={${producerComparison.render}} stagedFiles=$stagedFiles pomFiles=$pomFiles " +
         s"metadataSelections=$metadataSelections invocations=$invocations generatedMethodPresent=$generatedMethodPresent " +
         s"runtimeOutput=${runtimeOutput.trim} parentFirstApiIdentity=$parentFirstApiIdentity " +
+        s"multiProjectFirstUseProven=$multiProjectFirstUseProven handlerRuntimeIsolated=$handlerRuntimeIsolated " +
         s"negatives=${negatives.map(_.render).mkString(",")} globalStateUnchanged=$globalStateUnchanged " +
         s"cleanupVerified=$cleanupVerified modelCases=$modelCases"
   }
@@ -134,6 +137,8 @@ object IndependentExternalSbtConsumer {
       duplicateRepository: File,
       producer: File,
       consumer: File,
+      multiProjectRed: File,
+      multiProjectGreen: File,
       cache: File,
       coursier: File,
       ivy: File,
@@ -164,7 +169,15 @@ object IndependentExternalSbtConsumer {
       generatedMethodPresent: Boolean,
       runtimeOutput: String,
       parentFirst: Boolean,
+      multiProjectFirstUseProven: Boolean,
+      handlerRuntimeIsolated: Boolean,
       negatives: Vector[NegativeEvidence]
+  )
+
+  private final case class MultiProjectFirstUseResult(
+      negative: NegativeEvidence,
+      generatedMethodPresent: Boolean,
+      handlerRuntimeIsolated: Boolean
   )
 
   def repositoryCoordinate(module: String): Coordinate =
@@ -269,10 +282,17 @@ object IndependentExternalSbtConsumer {
     val targetsAfter = repositoryTargetSnapshot(repositoryRoot)
     val globalUnchanged = globalBefore == globalAfter
     val targetsUnchanged = targetsBefore == targetsAfter
+    val targetSnapshotRemoved = targetsBefore.filterNot(targetsAfter.contains)
+    val targetSnapshotAdded = targetsAfter.filterNot(targetsBefore.contains)
     write(
       new File(layout.evidence, "global-state.txt"),
       "BEFORE\n" + globalBefore.mkString("\n") + "\nAFTER\n" + globalAfter.mkString("\n") +
         s"\nUNCHANGED=$globalUnchanged\nREPOSITORY_NON_TASK_TARGETS_UNCHANGED=$targetsUnchanged\n"
+    )
+    write(
+      new File(layout.evidence, "repository-target-snapshot.txt"),
+      "REMOVED_OR_CHANGED\n" + targetSnapshotRemoved.mkString("\n") +
+        "\nADDED_OR_CHANGED\n" + targetSnapshotAdded.mkString("\n") + "\n"
     )
     write(
       new File(layout.evidence, "cleanup.txt"),
@@ -298,6 +318,8 @@ object IndependentExternalSbtConsumer {
       value.generatedMethodPresent,
       value.runtimeOutput,
       value.parentFirst,
+      value.multiProjectFirstUseProven,
+      value.handlerRuntimeIsolated,
       value.negatives,
       globalUnchanged,
       cleanupVerified,
@@ -338,6 +360,9 @@ object IndependentExternalSbtConsumer {
     val initialPomAudit = auditPoms(layout.repository, Vector(apiCoordinate, pluginCoordinate))
     write(new File(layout.evidence, "staged-repository-initial.txt"), initialRepositoryFiles.mkString("\n") + "\n")
     write(new File(layout.evidence, "pom-audit-initial.txt"), initialPomAudit.mkString("\n") + "\n")
+
+    val multiProjectFirstUse =
+      runMultiProjectFirstUse(repositoryRoot, layout, config)
 
     createProducerBuild(layout, config)
     val producerFirstLog = new File(layout.evidence, "commands/02-producer-first-package.log")
@@ -495,7 +520,9 @@ object IndependentExternalSbtConsumer {
       generatedMethodPresent = true,
       runtimeText,
       parentFirst,
-      Vector(missingHandler, missingMarker, duplicateApi)
+      multiProjectFirstUseProven = multiProjectFirstUse.generatedMethodPresent,
+      handlerRuntimeIsolated = multiProjectFirstUse.handlerRuntimeIsolated,
+      negatives = Vector(multiProjectFirstUse.negative, missingHandler, missingMarker, duplicateApi)
     )
   }
 
@@ -513,6 +540,8 @@ object IndependentExternalSbtConsumer {
       new File(work, "duplicate-api-repository"),
       new File(work, "producer-build"),
       new File(work, "consumer-build"),
+      new File(work, "multi-project-red"),
+      new File(work, "multi-project-green"),
       cache,
       new File(cache, "coursier"),
       new File(cache, "ivy"),
@@ -555,6 +584,233 @@ object IndependentExternalSbtConsumer {
   private def sourceCopyInventory(root: File): String = {
     val files = regularRelativeFiles(root)
     s"root=${root.getAbsolutePath}\nfiles=${files.size}\ncontainsGit=false\ncontainsTarget=false\n" + files.mkString("\n") + "\n"
+  }
+
+  def multiProjectBuildText(
+      repositoryUri: String,
+      config: Config,
+      positive: Boolean,
+      evidenceDirectory: String
+  ): String = {
+    val dependency =
+      if (positive) ".dependsOn(marker)"
+      else ".dependsOn(marker, handler)"
+    val handlerOption =
+      if (positive)
+        """      val handlerJar = (handler / Compile / packageBin).value
+          |      base ++ Seq("-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath)""".stripMargin
+      else "      base"
+    val positiveLiteral = positive.toString
+    s"""import sbt._
+       |import Keys._
+       |import java.io.File
+       |import java.nio.charset.StandardCharsets
+       |import scala.sys.process._
+       |
+       |ThisBuild / scalaVersion := "${config.scalaVersion}"
+       |ThisBuild / version := "${config.projectVersion}"
+       |ThisBuild / resolvers ++= Seq(
+       |  "external-first-use-task-repository" at "${scalaString(repositoryUri)}",
+       |  Resolver.scalaNightlyRepository
+       |)
+       |ThisBuild / credentials := Nil
+       |
+       |val mpOrganization = "$RepositoryOrganization"
+       |val mpVersion = "${config.projectVersion}"
+       |val mpApi =
+       |  (mpOrganization % "macroparadise-scala3-plugin-api" % mpVersion)
+       |    .cross(CrossVersion.full)
+       |val mpPlugin =
+       |  (mpOrganization % "macroparadise-scala3-plugin" % mpVersion)
+       |    .cross(CrossVersion.full)
+       |
+       |lazy val firstUseAudit = taskKey[Unit]("Audit the external handler first-use graph")
+       |lazy val firstUseRuntime = taskKey[Unit]("Run the generated-definition consumer")
+       |
+       |lazy val marker = project.in(file("marker"))
+       |  .settings(
+       |    name := "external-first-use-marker",
+       |    libraryDependencies += mpApi
+       |  )
+       |
+       |lazy val handler = project.in(file("handler"))
+       |  .settings(
+       |    name := "external-first-use-handler",
+       |    libraryDependencies ++= Seq(
+       |      mpApi,
+       |      "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+       |    )
+       |  )
+       |
+       |lazy val core = project.in(file("core"))
+       |  $dependency
+       |  .settings(
+       |    name := "external-first-use-core",
+       |    libraryDependencies += compilerPlugin(mpPlugin),
+       |    Compile / scalacOptions ++= {
+       |      val base = Seq("-Xplugin-require:macroparadise")
+       |$handlerOption
+       |    }
+       |  )
+       |
+       |lazy val root = project.in(file("."))
+       |  .aggregate(marker, handler, core)
+       |  .settings(
+       |    publish / skip := true,
+       |    firstUseAudit := {
+       |      val options = (core / Compile / scalacOptions).value
+       |      val pluginOptions = options.filter(_.startsWith("-Xplugin:"))
+       |      val handlerOptions = options.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
+       |      val compileClasspath = (core / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
+       |      val runtimeClasspath = (core / Runtime / fullClasspath).value.files.map(_.getCanonicalFile).distinct
+       |      val handlerClasses = (handler / Compile / classDirectory).value.getCanonicalFile
+       |      val handlerJar = (handler / Compile / packageBin).value.getCanonicalFile
+       |      require(pluginOptions.size == 1, "expected exactly one compiler-plugin activation path, found " + pluginOptions)
+       |      require(!pluginOptions.head.contains("plugin-api"), "compiler-plugin activation still appends plugin-api")
+       |      if ($positiveLiteral) {
+       |        require(handlerOptions == Seq("-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath), "handler option does not equal handler/packageBin")
+       |        require(!compileClasspath.contains(handlerClasses), "handler implementation leaked onto the ordinary source compilation classpath")
+       |        require(!runtimeClasspath.contains(handlerClasses) && !runtimeClasspath.contains(handlerJar), "handler implementation leaked onto the application runtime classpath")
+       |      } else {
+       |        require(handlerOptions.isEmpty, "negative first-use graph unexpectedly configures the handler loader")
+       |        require(compileClasspath.contains(handlerClasses), "negative graph does not reproduce dependsOn(handler) ordinary-classpath visibility")
+       |      }
+       |      IO.write(
+       |        file("${scalaString(evidenceDirectory)}/audit.txt"),
+       |        "positive=$positiveLiteral\\n" +
+       |          "pluginOptions=" + pluginOptions.mkString("|") + "\\n" +
+       |          "handlerOptions=" + handlerOptions.mkString("|") + "\\n" +
+       |          "ordinaryClasspathContainsHandlerClasses=" + compileClasspath.contains(handlerClasses) + "\\n" +
+       |          "runtimeClasspathContainsHandlerClasses=" + runtimeClasspath.contains(handlerClasses) + "\\n",
+       |        StandardCharsets.UTF_8
+       |      )
+       |    },
+       |    firstUseRuntime := {
+       |      val classpath = (core / Runtime / fullClasspath).value.files.map(_.getAbsolutePath).mkString(File.pathSeparator)
+       |      val java = file(sys.props("java.home")) / "bin" / "java"
+       |      val output = Process(Vector(java.getAbsolutePath, "-cp", classpath, "contractprobeconsumer.IndependentPackagedConsumer"), baseDirectory.value).!!
+       |      require(output == "IndependentConsumerUser\\n", "unexpected runtime output: " + output.replace("\\n", "\\\\n"))
+       |      IO.write(file("${scalaString(evidenceDirectory)}/runtime.txt"), output, StandardCharsets.UTF_8)
+       |    }
+       |  )
+       |""".stripMargin
+  }
+
+  private def runMultiProjectFirstUse(
+      repositoryRoot: File,
+      layout: Layout,
+      config: Config
+  ): MultiProjectFirstUseResult = {
+    val redEvidence = new File(layout.evidence, "multi-project-red")
+    val greenEvidence = new File(layout.evidence, "multi-project-green")
+    createMultiProjectBuild(layout, layout.multiProjectRed, redEvidence, config, positive = false)
+    createMultiProjectBuild(layout, layout.multiProjectGreen, greenEvidence, config, positive = true)
+
+    val redLog = new File(layout.evidence, "commands/02a-multi-project-red.log")
+    val redExit = runSbt(
+      layout.multiProjectRed,
+      layout,
+      Vector("clean", "firstUseAudit", "core/compile"),
+      Map.empty,
+      redLog
+    )
+    val redText = read(redLog)
+    require(redExit != 0, "natural multi-project graph without handlerClasspath unexpectedly compiled")
+    Vector(
+      "stage=loading",
+      "category=HANDLER_LOAD_FAILURE",
+      "handlerClasspathConfigured=false",
+      "handlerClasspathEntries=0",
+      "-P:macroparadise:handlerClasspath=<handler-jar-or-path-list>",
+      "ordinary source compilation classpath",
+      "compiler-plugin loader classpath",
+      "marker metadata"
+    ).foreach(fragment => require(redText.contains(fragment), "natural multi-project negative lacked actionable fragment: " + fragment))
+    requireNoUncontrolledFailure(redText, "natural-multi-project-missing-handler")
+    val redOutputs = outputFilesAfterFailure(new File(layout.multiProjectRed, "core"))
+    require(redOutputs.isEmpty, "natural multi-project negative emitted partial core output")
+
+    val greenLog = new File(layout.evidence, "commands/02b-multi-project-green.log")
+    require(
+      runSbt(
+        layout.multiProjectGreen,
+        layout,
+        Vector("clean", "firstUseAudit", "core/compile", "firstUseRuntime"),
+        Map.empty,
+        greenLog
+      ) == 0,
+      "corrected natural multi-project graph failed"
+    )
+    val greenText = read(greenLog)
+    require(!greenText.contains("external handler failure: stage="), "corrected multi-project graph emitted a handler failure")
+    val coreClasses = singleDirectory(new File(layout.multiProjectGreen, "core"), "classes")
+    val javapLog = new File(greenEvidence, "core-javap.txt")
+    val javap = runProcess(
+      Vector(javaTool("javap"), "-classpath", coreClasses.getAbsolutePath, "contractprobeconsumer.IndependentConsumerUser"),
+      layout.multiProjectGreen,
+      Map.empty,
+      javapLog
+    )
+    val generatedMethodPresent = javap._1 == 0 && javap._2.contains("java.lang.String independentHandlerName()")
+    require(generatedMethodPresent, "corrected multi-project graph lacks the generated definition")
+    val audit = read(new File(greenEvidence, "audit.txt"))
+    val handlerRuntimeIsolated =
+      audit.contains("ordinaryClasspathContainsHandlerClasses=false") &&
+        audit.contains("runtimeClasspathContainsHandlerClasses=false")
+    require(handlerRuntimeIsolated, "handler implementation polluted the corrected compile/runtime classpath")
+    require(read(new File(greenEvidence, "runtime.txt")) == ExpectedRuntimeOutput, "corrected multi-project runtime proof changed")
+    write(
+      new File(layout.evidence, "multi-project-first-use-summary.txt"),
+      "red=HANDLER_LOAD_FAILURE_ACTIONABLE\n" +
+        "green=GENERATED_DEFINITION_AND_RUNTIME_READY\n" +
+        "compilerPluginCoordinate=single-full-cross\n" +
+        "manualPluginApiXplugin=false\n" +
+        "handlerRelationship=task-packageBin-only\n" +
+        "handlerRuntimeIsolated=" + handlerRuntimeIsolated + "\n"
+    )
+    MultiProjectFirstUseResult(
+      NegativeEvidence(
+        "natural-multi-project-missing-handler",
+        redExit,
+        "stage=loading category=HANDLER_LOAD_FAILURE handlerClasspathConfigured=false",
+        redOutputs.size
+      ),
+      generatedMethodPresent,
+      handlerRuntimeIsolated
+    )
+  }
+
+  private def createMultiProjectBuild(
+      layout: Layout,
+      directory: File,
+      evidence: File,
+      config: Config,
+      positive: Boolean
+  ): Unit = {
+    Files.createDirectories(new File(directory, "project").toPath)
+    Files.createDirectories(new File(directory, "marker/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "handler/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "core/src/main/scala").toPath)
+    Files.createDirectories(evidence.toPath)
+    write(new File(directory, "project/build.properties"), "sbt.version=" + config.sbtVersion + "\n")
+    val build = multiProjectBuildText(layout.repository.toURI.toString, config, positive, evidence.getAbsolutePath)
+    write(new File(directory, "build.sbt"), build)
+    write(new File(evidence, "build.sbt"), build)
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/marker/IndependentMarker.scala").toPath,
+      new File(directory, "marker/src/main/scala/IndependentMarker.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/handler/IndependentHandler.scala").toPath,
+      new File(directory, "handler/src/main/scala/IndependentHandler.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/e2e/IndependentPackagedConsumer.scala").toPath,
+      new File(directory, "core/src/main/scala/IndependentPackagedConsumer.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
   }
 
   private def createProducerBuild(layout: Layout, config: Config): Unit = {
@@ -1044,13 +1300,36 @@ object IndependentExternalSbtConsumer {
     })
     targets.result().map { directory =>
       val stream = Files.walk(directory)
-      val facts = try stream.iterator().asScala.filter(Files.isRegularFile(_)).map { file =>
-        directory.relativize(file).toString.replace(File.separatorChar, '/') + "|" + Files.size(file) + "|" + Files.getLastModifiedTime(file).toMillis
+      val facts = try stream.iterator().asScala.filter(Files.isRegularFile(_)).flatMap { file =>
+        val relative = directory.relativize(file).toString.replace(File.separatorChar, '/')
+        if (isStableTargetPayload(relative))
+          Some(
+            relative + "|" + Files.size(file) + "|" +
+              hex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)))
+          )
+        else None
       }.toVector.sorted
       finally stream.close()
       val relative = repositoryRoot.toPath.relativize(directory).toString.replace(File.separatorChar, '/')
       relative + "|files=" + facts.size + "|sha256=" + sha256Text(facts.mkString("\n"))
     }.sorted
+  }
+
+  def isStableTargetPayload(relativePath: String): Boolean = {
+    val normalized = relativePath.replace('\\', '/')
+    val segments = normalized.split('/').toSet
+    val volatileSegments = Set(
+      "streams",
+      "zinc",
+      "update",
+      "sync",
+      "global-logging",
+      "task-temp-directory",
+      "resolution-cache",
+      "test-reports"
+    )
+    val stableSuffixes = Vector(".class", ".tasty", ".jar", ".pom", ".sjsir")
+    segments.intersect(volatileSegments).isEmpty && stableSuffixes.exists(normalized.endsWith)
   }
 
   private def sha256Text(value: String): String =
