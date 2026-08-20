@@ -110,11 +110,11 @@ java -cp <plugin-and-exact-runtime-classpath> \
 ```
 
 The help distinguishes the ten-input explicit form from the seven-input compact
-form. Compact mode derives only the running plugin JAR, the parent-loaded
-`pluginApi` JAR, and marker class; expected handler, annotation, Scala version,
-and JDK major remain independent caller inputs. A runtime class loaded from a
-directory, a non-file code source, or an API path absent from the handler
-compile evidence fails closed.
+form. Compact mode derives the running self-contained plugin JAR, selects the
+unique separate authoring `pluginApi` JAR from handler compile evidence, and
+derives marker class; expected handler, annotation, Scala version, and JDK major
+remain independent caller inputs. A runtime class loaded from a directory, a
+non-file code source, or an ambiguous/missing authoring API path fails closed.
 
 Argument, compact-derivation, and precheck failures exit with status 2 and
 explicitly report that consumer compilation and expansion did not start.

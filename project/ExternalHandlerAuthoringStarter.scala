@@ -316,7 +316,7 @@ object ExternalHandlerAuthoringStarter {
       "C3" -> "EXACT_COMPILER_MISMATCH",
       "C4" -> "EXACT_JDK_MISMATCH",
       "C5" -> "FORBIDDEN_HANDLER_DEPENDENCY",
-      "C6" -> "HANDLER_CONTRACT_CLASSPATH_MISMATCH"
+      "C6" -> "COMPACT_PRECHECK_DERIVATION_FAILURE"
     )
     val compactNegatives = expectedCompactCategories.map { case (id, category) =>
       val directory = new File(evidence, s"negative-compact/$id")

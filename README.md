@@ -113,10 +113,24 @@ does not name this exact-compiler plugin. These are the selected future Maven
 Central coordinates, but `0.1.0` is not available from Maven Central until a
 separately authorized release is completed.
 
+The plugin JAR is self-contained for compiler loading: it embeds the exact
+unshaded `paradise3.api` runtime classes that the plugin links against. Its POM
+does not add a second runtime API dependency. An ordinary API dependency is a
+source-compilation dependency for marker/handler authors; it is not, and need
+not be, part of `-Xplugin`.
+
 Authors of precompiled annotation markers and handlers also use the exact
 full-cross `macroparadise-scala3-plugin-api` coordinate described in
 [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md). Ordinary
 plugin-only users do not add implementation or repository test artifacts.
+
+The supported external-handler flow has three precompiled stages: marker,
+handler, then annotated consumer. The plugin loader sees the self-contained
+plugin JAR; the ordinary source classpath sees the API and precompiled marker;
+the handler is selected through
+`-P:macroparadise:handlerClasspath=<handler-jar>`. The running application does
+not need the compiler plugin or handler JAR merely because they were used at
+compile time. Same-compilation marker metadata is not currently claimed.
 
 ## External-handler starter
 

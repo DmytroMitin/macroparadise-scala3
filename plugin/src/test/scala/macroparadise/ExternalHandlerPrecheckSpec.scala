@@ -483,6 +483,34 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     finally deleteRecursively(root)
   }
 
+  test("compact self-contained plugin selects the ordinary authoring API from handler compile evidence") {
+    val root = Files.createTempDirectory("external-handler-precheck-compact-embedded-api-")
+    try
+      val plugin = jar(root.resolve("plugin.jar"), Map(
+        "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
+        "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
+        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/expander.class" -> Array[Byte](1),
+        "plugin.properties" -> Array[Byte](1)
+      ))
+      val authoringApi = jar(root.resolve("plugin-api.jar"), Map(
+        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/expander.class" -> Array[Byte](1)
+      ))
+      val compiler = jar(root.resolve("compiler.jar"), Map(
+        "dotty/tools/dotc/Main.class" -> Array[Byte](1)
+      ))
+
+      assertEquals(
+        ExternalHandlerPrecheckMain.selectCompactAuthoringApi(
+          ExternalHandlerPrecheckMain.RuntimeArtifacts(plugin, plugin),
+          Vector(authoringApi, compiler)
+        ),
+        Right(authoringApi)
+      )
+    finally deleteRecursively(root)
+  }
+
   private def jarFromResources(path: Path, resources: List[String]): Path =
     jar(
       path,

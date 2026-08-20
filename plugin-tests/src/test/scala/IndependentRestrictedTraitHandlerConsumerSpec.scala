@@ -224,7 +224,7 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
         (artifact :: pluginApiJar :: compilerUniverse).map(_.getAbsolutePath).distinct.mkString(File.pathSeparator),
         "-d",
         output.toString,
-        s"-Xplugin:${Seq(pluginJar, pluginApiJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
+        s"-Xplugin:${pluginJar.getAbsolutePath}",
         "-Xplugin-require:macroparadise"
       ) ++ handlerOption ++ traceOptions ++ List(sourceFile.toString),
       jvmProperties = Nil

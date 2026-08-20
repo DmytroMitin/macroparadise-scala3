@@ -38,10 +38,6 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             directory.mkdir(parents=True)
             base = f"{module}-{VERSION}"
             pom = directory / f"{base}.pom"
-            dependency = ""
-            if "plugin-api" not in module:
-                dependency = f"""
-    <dependency><groupId>com.github.dmytromitin</groupId><artifactId>{MODULES[0]}</artifactId><version>{VERSION}</version></dependency>"""
             pom.write_text(
                 f"""<project><modelVersion>4.0.0</modelVersion>
   <groupId>com.github.dmytromitin</groupId><artifactId>{module}</artifactId><version>{VERSION}</version>
@@ -49,7 +45,7 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
   <licenses><license><name>Apache-2.0</name><url>https://www.apache.org/licenses/LICENSE-2.0</url><distribution>repo</distribution></license></licenses>
   <scm><url>https://github.com/DmytroMitin/macroparadise-scala3</url><connection>scm:git:https://github.com/DmytroMitin/macroparadise-scala3.git</connection></scm>
   <developers><developer><id>DmytroMitin</id><name>Dmytro Mitin</name><email>dmitin3@gmail.com</email><url>https://github.com/DmytroMitin</url></developer></developers>
-  <dependencies><dependency><groupId>org.scala-lang</groupId><artifactId>scala3-compiler_3</artifactId><version>{SCALA_VERSION}</version></dependency>{dependency}</dependencies>
+  <dependencies><dependency><groupId>org.scala-lang</groupId><artifactId>scala3-compiler_3</artifactId><version>{SCALA_VERSION}</version></dependency></dependencies>
 </project>\n""",
                 encoding="utf-8",
             )
@@ -116,6 +112,25 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             result = self.run_checker(root / "project", repository)
             self.assertEqual(result.returncode, 3)
             self.assertIn("UNAUTHORIZED_SIGNATURE_PRESENT", result.stdout)
+
+    def test_self_contained_plugin_rejects_plugin_api_pom_dependency(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = self.fixture(root)
+            module = MODULES[1]
+            pom = repository / GROUP_PATH / module / VERSION / f"{module}-{VERSION}.pom"
+            rendered = pom.read_text(encoding="utf-8").replace(
+                "</dependencies>",
+                f"<dependency><groupId>com.github.dmytromitin</groupId><artifactId>{MODULES[0]}</artifactId><version>{VERSION}</version></dependency></dependencies>",
+            )
+            pom.write_text(rendered, encoding="utf-8")
+            for algorithm in ("md5", "sha1", "sha256", "sha512"):
+                pom.with_name(pom.name + f".{algorithm}").write_text(
+                    digest(pom, algorithm) + "\n", encoding="ascii"
+                )
+            result = self.run_checker(root / "project", repository)
+            self.assertEqual(result.returncode, 3)
+            self.assertIn("POM_PLUGIN_API_DEPENDENCY_UNNECESSARY", result.stdout)
 
 
 if __name__ == "__main__":

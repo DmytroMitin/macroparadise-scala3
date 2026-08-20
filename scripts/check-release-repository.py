@@ -102,8 +102,8 @@ def pom_dependencies(path: Path, module: str, errors: list[str]) -> list[dict[st
     compiler = ("org.scala-lang", "scala3-compiler_3", SCALA_VERSION)
     if compiler not in compile_coordinates:
         errors.append(f"POM_COMPILER_DEPENDENCY_INVALID:{module}")
-    if module == PLUGIN and (GROUP, PLUGIN_API, VERSION) not in compile_coordinates:
-        errors.append(f"POM_PLUGIN_API_DEPENDENCY_INVALID:{module}")
+    if module == PLUGIN and (GROUP, PLUGIN_API, VERSION) in compile_coordinates:
+        errors.append(f"POM_PLUGIN_API_DEPENDENCY_UNNECESSARY:{module}")
     return sorted(dependencies, key=lambda item: (item["scope"], item["group"], item["artifact"]))
 
 

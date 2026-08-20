@@ -321,7 +321,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     Vector(javaTool("java")) ++ Vector(
       "-cp", classpath(compilerJars), "dotty.tools.dotc.Main",
       "-classpath", classpath(sourceClasspath), "-d", output.getAbsolutePath,
-      s"-Xplugin:${classpath(Vector(pluginArtifact, apiArtifact))}",
+      s"-Xplugin:${pluginArtifact.getAbsolutePath}",
       "-Xplugin-require:macroparadise"
     ) ++ handlerClasspath.toVector.map(file => s"-P:macroparadise:handlerClasspath=${file.getAbsolutePath}") ++ extraPluginOptions ++ Vector(source.getAbsolutePath)
   }
@@ -336,7 +336,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val rendered = command.mkString("\n")
     forbiddenClasspathFragments.foreach(fragment => require(!rendered.contains(fragment), s"plugin command leaked forbidden `$fragment`"))
     val pluginOption = command.find(_.startsWith("-Xplugin:")).getOrElse(throw new IllegalStateException("plugin command lacks -Xplugin"))
-    require(pluginOption == s"-Xplugin:${classpath(Vector(pluginArtifact, apiArtifact))}", s"plugin path order changed: $pluginOption")
+    require(pluginOption == s"-Xplugin:${pluginArtifact.getAbsolutePath}", s"plugin path changed: $pluginOption")
     require(command.contains("-Xplugin-require:macroparadise"), "plugin command lacks -Xplugin-require")
     val handlerOptions = command.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
     if (requireHandler) require(handlerOptions == Vector(s"-P:macroparadise:handlerClasspath=${independentArtifact.getAbsolutePath}"), s"handler classpath changed: ${handlerOptions.mkString(",")}")

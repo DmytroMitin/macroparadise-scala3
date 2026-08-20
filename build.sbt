@@ -382,7 +382,7 @@ lazy val sameModuleHandlerSpike = (project in file("same-module-handler-spike"))
       val currentOutput = (Compile / classDirectory).value.getAbsolutePath
 
       Seq(
-        s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
+        s"-Xplugin:$pluginJar",
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=$currentOutput",
         "-P:macroparadise:sameModuleHandler=sameModuleDebug:demo.SameModuleDebugExpander:demo/SameModuleDebugExpander.scala",
@@ -406,7 +406,7 @@ lazy val sameModuleHandlerSameFileSpike =
         val currentOutput = (Compile / classDirectory).value.getAbsolutePath
 
         Seq(
-          s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
+          s"-Xplugin:$pluginJar",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$currentOutput",
           "-P:macroparadise:sameModuleHandler=sameFileDebug:demo.SameFileDebugExpander:demo/SameFileDebug.scala",
@@ -430,7 +430,7 @@ lazy val sameModuleHandlerCycleSpike =
         val currentOutput = (Compile / classDirectory).value.getAbsolutePath
 
         Seq(
-          s"-Xplugin:${Seq(pluginJar, pluginApiJar).mkString(java.io.File.pathSeparator)}",
+          s"-Xplugin:$pluginJar",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$currentOutput",
           "-P:macroparadise:sameModuleHandler=impossibleDebug:demo.DoesNotExistExpander:demo/MissingHandler.scala",
@@ -780,15 +780,19 @@ verifyIndependentExternalSbtConsumerFromLocalRepository := {
 
 
 lazy val plugin = (project in file("plugin"))
-  .dependsOn(pluginApi, pluginTestMarkers % "test->compile")
+  .dependsOn(pluginApi % "compile-internal", pluginTestMarkers % "test->compile")
   .settings(commonSettings)
   .settings(selectedPublicationSettings)
   .settings(
     name := "Macro Paradise Scala 3 Experimental Compiler Plugin",
     moduleName := "macroparadise-scala3-plugin",
     crossVersion := CrossVersion.full,
-    description := "Exact-build experimental Scala 3 compiler plugin for pre-typer annotation expansion; requires the matching plugin API and Scala compiler build.",
+    description := "Exact-build experimental Scala 3 compiler plugin for pre-typer annotation expansion; embeds its runtime API classes and requires the matching Scala compiler build.",
     makePomConfiguration ~= (_.withConfigurations(Vector(Compile, Runtime, Provided, Optional))),
+    Compile / packageBin / mappings ++=
+      (pluginApi / Compile / packageBin / mappings).value.filter {
+        case (_, path) => path.startsWith("paradise3/api/")
+      },
     libraryDependencies ++= Seq(
       "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
       "org.scala-lang" %% "scala3-tasty-inspector" % scalaVersion.value
@@ -838,7 +842,7 @@ def legacyMetadataConsumerProject(
           (pluginTestHandlers / Compile / packageBin).value.getAbsolutePath
 
         Seq(
-          s"-Xplugin:${Seq(pluginJar, pluginApiJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
+          s"-Xplugin:${Seq(pluginJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
@@ -907,7 +911,7 @@ def packagedStructuredTastyConsumerProject(
         IO.delete(file(tracePath))
 
         Seq(
-          s"-Xplugin:${Seq(pluginJar, pluginApiJar, currentMarkerJar, legacyMarkerJar, inspectorJar).mkString(java.io.File.pathSeparator)}",
+          s"-Xplugin:${Seq(pluginJar, currentMarkerJar, legacyMarkerJar, inspectorJar).mkString(java.io.File.pathSeparator)}",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$handlerJar",
           s"-P:macroparadise:metadataReaderTrace=$tracePath",
@@ -1134,7 +1138,7 @@ lazy val pluginTests = (project in file("plugin-tests"))
       val handlerJar = (pluginTestHandlers / Compile / packageBin).value.getAbsolutePath
 
       Seq(
-        s"-Xplugin:${Seq(pluginJar, pluginApiJar, markerJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
+        s"-Xplugin:${Seq(pluginJar, markerJar, legacyMarkerJar).mkString(java.io.File.pathSeparator)}",
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=$handlerJar",
         "-P:macroparadise:handler=demo.ExternalMarkerExpander"

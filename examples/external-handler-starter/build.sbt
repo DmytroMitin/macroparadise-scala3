@@ -205,11 +205,10 @@ lazy val consumer: Project = project.in(file("consumer"))
     ),
     Compile / scalacOptions ++= {
       val plugin = requiredArtifact(PluginProperty)
-      val pluginApi = requiredArtifact(PluginApiProperty)
       val markerJar = (marker / Compile / packageBin).value
       val handlerJar = (handler / Compile / packageBin).value
       Seq(
-        s"-Xplugin:${Seq(plugin, pluginApi, markerJar).map(_.getAbsolutePath).mkString(File.pathSeparator)}",
+        s"-Xplugin:${plugin.getAbsolutePath}",
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
       )
@@ -337,8 +336,8 @@ lazy val root: Project = project.in(file("."))
         CompactLane("C5", "FORBIDDEN_HANDLER_DEPENDENCY", compileClasspath = handlerClasspath :+ plugin),
         CompactLane(
           "C6",
-          "HANDLER_CONTRACT_CLASSPATH_MISMATCH",
-          runtimeClasspath = duplicatePluginApi +: handlerClasspath
+          "COMPACT_PRECHECK_DERIVATION_FAILURE",
+          compileClasspath = duplicatePluginApi +: handlerClasspath
         )
       )
 

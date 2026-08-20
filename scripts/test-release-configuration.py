@@ -86,8 +86,16 @@ class ReleaseConfigurationTest(unittest.TestCase):
             self.assertIn("CrossVersion.full", text)
             self.assertIn("publishLocal", text)
             self.assertIn("not available from Maven Central", text)
-        self.assertIn(f'"{GROUP}" % "macroparadise-scala3-plugin-api_{SCALA_VERSION}" % "{VERSION}"', authoring)
+        self.assertIn(f'"{GROUP}" % "macroparadise-scala3-plugin-api" % "{VERSION}"', authoring)
+        self.assertIn(".cross(CrossVersion.full)", authoring)
         self.assertIn(f"-P:{PLUGIN_ID}:handlerClasspath=", authoring)
+
+    def test_plugin_is_self_contained_without_a_plugin_api_pom_dependency(self) -> None:
+        plugin = project_section(self.build, "plugin")
+        self.assertIn('.dependsOn(pluginApi % "compile-internal"', plugin)
+        self.assertIn('startsWith("paradise3/api/")', plugin)
+        checker = (ROOT / "scripts/check-release-repository.py").read_text(encoding="utf-8")
+        self.assertIn("POM_PLUGIN_API_DEPENDENCY_UNNECESSARY", checker)
 
     def test_release_rehearsal_is_task_local_and_unsigned(self) -> None:
         script_path = ROOT / "scripts/rehearse-local-release.sh"

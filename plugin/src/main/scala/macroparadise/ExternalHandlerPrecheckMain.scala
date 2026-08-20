@@ -6,6 +6,7 @@ import paradise3.api.ParadiseAnnotationExpander
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.regex.Pattern
+import java.util.jar.JarFile
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -47,7 +48,8 @@ object ExternalHandlerPrecheckMain:
       |
       |Compact derived witnesses:
       |  plugin: executing ExternalHandlerPrecheckMain code source
-      |  plugin-api: parent-loaded ParadiseAnnotationExpander code source
+      |  runtime plugin-api: parent-loaded ParadiseAnnotationExpander code source (embedded in a self-contained plugin)
+      |  authoring plugin-api: the unique contract JAR on handler-compile-classpath
       |  marker-class: canonical expected-annotation identity
       |
       |Artifact roles:
@@ -191,9 +193,16 @@ object ExternalHandlerPrecheckMain:
             pluginApi = runtimeArtifacts.pluginApi,
             marker = Path.of(values("marker")),
             handler = Path.of(values("handler"))
-          ),
+        ),
         values => values("expected-annotation")
-      )
+      ).flatMap: request =>
+        selectCompactAuthoringApi(
+          runtimeArtifacts,
+          request.handlerCompileClasspath
+        ).map: authoringApi =>
+          request.copy(
+            artifacts = request.artifacts.copy(pluginApi = authoringApi)
+          )
 
   private def parseRequest(
       args: Array[String],
@@ -308,6 +317,43 @@ object ExternalHandlerPrecheckMain:
         "plugin-api"
       )
     yield RuntimeArtifacts(plugin, pluginApi)
+
+  private[macroparadise] def selectCompactAuthoringApi(
+      runtimeArtifacts: RuntimeArtifacts,
+      handlerCompileClasspath: Vector[Path]
+  ): Either[Failure, Path] =
+    val plugin = runtimeArtifacts.plugin.toAbsolutePath.normalize
+    val runtimeApi = runtimeArtifacts.pluginApi.toAbsolutePath.normalize
+
+    if runtimeApi != plugin then Right(runtimeApi)
+    else
+      val requiredEntries = Set(
+        "paradise3/api/ParadiseAnnotationExpander.class",
+        "paradise3/api/expander.class"
+      )
+      val candidates = handlerCompileClasspath
+        .map(_.toAbsolutePath.normalize)
+        .distinct
+        .filter(path => path != plugin && containsAllEntries(path, requiredEntries))
+
+      candidates match
+        case Vector(candidate) => Right(candidate)
+        case _ =>
+          Left(
+            Failure(
+              "COMPACT_PRECHECK_DERIVATION_FAILURE",
+              s"self-contained plugin requires exactly one ordinary authoring plugin API JAR on handler compile classpath; found ${candidates.size}"
+            )
+          )
+
+  private def containsAllEntries(path: Path, requiredEntries: Set[String]): Boolean =
+    if !Files.isRegularFile(path) || !path.getFileName.toString.endsWith(".jar") then false
+    else
+      try
+        val jar = JarFile(path.toFile)
+        try requiredEntries.forall(entry => jar.getJarEntry(entry) != null)
+        finally jar.close()
+      catch case NonFatal(_) => false
 
   private[macroparadise] def artifactPathFromCodeSource(
       clazz: Class[?],

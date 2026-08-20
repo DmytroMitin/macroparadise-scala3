@@ -78,11 +78,13 @@ passes structural validation.
 
 ## Class loading and exact compiler identity
 
-Precompiled handlers load below a parent containing the plugin, handler API,
-Scala runtime, and the one exact compiler universe. The loader resolves the
-shared handler interface and compiler types parent first. A child compiler copy
-would break raw tree and context identity and is therefore rejected by the
-starter precheck.
+Precompiled handlers load below a parent containing the self-contained plugin,
+its exact unshaded embedded handler API, Scala runtime, and the one exact
+compiler universe. The separate `plugin-api` artifact is an ordinary authoring
+dependency, not a plugin-loader parent. The handler loader resolves the shared
+interface and compiler types parent first. A child compiler copy would break
+raw tree and context identity and is therefore rejected by the starter
+precheck.
 
 ## Same-module boundary
 

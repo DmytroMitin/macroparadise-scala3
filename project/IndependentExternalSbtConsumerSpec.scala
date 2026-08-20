@@ -1,7 +1,7 @@
 import java.io.File
 
 object IndependentExternalSbtConsumerSpec {
-  val CaseCount = 26
+  val CaseCount = 29
 
   def run(): Unit = {
     import IndependentExternalSbtConsumer._
@@ -13,28 +13,36 @@ object IndependentExternalSbtConsumerSpec {
 
     val api = repositoryCoordinate(PluginApiModule)
     val plugin = repositoryCoordinate(PluginModule)
-    val handler = producerCoordinate
+    val marker = markerCoordinate
+    val handler = handlerCoordinate
     check(PluginApiModule == s"macroparadise-scala3-plugin-api_$ExpectedScalaVersion", "API module is not full-cross")
     check(PluginModule == s"macroparadise-scala3-plugin_$ExpectedScalaVersion", "plugin module is not full-cross")
     check(validateTaskCoordinate(api).isEmpty, "API coordinate is not selected")
     check(validateTaskCoordinate(plugin).isEmpty, "plugin coordinate is not selected")
+    check(validateTaskCoordinate(marker).isEmpty, "marker task coordinate is not selected")
     check(validateTaskCoordinate(handler).isEmpty, "handler task coordinate is not selected")
     check(validateTaskCoordinate(api.copy(organization = "com.example")).nonEmpty, "wrong public organization was accepted")
     check(validateTaskCoordinate(api.copy(version = "1.0.0")).nonEmpty, "wrong candidate version was accepted")
     check(validateMavenRelativePath(api, api.artifactRelative("jar")), "valid Maven path was rejected")
     check(!validateMavenRelativePath(api, "/" + api.artifactRelative("jar")), "absolute Maven path was accepted")
     check(!validateMavenRelativePath(api, api.rootRelative + "/../foreign.jar"), "traversing Maven path was accepted")
-    check(expectedIndependentPayload.size == 4, "thin independent payload changed")
-    check(!expectedIndependentPayload.exists(_.startsWith("paradise3/")), "thin payload contains API classes")
+    check(expectedMarkerPayload.size == 2, "marker artifact payload changed")
+    check(expectedHandlerPayload.size == 2, "handler artifact must not contain marker classes")
+    check(!(expectedMarkerPayload ++ expectedHandlerPayload).exists(_.startsWith("paradise3/")), "thin payload contains API classes")
     check(forbiddenModuleFragments.contains("plugin-test-markers"), "marker exclusion is absent")
     check(forbiddenModuleFragments.contains("plugin-test-handlers"), "handler-fixture exclusion is absent")
     check(forbiddenModuleFragments.contains("quasiquotes"), "quasiquotes exclusion is absent")
 
     val pluginFile = new File("/task/cache/" + PluginModule + "-" + Version + ".jar")
     val apiFile = new File("/task/cache/" + PluginApiModule + "-" + Version + ".jar")
-    val handlerFile = new File("/task/cache/" + IndependentModule + "-" + Version + ".jar")
+    val markerFile = new File("/task/cache/" + MarkerModule + "-" + Version + ".jar")
+    val handlerFile = new File("/task/cache/" + HandlerModule + "-" + Version + ".jar")
     val options = pluginOptions(pluginFile, apiFile, Some(handlerFile))
-    check(options.head.contains(File.pathSeparator), "plugin option does not use platform separator")
+    check(
+      options.head == "-Xplugin:" + pluginFile.getAbsolutePath,
+      "ordinary plugin option must contain only the self-contained compiler-plugin artifact"
+    )
+    check(!options.head.contains(apiFile.getAbsolutePath), "plugin option still contains the ordinary API dependency")
     check(options.contains("-Xplugin-require:macroparadise"), "plugin require option is absent")
     check(options.exists(_.contains("handlerClasspath=")), "handler option is absent")
     check(pluginOptions(pluginFile, apiFile, None).forall(!_.contains("handlerClasspath=")), "missing-handler options retained handler path")
@@ -42,7 +50,8 @@ object IndependentExternalSbtConsumerSpec {
     val validGraph = Vector(
       (RepositoryOrganization, PluginModule, Version, pluginFile.getAbsolutePath),
       (RepositoryOrganization, PluginApiModule, Version, apiFile.getAbsolutePath),
-      (ProducerOrganization, IndependentModule, Version, handlerFile.getAbsolutePath),
+      (ProducerOrganization, MarkerModule, Version, markerFile.getAbsolutePath),
+      (ProducerOrganization, HandlerModule, Version, handlerFile.getAbsolutePath),
       ("org.scala-lang", "scala3-compiler_3", ExpectedScalaVersion, "/task/cache/compiler.jar")
     )
     check(validateResolvedGraph(validGraph, Vector("/workspace/target/classes")).isEmpty, "valid graph was rejected")
@@ -53,7 +62,7 @@ object IndependentExternalSbtConsumerSpec {
     check(validateResolvedGraph(validGraph.filterNot(_._2 == PluginApiModule), Vector.empty).exists(_.contains("pluginApi coordinate")), "missing API coordinate was accepted")
     check(validateResolvedGraph(validGraph :+ ("x", "plugin-test-markers", Version, "/task/cache/markers.jar"), Vector.empty).exists(_.contains("forbidden module")), "forbidden marker module was accepted")
     val workspaceGraph = validGraph.map {
-      case (organization, module, version, _) if module == IndependentModule =>
+      case (organization, module, version, _) if module == HandlerModule =>
         (organization, module, version, "/workspace/target/classes/handler.jar")
       case value => value
     }

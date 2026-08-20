@@ -82,6 +82,13 @@ tied to that exact compiler. These coordinates are the first-release candidate
 only; `0.1.0` is not available from Maven Central until a later owner-authorized
 release.
 
+This declaration adds one self-contained plugin JAR to Dotty's plugin loader.
+That JAR contains the exact unshaded runtime `paradise3.api` classes the plugin
+links against; the plugin POM does not pull in a conflicting API runtime copy.
+An ordinary `plugin-api` library dependency is needed only for compiling a
+user-owned marker or handler, and ordinary source dependencies do not become a
+parent of the compiler plugin classloader.
+
 The built-in `@gen` below remains a repository fixture, not the promised
 external annotation API. A user-authored annotation uses a precompiled marker
 and `ParadiseAnnotationExpander` handler as described in
@@ -120,6 +127,15 @@ The task packages the real plugin and experimental handler API, then runs a
 nested marker/handler/consumer build with task-owned local paths. The ordinary
 consumer typechecks and executes a generated `generatedGreeting` method only
 after the preconsumer checks pass.
+
+The marker and handler are compiled before the annotated consumer, without the
+Macro-Paradise plugin active in either producer compilation. The consumer's
+plugin loader receives only the self-contained plugin JAR. Its ordinary source
+classpath receives the API and precompiled marker, while the precompiled
+handler is selected through `-P:macroparadise:handlerClasspath=...`. Compiler
+plugin and handler artifacts are compilation tools, not automatic runtime
+application dependencies. This standard multi-project sbt shape is suitable
+for CLI use and IntelliJ/BSP import; no IDE metadata is required.
 
 Read [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the marker,
 handler, classpath, output, and diagnostic contracts.

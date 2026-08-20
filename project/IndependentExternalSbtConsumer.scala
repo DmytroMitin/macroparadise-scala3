@@ -23,7 +23,8 @@ object IndependentExternalSbtConsumer {
   val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
   val PluginApiModule = s"macroparadise-scala3-plugin-api_$ExpectedScalaVersion"
   val PluginModule = s"macroparadise-scala3-plugin_$ExpectedScalaVersion"
-  val IndependentModule = "independent-handler_3"
+  val MarkerModule = "independent-marker_3"
+  val HandlerModule = "independent-handler_3"
   val DuplicateApiModule = "duplicate-plugin-api_3"
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
@@ -38,11 +39,14 @@ object IndependentExternalSbtConsumer {
     "experimental-plugin-api-handler-contract"
   )
 
-  val expectedIndependentPayload = Set(
-    "contractprobe/IndependentHandler.class",
-    "contractprobe/IndependentHandler.tasty",
+  val expectedMarkerPayload = Set(
     "contractprobe/IndependentMarker.class",
     "contractprobe/IndependentMarker.tasty"
+  )
+
+  val expectedHandlerPayload = Set(
+    "contractprobe/IndependentHandler.class",
+    "contractprobe/IndependentHandler.tasty"
   )
 
   final case class Config(
@@ -94,7 +98,8 @@ object IndependentExternalSbtConsumer {
   final case class VerificationResult(
       api: ArtifactIdentity,
       plugin: ArtifactIdentity,
-      independent: ArtifactIdentity,
+      marker: ArtifactIdentity,
+      handler: ArtifactIdentity,
       producerComparison: PackageComparison,
       stagedFiles: Int,
       pomFiles: Int,
@@ -112,7 +117,7 @@ object IndependentExternalSbtConsumer {
     def render: String =
       s"classification=$StagingClassification externalBuildClassification=$ExternalBuildClassification " +
         s"coordinateClassification=$CoordinateClassification publicationClassification=$PublicationClassification " +
-        s"api={${api.render}} plugin={${plugin.render}} independent={${independent.render}} " +
+        s"api={${api.render}} plugin={${plugin.render}} marker={${marker.render}} handler={${handler.render}} " +
         s"producerComparison={${producerComparison.render}} stagedFiles=$stagedFiles pomFiles=$pomFiles " +
         s"metadataSelections=$metadataSelections invocations=$invocations generatedMethodPresent=$generatedMethodPresent " +
         s"runtimeOutput=${runtimeOutput.trim} parentFirstApiIdentity=$parentFirstApiIdentity " +
@@ -149,7 +154,8 @@ object IndependentExternalSbtConsumer {
   private final case class InternalResult(
       api: ArtifactIdentity,
       plugin: ArtifactIdentity,
-      independent: ArtifactIdentity,
+      marker: ArtifactIdentity,
+      handler: ArtifactIdentity,
       comparison: PackageComparison,
       stagedFiles: Int,
       pomFiles: Int,
@@ -164,13 +170,16 @@ object IndependentExternalSbtConsumer {
   def repositoryCoordinate(module: String): Coordinate =
     Coordinate(RepositoryOrganization, module, Version)
 
-  def producerCoordinate: Coordinate =
-    Coordinate(ProducerOrganization, IndependentModule, Version)
+  def markerCoordinate: Coordinate =
+    Coordinate(ProducerOrganization, MarkerModule, Version)
+
+  def handlerCoordinate: Coordinate =
+    Coordinate(ProducerOrganization, HandlerModule, Version)
 
   def validateTaskCoordinate(coordinate: Coordinate): Vector[String] = {
     val errors = Vector.newBuilder[String]
     val expectedOrganization =
-      if (coordinate.module == IndependentModule) ProducerOrganization
+      if (coordinate.module == MarkerModule || coordinate.module == HandlerModule) ProducerOrganization
       else RepositoryOrganization
     if (coordinate.organization != expectedOrganization)
       errors += s"organization must equal $expectedOrganization"
@@ -192,7 +201,7 @@ object IndependentExternalSbtConsumer {
 
   def pluginOptions(plugin: File, api: File, handler: Option[File]): Vector[String] =
     Vector(
-      "-Xplugin:" + Vector(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator),
+      "-Xplugin:" + plugin.getAbsolutePath,
       "-Xplugin-require:macroparadise"
     ) ++ handler.toVector.map(file => "-P:macroparadise:handlerClasspath=" + file.getAbsolutePath)
 
@@ -211,7 +220,8 @@ object IndependentExternalSbtConsumer {
       modules.filter(value => value._1 == organization && value._2 == module && value._3 == Version).map(_._4).distinct.size
     if (exactCount(RepositoryOrganization, PluginModule) != 1) errors += "plugin coordinate is not singular"
     if (exactCount(RepositoryOrganization, PluginApiModule) != 1) errors += "pluginApi coordinate is not singular"
-    if (exactCount(ProducerOrganization, IndependentModule) != 1) errors += "independent coordinate is not singular"
+    if (exactCount(ProducerOrganization, MarkerModule) != 1) errors += "marker coordinate is not singular"
+    if (exactCount(ProducerOrganization, HandlerModule) != 1) errors += "handler coordinate is not singular"
     errors.result()
   }
 
@@ -278,7 +288,8 @@ object IndependentExternalSbtConsumer {
     val result = VerificationResult(
       value.api,
       value.plugin,
-      value.independent,
+      value.marker,
+      value.handler,
       value.comparison,
       value.stagedFiles,
       value.pomFiles,
@@ -321,6 +332,7 @@ object IndependentExternalSbtConsumer {
     require(stagedApi.isFile && stagedPlugin.isFile, "staged plugin/API artifacts are missing")
     require(sameBytes(sourceApi, stagedApi), "staged pluginApi differs from disposable source package")
     require(sameBytes(sourcePlugin, stagedPlugin), "staged plugin differs from disposable source package")
+    auditSelfContainedPluginJar(stagedPlugin, stagedApi)
 
     val initialRepositoryFiles = auditRepository(layout.repository, Vector(apiCoordinate, pluginCoordinate))
     val initialPomAudit = auditPoms(layout.repository, Vector(apiCoordinate, pluginCoordinate))
@@ -329,28 +341,50 @@ object IndependentExternalSbtConsumer {
 
     createProducerBuild(layout, config)
     val producerFirstLog = new File(layout.evidence, "commands/02-producer-first-package.log")
-    require(runSbt(layout.producer, layout, Vector("clean", "package"), Map.empty, producerFirstLog) == 0, "first producer package failed")
-    val firstProducerJar = singleFile(layout.producer, IndependentModule + "-" + Version + ".jar")
-    val firstSnapshot = new File(layout.work, "producer-first.jar")
-    Files.copy(firstProducerJar.toPath, firstSnapshot.toPath, StandardCopyOption.REPLACE_EXISTING)
+    require(
+      runSbt(layout.producer, layout, Vector("clean", "verifyNoCompilerPlugin", "marker/package", "handler/package"), Map.empty, producerFirstLog) == 0,
+      "first marker/handler package failed"
+    )
+    val firstMarkerJar = singleFile(layout.producer, MarkerModule + "-" + Version + ".jar")
+    val firstHandlerJar = singleFile(layout.producer, HandlerModule + "-" + Version + ".jar")
+    val firstMarkerSnapshot = new File(layout.work, "marker-first.jar")
+    val firstHandlerSnapshot = new File(layout.work, "handler-first.jar")
+    Files.copy(firstMarkerJar.toPath, firstMarkerSnapshot.toPath, StandardCopyOption.REPLACE_EXISTING)
+    Files.copy(firstHandlerJar.toPath, firstHandlerSnapshot.toPath, StandardCopyOption.REPLACE_EXISTING)
 
     val producerSecondLog = new File(layout.evidence, "commands/03-producer-second-package.log")
-    require(runSbt(layout.producer, layout, Vector("clean", "package"), Map.empty, producerSecondLog) == 0, "second producer package failed")
-    val secondProducerJar = singleFile(layout.producer, IndependentModule + "-" + Version + ".jar")
-    val comparison = comparePackages(firstSnapshot, secondProducerJar)
-    require(comparison.logicalEntriesEqual, "producer package logical entries or uncompressed bytes differ")
-    auditThinIndependentJar(secondProducerJar)
-    write(new File(layout.evidence, "producer-package-comparison.txt"), comparison.render + "\n")
+    require(
+      runSbt(layout.producer, layout, Vector("clean", "verifyNoCompilerPlugin", "marker/package", "handler/package"), Map.empty, producerSecondLog) == 0,
+      "second marker/handler package failed"
+    )
+    val secondMarkerJar = singleFile(layout.producer, MarkerModule + "-" + Version + ".jar")
+    val secondHandlerJar = singleFile(layout.producer, HandlerModule + "-" + Version + ".jar")
+    val markerComparison = comparePackages(firstMarkerSnapshot, secondMarkerJar)
+    val handlerComparison = comparePackages(firstHandlerSnapshot, secondHandlerJar)
+    require(markerComparison.logicalEntriesEqual, "marker package logical entries or uncompressed bytes differ")
+    require(handlerComparison.logicalEntriesEqual, "handler package logical entries or uncompressed bytes differ")
+    auditThinIndependentJar(secondMarkerJar, expectedMarkerPayload, "marker")
+    auditThinIndependentJar(secondHandlerJar, expectedHandlerPayload, "handler")
+    write(
+      new File(layout.evidence, "producer-package-comparison.txt"),
+      "marker=" + markerComparison.render + "\nhandler=" + handlerComparison.render + "\n"
+    )
 
     val producerPublishLog = new File(layout.evidence, "commands/04-producer-publish.log")
-    require(runSbt(layout.producer, layout, Vector("publish"), Map.empty, producerPublishLog) == 0, "producer publish failed")
-    val independentCoordinate = producerCoordinate
-    val stagedIndependent = new File(layout.repository, independentCoordinate.artifactRelative("jar"))
-    require(stagedIndependent.isFile, "staged independent producer artifact is missing")
-    require(sameBytes(secondProducerJar, stagedIndependent), "staged independent artifact differs from producer package")
+    require(
+      runSbt(layout.producer, layout, Vector("marker/publish", "handler/publish"), Map.empty, producerPublishLog) == 0,
+      "marker/handler publish failed"
+    )
+    val markerCoordinateValue = markerCoordinate
+    val handlerCoordinateValue = handlerCoordinate
+    val stagedMarker = new File(layout.repository, markerCoordinateValue.artifactRelative("jar"))
+    val stagedHandler = new File(layout.repository, handlerCoordinateValue.artifactRelative("jar"))
+    require(stagedMarker.isFile && stagedHandler.isFile, "staged marker/handler artifacts are missing")
+    require(sameBytes(secondMarkerJar, stagedMarker), "staged marker differs from producer package")
+    require(sameBytes(secondHandlerJar, stagedHandler), "staged handler differs from producer package")
 
-    val repositoryFiles = auditRepository(layout.repository, Vector(apiCoordinate, pluginCoordinate, independentCoordinate))
-    val pomAudit = auditPoms(layout.repository, Vector(apiCoordinate, pluginCoordinate, independentCoordinate))
+    val repositoryFiles = auditRepository(layout.repository, Vector(apiCoordinate, pluginCoordinate, markerCoordinateValue, handlerCoordinateValue))
+    val pomAudit = auditPoms(layout.repository, Vector(apiCoordinate, pluginCoordinate, markerCoordinateValue, handlerCoordinateValue))
     write(new File(layout.evidence, "staged-repository-final.txt"), repositoryFiles.mkString("\n") + "\n")
     write(new File(layout.evidence, "pom-audit-final.txt"), pomAudit.mkString("\n") + "\n")
 
@@ -406,9 +440,12 @@ object IndependentExternalSbtConsumer {
 
     val resolvedFiles = graph.flatMap(parseGraphFile).distinct
     val resolvedApi = exactlyOne(resolvedFiles.filter(_.getName == PluginApiModule + "-" + Version + ".jar"), "resolved pluginApi")
-    val resolvedHandler = exactlyOne(resolvedFiles.filter(_.getName == IndependentModule + "-" + Version + ".jar"), "resolved independent handler")
-    val compilerJars = resolvedFiles.filter(file => file.getName.endsWith(".jar") && !file.getName.startsWith(PluginModule + "-") && file != resolvedHandler)
-    val parentFirst = verifyParentFirstIdentity(resolvedApi, resolvedHandler, compilerJars, new File(layout.evidence, "parent-first-identity.txt"))
+    val resolvedPlugin = exactlyOne(resolvedFiles.filter(_.getName == PluginModule + "-" + Version + ".jar"), "resolved plugin")
+    val resolvedHandler = exactlyOne(resolvedFiles.filter(_.getName == HandlerModule + "-" + Version + ".jar"), "resolved independent handler")
+    val compilerJars = resolvedFiles.filter(file =>
+      file.getName.endsWith(".jar") && file != resolvedPlugin && file != resolvedApi && file != resolvedHandler
+    )
+    val parentFirst = verifyParentFirstIdentity(resolvedPlugin, resolvedHandler, compilerJars, new File(layout.evidence, "parent-first-identity.txt"))
 
     val missingHandlerLog = new File(layout.evidence, "commands/06-consumer-missing-handler.log")
     val missingHandlerExit = runSbt(layout.consumer, layout, Vector("clean", "compile"), Map("externalConsumer.mode" -> "missing-handler"), missingHandlerLog)
@@ -443,12 +480,14 @@ object IndependentExternalSbtConsumer {
 
     val apiIdentity = artifactIdentity(apiCoordinate, layout.repository, stagedApi)
     val pluginIdentity = artifactIdentity(pluginCoordinate, layout.repository, stagedPlugin)
-    val independentIdentity = artifactIdentity(independentCoordinate, layout.repository, stagedIndependent)
+    val markerIdentity = artifactIdentity(markerCoordinateValue, layout.repository, stagedMarker)
+    val handlerIdentity = artifactIdentity(handlerCoordinateValue, layout.repository, stagedHandler)
     InternalResult(
       apiIdentity,
       pluginIdentity,
-      independentIdentity,
-      comparison,
+      markerIdentity,
+      handlerIdentity,
+      handlerComparison,
       repositoryFiles.size,
       repositoryFiles.count(_.endsWith(".pom")),
       metadataSelections,
@@ -520,12 +559,17 @@ object IndependentExternalSbtConsumer {
 
   private def createProducerBuild(layout: Layout, config: Config): Unit = {
     Files.createDirectories(new File(layout.producer, "project").toPath)
-    Files.createDirectories(new File(layout.producer, "src/main/scala").toPath)
+    Files.createDirectories(new File(layout.producer, "marker/src/main/scala").toPath)
+    Files.createDirectories(new File(layout.producer, "handler/src/main/scala").toPath)
     write(new File(layout.producer, "project/build.properties"), "sbt.version=" + config.sbtVersion + "\n")
-    val source = new File(layout.sourceCopy, "plugin-api-handler-contract-probe/positive/IndependentMarkerAndHandler.scala")
-    Files.copy(source.toPath, new File(layout.producer, "src/main/scala/IndependentMarkerAndHandler.scala").toPath, StandardCopyOption.REPLACE_EXISTING)
+    val markerSource = new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/marker/IndependentMarker.scala")
+    val handlerSource = new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/handler/IndependentHandler.scala")
+    Files.copy(markerSource.toPath, new File(layout.producer, "marker/src/main/scala/IndependentMarker.scala").toPath, StandardCopyOption.REPLACE_EXISTING)
+    Files.copy(handlerSource.toPath, new File(layout.producer, "handler/src/main/scala/IndependentHandler.scala").toPath, StandardCopyOption.REPLACE_EXISTING)
     val build =
-      s"""ThisBuild / organization := \"$ProducerOrganization\"
+      s"""import java.nio.charset.StandardCharsets
+         |
+         |ThisBuild / organization := \"$ProducerOrganization\"
          |ThisBuild / version := \"$Version\"
          |ThisBuild / scalaVersion := \"${config.scalaVersion}\"
          |ThisBuild / resolvers ++= Seq(
@@ -538,8 +582,42 @@ object IndependentExternalSbtConsumer {
          |Compile / packageSrc / publishArtifact := false
          |Compile / packageDoc / publishArtifact := false
          |Test / publishArtifact := false
-         |name := \"independent-handler\"
-         |libraryDependencies += \"$RepositoryOrganization\" % \"$PluginApiModule\" % \"$Version\"
+         |
+         |lazy val verifyNoCompilerPlugin = taskKey[Unit](\"Verify marker and handler compile without Macro Paradise\")
+         |lazy val contractSettings = Seq(
+         |  libraryDependencies += \"$RepositoryOrganization\" % \"$PluginApiModule\" % \"$Version\"
+         |)
+         |
+         |lazy val marker = project.in(file(\"marker\"))
+         |  .settings(contractSettings)
+         |  .settings(name := \"independent-marker\")
+         |
+         |lazy val handler = project.in(file(\"handler\"))
+         |  .settings(contractSettings)
+         |  .settings(
+         |    name := \"independent-handler\",
+         |    libraryDependencies += \"org.scala-lang\" %% \"scala3-compiler\" % scalaVersion.value
+         |  )
+         |
+         |lazy val root = project.in(file(\".\"))
+         |  .aggregate(marker, handler)
+         |  .settings(
+         |    publish / skip := true,
+         |    verifyNoCompilerPlugin := {
+         |      val markerOptions = (marker / Compile / scalacOptions).value
+         |      val handlerOptions = (handler / Compile / scalacOptions).value
+         |      val allOptions = markerOptions ++ handlerOptions
+         |      require(!allOptions.exists(_.startsWith(\"-Xplugin\")), \"marker/handler compilation activated a compiler plugin\")
+         |      require(!allOptions.exists(_.startsWith(\"-P:macroparadise:\")), \"marker/handler compilation received Macro Paradise options\")
+         |      IO.write(
+         |        file(\"${scalaString(new File(layout.evidence, "producer-no-plugin.txt").getAbsolutePath)}\"),
+         |        \"markerOptions=\" + markerOptions.mkString(\"[\", \",\", \"]\") + \"\\n\" +
+         |          \"handlerOptions=\" + handlerOptions.mkString(\"[\", \",\", \"]\") + \"\\n\" +
+         |          \"macroParadiseActive=false\\n\",
+         |        StandardCharsets.UTF_8
+         |      )
+         |    }
+         |  )
          |""".stripMargin.replace("\\\"", "\"")
     write(new File(layout.producer, "build.sbt"), build)
   }
@@ -565,7 +643,6 @@ object IndependentExternalSbtConsumer {
        |import scala.collection.JavaConverters._
        |import scala.sys.process._
        |
-       |lazy val PluginLane = config(\"pluginLane\").hide
        |lazy val externalConsumerAudit = taskKey[Unit](\"Audit coordinate-resolved external consumer graph and plugin options\")
        |lazy val externalConsumerRuntime = taskKey[Unit](\"Run the external consumer consumer and capture exact raw output\")
        |
@@ -577,7 +654,8 @@ object IndependentExternalSbtConsumer {
        |val externalConsumerProducerOrg = \"$ProducerOrganization\"
        |val externalConsumerPluginModule = \"$PluginModule\"
        |val externalConsumerApiModule = \"$PluginApiModule\"
-       |val externalConsumerHandlerModule = \"$IndependentModule\"
+       |val externalConsumerMarkerModule = \"$MarkerModule\"
+       |val externalConsumerHandlerModule = \"$HandlerModule\"
        |val externalConsumerDuplicateModule = \"$DuplicateApiModule\"
        |
        |def externalConsumerArtifacts(report: sbt.librarymanagement.UpdateReport): Vector[(String, String, String, File)] =
@@ -606,8 +684,6 @@ object IndependentExternalSbtConsumer {
        |}
        |
        |lazy val root = (project in file(\".\"))
-       |  .configs(PluginLane)
-       |  .settings(inConfig(PluginLane)(Defaults.configSettings))
        |  .settings(
        |    name := \"independent-external-consumer\",
        |    organization := \"local.contractprobe.externalConsumer.consumer\",
@@ -620,24 +696,26 @@ object IndependentExternalSbtConsumer {
        |    ),
        |    credentials := Nil,
        |    libraryDependencies ++= {
-       |      val handler = if (externalConsumerMode == \"missing-marker\") Nil else List(externalConsumerProducerOrg %% \"independent-handler\" % externalConsumerVersion)
+       |      val marker = if (externalConsumerMode == \"missing-marker\") Nil else List(externalConsumerProducerOrg % externalConsumerMarkerModule % externalConsumerVersion)
+       |      val handler = if (externalConsumerMode == \"missing-handler\") Nil else List(externalConsumerProducerOrg % externalConsumerHandlerModule % externalConsumerVersion)
        |      val duplicate = if (externalConsumerMode == \"duplicate-api\") List(externalConsumerProducerOrg %% \"duplicate-plugin-api\" % externalConsumerVersion) else Nil
-       |      handler ++ duplicate ++ List(
-       |        externalConsumerRepoOrg % externalConsumerPluginModule % externalConsumerVersion % PluginLane,
-       |        externalConsumerRepoOrg % externalConsumerApiModule % externalConsumerVersion % PluginLane
+       |      marker ++ handler ++ duplicate ++ List(
+       |        compilerPlugin((externalConsumerRepoOrg % \"macroparadise-scala3-plugin\" % externalConsumerVersion).cross(CrossVersion.full)),
+       |        (externalConsumerRepoOrg % \"macroparadise-scala3-plugin-api\" % externalConsumerVersion).cross(CrossVersion.full)
        |      )
        |    },
        |    Compile / scalacOptions ++= {
+       |      val updateArtifacts = externalConsumerArtifacts((Compile / update).value)
        |      val compileArtifacts = externalConsumerOnClasspath((Compile / update).value, (Compile / dependencyClasspath).value.files.toVector)
-       |      val pluginArtifacts = externalConsumerOnClasspath((PluginLane / update).value, (PluginLane / dependencyClasspath).value.files.toVector)
-       |      val plugin = externalConsumerExactlyOne(pluginArtifacts.collect { case (o, m, v, f) if o == externalConsumerRepoOrg && m == externalConsumerPluginModule && v == externalConsumerVersion => f }, \"plugin\")
-       |      val api = externalConsumerExactlyOne((compileArtifacts ++ pluginArtifacts).collect { case (o, m, v, f) if o == externalConsumerRepoOrg && m == externalConsumerApiModule && v == externalConsumerVersion => f }, \"pluginApi\")
+       |      val plugin = externalConsumerExactlyOne(updateArtifacts.collect { case (o, m, v, f) if o == externalConsumerRepoOrg && m == externalConsumerPluginModule && v == externalConsumerVersion => f }, \"plugin\")
+       |      val api = externalConsumerExactlyOne(compileArtifacts.collect { case (o, m, v, f) if o == externalConsumerRepoOrg && m == externalConsumerApiModule && v == externalConsumerVersion => f }, \"pluginApi\")
        |      val handler = compileArtifacts.collect { case (o, m, v, f) if o == externalConsumerProducerOrg && m == externalConsumerHandlerModule && v == externalConsumerVersion => f }.map(_.getCanonicalFile).distinct
-       |      val providers = ((Compile / dependencyClasspath).value.files ++ (PluginLane / update).value.allFiles).filter(externalConsumerContainsApi).map(_.getCanonicalFile).distinct
-       |      if (externalConsumerMode == \"duplicate-api\") require(providers.size == 1, \"DUPLICATE_API_PROVIDER: expected one paradise3.api provider, found \" + providers.mkString(\",\"))
-       |      else if (externalConsumerMode != \"missing-marker\") require(providers.size == 1, \"expected singular paradise3.api provider, found \" + providers.mkString(\",\"))
+       |      val compileProviders = (Compile / dependencyClasspath).value.files.filter(externalConsumerContainsApi).map(_.getCanonicalFile).distinct
+       |      val pluginProviders = Vector(plugin).filter(externalConsumerContainsApi).map(_.getCanonicalFile).distinct
+       |      require(pluginProviders == Vector(plugin.getCanonicalFile), \"compiler plugin is not self-contained with respect to paradise3.api\")
+       |      if (externalConsumerMode == \"duplicate-api\") require(compileProviders.size == 1, \"DUPLICATE_API_PROVIDER: expected one ordinary-classpath paradise3.api provider, found \" + compileProviders.mkString(\",\"))
+       |      else if (externalConsumerMode != \"missing-marker\") require(compileProviders.size == 1, \"expected singular ordinary-classpath paradise3.api provider, found \" + compileProviders.mkString(\",\"))
        |      val base = Seq(
-       |        \"-Xplugin:\" + Seq(plugin, api).map(_.getAbsolutePath).mkString(File.pathSeparator),
        |        \"-Xplugin-require:macroparadise\",
        |        \"-P:macroparadise:metadataReaderTrace=\" + externalConsumerMetadataTrace,
        |        \"-P:macroparadise:externalHandlerInvocationTrace=\" + externalConsumerInvocationTrace
@@ -646,8 +724,9 @@ object IndependentExternalSbtConsumer {
        |      else base
        |    },
        |    externalConsumerAudit := {
+       |      val updateArtifacts = externalConsumerArtifacts((Compile / update).value)
        |      val compileArtifacts = externalConsumerOnClasspath((Compile / update).value, (Compile / dependencyClasspath).value.files.toVector)
-       |      val pluginArtifacts = externalConsumerOnClasspath((PluginLane / update).value, (PluginLane / dependencyClasspath).value.files.toVector)
+       |      val pluginArtifacts = updateArtifacts.filter(value => value._1 == externalConsumerRepoOrg && value._2 == externalConsumerPluginModule && value._3 == externalConsumerVersion)
        |      val compileClasspath = (Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
        |      val options = (Compile / scalacOptions).value
        |      val all = (compileArtifacts.map(value => (\"compile\", value)) ++ pluginArtifacts.map(value => (\"plugin\", value))).distinct
@@ -759,10 +838,14 @@ object IndependentExternalSbtConsumer {
         case PluginApiModule =>
           require(dependencies.exists(value => value.organization == "org.scala-lang" && value.module == "scala3-compiler_3" && value.version == ExpectedScalaVersion), "pluginApi POM lacks exact compiler dependency")
         case PluginModule =>
-          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "plugin POM lacks selected pluginApi dependency")
-        case IndependentModule =>
-          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "producer POM lacks selected pluginApi dependency")
-          require(!dependencies.exists(_.module == PluginModule), "producer POM depends on plugin implementation")
+          require(!dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule), "self-contained plugin POM retains an unnecessary pluginApi dependency")
+        case MarkerModule =>
+          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "marker POM lacks selected pluginApi dependency")
+          require(!dependencies.exists(_.module == PluginModule), "marker POM depends on plugin implementation")
+        case HandlerModule =>
+          require(dependencies.exists(value => value.organization == RepositoryOrganization && value.module == PluginApiModule && value.version == Version), "handler POM lacks selected pluginApi dependency")
+          require(dependencies.exists(value => value.organization == "org.scala-lang" && value.module == "scala3-compiler_3" && value.version == ExpectedScalaVersion), "handler POM lacks exact compiler dependency")
+          require(!dependencies.exists(_.module == PluginModule), "handler POM depends on plugin implementation")
         case other => throw new IllegalStateException("unclassified POM " + other)
       }
       coordinate.render + " dependencies=" + dependencies.map(_.render).sorted.mkString("[", ",", "]")
@@ -784,11 +867,22 @@ object IndependentExternalSbtConsumer {
     }
   }
 
-  private def auditThinIndependentJar(file: File): Unit = {
+  private def auditThinIndependentJar(file: File, expectedPayload: Set[String], label: String): Unit = {
     val entries = jarEntries(file)
     val payload = entries.filterNot(name => name.endsWith("/") || name == "META-INF/MANIFEST.MF").toSet
-    require(payload == expectedIndependentPayload, s"independent producer payload changed: ${payload.toVector.sorted.mkString(",")}")
-    require(entries.forall(name => !name.startsWith("paradise3/") && !name.startsWith("macroparadise/") && !name.startsWith("dotty/") && !name.startsWith("scala/")), "independent producer bundled a forbidden universe")
+    require(payload == expectedPayload, s"$label producer payload changed: ${payload.toVector.sorted.mkString(",")}")
+    require(entries.forall(name => !name.startsWith("paradise3/") && !name.startsWith("macroparadise/") && !name.startsWith("dotty/") && !name.startsWith("scala/")), s"$label producer bundled a forbidden universe")
+  }
+
+  private def auditSelfContainedPluginJar(plugin: File, api: File): Unit = {
+    val pluginEntries = jarEntries(plugin)
+    val embeddedApi = pluginEntries.filter(_.startsWith("paradise3/api/")).toSet
+    val separateApi = jarEntries(api).filter(_.startsWith("paradise3/api/")).toSet
+    require(embeddedApi == separateApi, "plugin does not embed the exact unshaded pluginApi inventory")
+    require(
+      !pluginEntries.exists(name => name.startsWith("shaded/") || name.contains("/shaded/")),
+      "plugin introduced a shaded API identity"
+    )
   }
 
   private def auditResolvedGraph(graph: Vector[String], repositoryRoot: File, layout: Layout): Unit = {
@@ -816,17 +910,17 @@ object IndependentExternalSbtConsumer {
     val handler = options.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
     val metadataTrace = options.filter(_.startsWith("-P:macroparadise:metadataReaderTrace="))
     val invocationTrace = options.filter(_.startsWith("-P:macroparadise:externalHandlerInvocationTrace="))
-    require(plugin.size == 1 && plugin.head.contains(PluginModule) && plugin.head.contains(PluginApiModule), "coordinate-resolved plugin option is invalid")
+    require(plugin.size == 1 && plugin.head.contains(PluginModule) && !plugin.head.contains(PluginApiModule), "coordinate-resolved plugin option is invalid")
     require(options.count(_ == "-Xplugin-require:macroparadise") == 1, "plugin require option is invalid")
-    require(handler.size == 1 && handler.head.contains(IndependentModule), "coordinate-resolved handler option is invalid")
+    require(handler.size == 1 && handler.head.contains(HandlerModule), "coordinate-resolved handler option is invalid")
     require(metadataTrace.size == 1, "coordinate-resolved metadata trace option is invalid")
     require(invocationTrace.size == 1, "coordinate-resolved invocation trace option is invalid")
     val rendered = options.mkString("\n")
     forbiddenModuleFragments.foreach(fragment => require(!rendered.contains(fragment), s"plugin options leaked $fragment"))
   }
 
-  private def verifyParentFirstIdentity(api: File, handler: File, compilerJars: Vector[File], evidence: File): Boolean = {
-    val parent = new URLClassLoader((api +: compilerJars).map(_.toURI.toURL).toArray, null)
+  private def verifyParentFirstIdentity(plugin: File, handler: File, compilerJars: Vector[File], evidence: File): Boolean = {
+    val parent = new URLClassLoader((plugin +: compilerJars).map(_.toURI.toURL).toArray, null)
     val child = new URLClassLoader(Array(handler.toURI.toURL), parent)
     try {
       val expectedApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
@@ -834,8 +928,10 @@ object IndependentExternalSbtConsumer {
       val childApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, child)
       val singular = expectedApi eq childApi
       val assignable = expectedApi.isAssignableFrom(handlerClass)
-      require(singular && assignable, "parent-first API identity is not singular")
-      write(evidence, s"parentFirst=true\napiSingular=$singular\nhandlerAssignable=$assignable\napiLoader=${loaderIdentity(expectedApi.getClassLoader)}\nhandlerLoader=${loaderIdentity(handlerClass.getClassLoader)}\n")
+      val codeSource = expectedApi.getProtectionDomain.getCodeSource.getLocation.toURI
+      val pluginOwned = new File(codeSource).getCanonicalFile == plugin.getCanonicalFile
+      require(singular && assignable && pluginOwned, "handler did not resolve the plugin-owned API identity")
+      write(evidence, s"parentFirst=true\napiSingular=$singular\nhandlerAssignable=$assignable\npluginOwned=$pluginOwned\napiCodeSource=$codeSource\napiLoader=${loaderIdentity(expectedApi.getClassLoader)}\nhandlerLoader=${loaderIdentity(handlerClass.getClassLoader)}\n")
       true
     } finally {
       child.close()
@@ -913,7 +1009,7 @@ object IndependentExternalSbtConsumer {
     require(config.sbtVersion == ExpectedSbtVersion, s"requires sbt $ExpectedSbtVersion")
     require(config.projectVersion == Version, s"requires project $Version")
     require(Runtime.version().feature() == 25, "requires JDK 25")
-    Vector(repositoryCoordinate(PluginApiModule), repositoryCoordinate(PluginModule), producerCoordinate).foreach(coordinate =>
+    Vector(repositoryCoordinate(PluginApiModule), repositoryCoordinate(PluginModule), markerCoordinate, handlerCoordinate).foreach(coordinate =>
       require(validateTaskCoordinate(coordinate).isEmpty, s"invalid task coordinate ${coordinate.render}")
     )
   }

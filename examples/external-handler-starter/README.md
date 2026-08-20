@@ -56,10 +56,11 @@ java -cp <plugin-and-exact-runtime-classpath> \
 Explicit mode repeats all ten logical inputs for maximum independent caller
 expectations. Compact mode retains seven: marker, handler, handler compile
 classpath, expected handler, expected annotation, exact Scala version, and JDK
-major. It derives the running plugin and parent-loaded `pluginApi` JAR paths
-from their code sources and derives marker class from the retained qualified
-annotation expectation. It does not derive toolchain expectations from the
-observed runtime.
+major. It derives the running self-contained plugin JAR from its code source,
+selects the unique separate authoring `pluginApi` JAR from the handler compile
+classpath, and derives marker class from the retained qualified annotation
+expectation. It does not derive toolchain expectations from the observed
+runtime.
 
 Metadata failures report `failureStage`, marker/expected annotation identities,
 metadata/expected handler identities, and marker/handler artifact paths. Both

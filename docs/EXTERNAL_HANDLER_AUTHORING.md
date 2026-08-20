@@ -100,15 +100,67 @@ coordinate, not the plugin implementation or any test fixture:
 ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
 ThisBuild / resolvers += Resolver.scalaNightlyRepository
 
-libraryDependencies += "com.github.dmytromitin" % "macroparadise-scala3-plugin-api_3.8.5-RC1-bin-20260405-9478256-NIGHTLY" % "0.1.0"
+libraryDependencies +=
+  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.0")
+    .cross(CrossVersion.full)
 ```
 
 The same API artifact supplies the runtime-retained `paradise3.api.expander`
 metadata annotation and the `ParadiseAnnotationExpander` contract. Keep it on
 the marker/handler compile classpath exactly once. The ordinary consumer adds
-the full-cross compiler plugin as shown in [Getting started](GETTING_STARTED.md)
-and supplies the precompiled marker/handler JAR through
-`-P:macroparadise:handlerClasspath=<handler-jar>`.
+the full-cross compiler plugin as shown in [Getting started](GETTING_STARTED.md),
+depends on the precompiled marker, and supplies the precompiled handler JAR
+through `-P:macroparadise:handlerClasspath=<handler-jar>`.
+
+The minimal sbt graph is three projects. The marker and handler settings contain
+no `compilerPlugin` dependency, so Macro-Paradise is not active while either
+producer is compiled:
+
+```scala
+ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+ThisBuild / resolvers += Resolver.scalaNightlyRepository
+
+val mpOrg = "com.github.dmytromitin"
+val mpVersion = "0.1.0"
+val mpApi =
+  (mpOrg % "macroparadise-scala3-plugin-api" % mpVersion)
+    .cross(CrossVersion.full)
+
+lazy val marker = project
+  .settings(libraryDependencies += mpApi)
+
+lazy val handler = project
+  .settings(
+    libraryDependencies ++= Seq(
+      mpApi,
+      "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+    )
+  )
+
+lazy val consumer = project
+  .dependsOn(marker)
+  .settings(
+    libraryDependencies ++= Seq(
+      compilerPlugin(
+        (mpOrg % "macroparadise-scala3-plugin" % mpVersion)
+          .cross(CrossVersion.full)
+      ),
+      mpApi
+    ),
+    Compile / scalacOptions ++= {
+      val handlerJar = (handler / Compile / packageBin).value
+      Seq(
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
+      )
+    }
+  )
+```
+
+The executable coordinate-resolution mirror is
+`verifyIndependentExternalSbtConsumerFromLocalRepository`; the checked-in
+starter uses the same marker/handler/consumer topology with explicit local
+artifact paths.
 
 The candidate coordinates are locally usable but are not available from Maven
 Central. The repository's built-in `@gen` annotation is a fixture and is not
@@ -129,15 +181,30 @@ The handler compiles directly against the packaged handler contract and the
 exact Scala compiler/runtime universe. It must not depend directly on the
 plugin implementation or repository fixture modules.
 
-The consumer compiler plugin path contains the packaged plugin, handler API,
-and marker. The handler JAR is supplied through:
+The five classpath roles are deliberately separate:
+
+- Dotty's compiler-plugin loader receives only the self-contained plugin JAR.
+  The JAR embeds the exact API classes unshaded, preserving
+  `paradise3.api.ParadiseAnnotationExpander` identity.
+- The ordinary source compilation classpath contains the separate API artifact
+  when its types or metadata are needed, plus the already-compiled marker.
+  It is not a parent of the plugin classloader.
+- Marker metadata must be available from a precompiled marker artifact before
+  the annotated consumer compilation starts.
+- The precompiled handler is selected from the path supplied through:
 
 ```text
 -P:macroparadise:handlerClasspath=<handler-jar>
 ```
 
-The loader resolves the shared handler API and compiler types parent first.
-Do not include a second compiler universe in the handler payload.
+- The runtime application classpath contains only ordinary application/runtime
+  dependencies. The compiler plugin and handler JAR do not need to remain there
+  merely because compilation used them.
+
+The handler child loader resolves the embedded shared API and exact compiler
+types parent first. A handler compiled against the separate `plugin-api` JAR
+therefore implements the plugin-owned runtime identity without a shaded alias
+or a second compiler universe.
 
 ## Preconsumer checks
 
@@ -205,12 +272,12 @@ Compact mode removes only three duplicated inputs:
 ```
 
 The running `ExternalHandlerPrecheckMain` code source supplies the production
-plugin JAR, the parent-loaded `ParadiseAnnotationExpander` code source supplies
-the `pluginApi` JAR, and the canonical expected annotation supplies the marker
-class. Both code sources must be local regular JARs with the expected artifact
-roles. The separately recorded handler compile classpath must contain the
-derived parent API path exactly once, so a duplicate runtime API path fails
-rather than being guessed or silently accepted.
+plugin JAR. In the self-contained package, the parent-loaded
+`ParadiseAnnotationExpander` has that same code source. Compact mode therefore
+selects the unique separate authoring API JAR from the recorded handler compile
+classpath; zero or multiple candidates fail closed. The canonical expected
+annotation supplies the marker class. All derived paths must be local regular
+JARs with the expected artifact roles.
 
 The expected handler, expected annotation, exact Scala version, and JDK major
 remain caller-supplied independent witnesses. They are intentionally not
@@ -232,8 +299,10 @@ The positive flow typechecks and runs `new Greeter().generatedGreeting`, which
 returns `Hello, Greeter!`. It proves one precompiled qualified
 marker/handler/consumer path on the pinned toolchain.
 
-It does not prove same-module handlers, remotely released coordinates, arbitrary targets,
+It does not prove a marker declared in the same compilation as its annotated
+use, same-module handlers, remotely released coordinates, arbitrary targets,
 arbitrary composition, import resolution, cross-compiler compatibility, or
-release readiness. The compact command is source-build ergonomics for local
+release readiness. Current metadata discovery expects the marker artifact to
+be precompiled. The compact command is source-build ergonomics for local
 packaged artifacts; public source visibility and local publication do not mean
 Maven Central availability.

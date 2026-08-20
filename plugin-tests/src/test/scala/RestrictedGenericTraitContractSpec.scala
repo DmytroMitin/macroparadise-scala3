@@ -19,7 +19,7 @@ class RestrictedGenericTraitContractSpec extends munit.FunSuite:
     new File(s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar").getAbsolutePath
   private val handlerJar =
     new File(s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar").getAbsolutePath
-  private val pluginPath = Seq(pluginJar, pluginApiJar, markerJar).mkString(File.pathSeparator)
+  private val pluginPath = Seq(pluginJar, markerJar).mkString(File.pathSeparator)
 
   private def codeSourcePath(clazz: Class[?]): String =
     new File(clazz.getProtectionDomain.getCodeSource.getLocation.toURI).getAbsolutePath
