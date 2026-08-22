@@ -20,7 +20,7 @@ object IndependentExternalSbtConsumer {
   val RepositoryOrganization = "com.github.dmytromitin"
   val ProducerOrganization = "local.contractprobe.externalConsumer"
   val Version = "0.1.0"
-  val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+  val ExpectedScalaVersion = "3.8.4"
   val PluginApiModule = s"macroparadise-scala3-plugin-api_$ExpectedScalaVersion"
   val PluginModule = s"macroparadise-scala3-plugin_$ExpectedScalaVersion"
   val MarkerModule = "independent-marker_3"
@@ -623,10 +623,8 @@ object IndependentExternalSbtConsumer {
        |
        |ThisBuild / scalaVersion := "${config.scalaVersion}"
        |ThisBuild / version := "${config.projectVersion}"
-       |ThisBuild / resolvers ++= Seq(
-       |  "external-first-use-task-repository" at "${scalaString(repositoryUri)}",
-       |  Resolver.scalaNightlyRepository
-       |)
+       |ThisBuild / resolvers +=
+       |  "external-first-use-task-repository" at "${scalaString(repositoryUri)}"
        |ThisBuild / credentials := Nil
        |
        |val mpOrganization = "$RepositoryOrganization"
@@ -957,10 +955,8 @@ object IndependentExternalSbtConsumer {
          |ThisBuild / organization := \"$ProducerOrganization\"
          |ThisBuild / version := \"$Version\"
          |ThisBuild / scalaVersion := \"${config.scalaVersion}\"
-         |ThisBuild / resolvers ++= Seq(
-         |  \"externalConsumer-task-repository\" at \"${scalaString(layout.repository.toURI.toString)}\",
-         |  Resolver.scalaNightlyRepository
-         |)
+         |ThisBuild / resolvers +=
+         |  \"externalConsumer-task-repository\" at \"${scalaString(layout.repository.toURI.toString)}\"
          |ThisBuild / publishMavenStyle := true
          |ThisBuild / publishTo := Some(Resolver.file(\"externalConsumer-task-repository\", file(\"${scalaString(layout.repository.getAbsolutePath)}\"))(Resolver.mavenStylePatterns))
          |ThisBuild / credentials := Nil
@@ -1076,8 +1072,7 @@ object IndependentExternalSbtConsumer {
        |    scalaVersion := \"${config.scalaVersion}\",
        |    resolvers ++= Seq(
        |      \"externalConsumer-task-repository\" at \"${scalaString(layout.repository.toURI.toString)}\",
-       |      \"externalConsumer-duplicate-api-repository\" at \"${scalaString(layout.duplicateRepository.toURI.toString)}\",
-       |      Resolver.scalaNightlyRepository
+       |      \"externalConsumer-duplicate-api-repository\" at \"${scalaString(layout.duplicateRepository.toURI.toString)}\"
        |    ),
        |    credentials := Nil,
        |    libraryDependencies ++= {

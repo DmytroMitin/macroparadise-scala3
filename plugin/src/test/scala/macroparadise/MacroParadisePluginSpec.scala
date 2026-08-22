@@ -9,7 +9,7 @@ class MacroParadisePluginSpec extends munit.FunSuite:
     assertEquals(plugin.name, "macroparadise")
     assertEquals(
       plugin.description,
-      "research plugin that expands narrow built-in annotations before typer"
+      "compiler plugin that expands narrow built-in annotations before typer"
     )
   }
 

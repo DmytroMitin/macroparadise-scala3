@@ -8,7 +8,7 @@ changes before investing in a large implementation.
 
 - JDK feature version 25
 - sbt 1.12.15
-- Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`
+- Scala `3.8.4`
 
 Run the canonical product gate before proposing a change:
 

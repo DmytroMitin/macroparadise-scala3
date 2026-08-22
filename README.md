@@ -39,7 +39,7 @@ The source build requires:
 
 - JDK feature version 25;
 - sbt 1.12.15;
-- Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`.
+- Scala `3.8.4`.
 
 The build rejects other JDK feature versions before normal tasks run. The
 plugin and handler contract expose Scala compiler internals, so a nearby Scala
@@ -98,13 +98,11 @@ the selected `0.1.0` candidate in your machine's sbt/Ivy local repository, run:
 sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
 ```
 
-Then an external sbt build using the exact Scala nightly can load the full-cross
+Then an external sbt build using exact Scala 3.8.4 can load the full-cross
 compiler plugin with:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
-
+ThisBuild / scalaVersion := "3.8.4"
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
 ```
 

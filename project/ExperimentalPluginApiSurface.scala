@@ -14,7 +14,7 @@ object ExperimentalPluginApiSurface {
     "COMBINED_EXPERIMENTAL_SURFACE_BASELINE_REMEASURED"
   val FormatVersion = "1"
   val ExpectedScalaVersion =
-    "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+    "3.8.4"
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val MetadataCarrierEntry = "paradise3/api/expander.class"

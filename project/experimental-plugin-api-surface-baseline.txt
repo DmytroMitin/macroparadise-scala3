@@ -1,5 +1,5 @@
 format-version=1
-scala-compiler=3.8.5-RC1-bin-20260405-9478256-NIGHTLY
+scala-compiler=3.8.4
 sbt=1.12.15
 jdk-feature=25
 project-version=0.1.0
@@ -876,4 +876,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=7db377da74d763c7daa9faefd84f58fad2029fa06858df9893bb5b2f272aa876
+normalized-sha256=1684bec50b218d4d5f4a1b63dbb33c00452ec2ca2d17339227e057c18cf92fed

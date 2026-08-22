@@ -63,7 +63,7 @@ object ExternalHandlerAuthoringStarterSpec {
       "--marker-class=starter.marker.generateGreeting",
       "--expected-handler-class=starter.handler.GenerateGreetingHandler",
       "--expected-annotation=starter.marker.generateGreeting",
-      "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      "--expected-scala-version=3.8.4",
       "--expected-jdk-major=25"
     )
     val compactPrecheck = Vector(
@@ -73,7 +73,7 @@ object ExternalHandlerAuthoringStarterSpec {
       "--handler-compile-classpath=/tmp/plugin-api.jar:/tmp/compiler.jar",
       "--expected-handler-class=starter.handler.GenerateGreetingHandler",
       "--expected-annotation=starter.marker.generateGreeting",
-      "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      "--expected-scala-version=3.8.4",
       "--expected-jdk-major=25"
     )
     assert(validatePrecheckCommandShapes(explicitPrecheck, compactPrecheck).isEmpty)

@@ -8,8 +8,7 @@ import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Flags.{Enum, Param, Trait}
 import dotty.tools.dotc.core.Names.*
-import dotty.tools.dotc.core.Phases.Phase
-import dotty.tools.dotc.plugins.ResearchPlugin
+import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
 import dotty.tools.dotc.report
 import dotty.tools.dotc.util.SrcPos
 import paradise3.api.{
@@ -27,19 +26,13 @@ import java.net.URLClassLoader
 import java.nio.file.{Files, InvalidPathException, Path, StandardOpenOption}
 import scala.util.control.NonFatal
 
-class MacroParadisePlugin extends ResearchPlugin:
+class MacroParadisePlugin extends StandardPlugin:
   val name: String = "macroparadise"
   override val description: String =
-    "research plugin that expands narrow built-in annotations before typer"
+    "compiler plugin that expands narrow built-in annotations before typer"
 
-  override def init(options: List[String], phases: List[List[Phase]])(using Context): List[List[Phase]] =
-    val externalHandlers = ExternalHandlerLoading.load(options)
-
-    phases.flatMap:
-      case group @ (head :: _) if head.phaseName == "typer" =>
-        List(List(ParadiseGenPhase(externalHandlers)), group)
-      case group =>
-        List(group)
+  override def initialize(options: List[String])(using Context): List[PluginPhase] =
+    List(ParadiseGenPhase(ExternalHandlerLoading.load(options)))
 
 private final class ExternalHandlerInvocationTrace private (path: Option[Path]):
   def record(handlerClass: String, annotationName: String, className: String): Unit =
@@ -546,7 +539,7 @@ private object ExternalHandlerLoading:
         report.error(failure.diagnostic)
         None
 
-final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.LoadedHandlers) extends Phase:
+final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.LoadedHandlers) extends PluginPhase:
   import DeferredSameModuleHandlerSupport.*
 
   override val phaseName = "paradiseGen"
@@ -554,6 +547,7 @@ final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.Loade
     "expands narrow top-level built-in annotations before typer"
 
   override def runsAfter = Set("parser")
+  override def runsBefore = Set("typer")
 
   override def run(using ctx: Context): Unit =
     val unit = ctx.compilationUnit
@@ -596,7 +590,7 @@ final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.Loade
         // NEEDS VERIFICATION
         // MAY DEPEND ON SCALA VERSION
         // `CompilationUnit.suspend` is a compiler-internal API. On the pinned
-        // nightly, `Phase.runOn` catches the exception and a fresh `Run` reparses
+        // compiler build, `Phase.runOn` catches the exception and a fresh `Run` reparses
         // and recompiles the suspended unit.
         unit.suspend(
           s"waiting for same-module handler ${deferred.handlerClassName} from ${deferred.dependencySourceIdentity.value}"

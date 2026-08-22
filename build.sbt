@@ -1,6 +1,5 @@
 ThisBuild / version := "0.1.0"
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
+ThisBuild / scalaVersion := "3.8.4"
 ThisBuild / publish / skip := true
 ThisBuild / organization := "com.github.dmytromitin"
 ThisBuild / organizationName := "com.github.dmytromitin"

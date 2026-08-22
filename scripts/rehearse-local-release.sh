@@ -28,7 +28,7 @@ mkdir -p "$raw_repository" "$candidate_repository"
 
 group_path="com/github/dmytromitin"
 version="0.1.0"
-scala_version="3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+scala_version="3.8.4"
 modules=(
   "macroparadise-scala3-plugin-api_${scala_version}"
   "macroparadise-scala3-plugin_${scala_version}"

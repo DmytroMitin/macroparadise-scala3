@@ -1,10 +1,11 @@
 package macroparadise
 
+import dotty.tools.dotc.plugins.StandardPlugin
 import java.nio.file.Path
 
 class ActiveCompilerInspectorIdentitySpec extends munit.FunSuite:
   private val pinnedVersion =
-    "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+    "3.8.4"
   private val newerVersion =
     "3.10.0-RC1-bin-20260729-8526f78-NIGHTLY"
   private val compilerEntry =
@@ -70,6 +71,12 @@ class ActiveCompilerInspectorIdentitySpec extends munit.FunSuite:
     val result = validate(compiler(pinnedVersion), inspector(pinnedVersion))
     assert(result.isRight, result)
     assert(result.toOption.get.forall(_.contains(s"version=$pinnedVersion")))
+  }
+
+  test("uses stable-supported standard plugin activation") {
+    val plugin = new MacroParadisePlugin
+    assert(plugin.isInstanceOf[StandardPlugin])
+    assert(!plugin.isResearch)
   }
 
   test("accepts the recorded newer exact compiler and inspector pair") {

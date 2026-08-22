@@ -13,7 +13,7 @@ from pathlib import Path
 GROUP = "com.github.dmytromitin"
 GROUP_PATH = Path("com/github/dmytromitin")
 VERSION = "0.1.0"
-SCALA_VERSION = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+SCALA_VERSION = "3.8.4"
 PLUGIN_API = f"macroparadise-scala3-plugin-api_{SCALA_VERSION}"
 PLUGIN = f"macroparadise-scala3-plugin_{SCALA_VERSION}"
 MODULES = (PLUGIN_API, PLUGIN)

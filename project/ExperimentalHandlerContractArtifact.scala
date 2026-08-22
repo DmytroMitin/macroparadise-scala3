@@ -333,7 +333,7 @@ object ExperimentalHandlerContractArtifact {
     val identity = candidateIdentity(destination, plan)
     require(
       surface.normalizedSha256 ==
-        "7db377da74d763c7daa9faefd84f58fad2029fa06858df9893bb5b2f272aa876",
+        "1684bec50b218d4d5f4a1b63dbb33c00452ec2ca2d17339227e057c18cf92fed",
       s"reviewed normalized surface SHA changed to ${surface.normalizedSha256}"
     )
     identity

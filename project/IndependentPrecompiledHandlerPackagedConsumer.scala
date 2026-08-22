@@ -15,7 +15,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val ReadyClassification = "INDEPENDENT_PRECOMPILED_HANDLER_END_TO_END_PACKAGED_CONSUMER_READY"
   val MetadataClassification = "INDEPENDENT_MARKER_METADATA_DISCOVERY_AND_HANDLER_INVOCATION_PROVEN"
   val ContractClassification = "CONTRACT_ONLY_PLUGIN_API_SUFFICIENT_FOR_EXTERNAL_END_TO_END_USE"
-  val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+  val ExpectedScalaVersion = "3.8.4"
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val IndependentArtifactBasename = "independent-marker-handler_3-0.1.0.jar"

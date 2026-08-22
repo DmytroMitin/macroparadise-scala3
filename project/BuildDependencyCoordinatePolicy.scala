@@ -2,7 +2,7 @@ import java.io.File
 
 object BuildDependencyCoordinatePolicy {
   val ExpectedScalaVersion =
-    "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+    "3.8.4"
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedJdkFeature = 25
   val ExpectedPluginApiProjectId = "pluginApi"

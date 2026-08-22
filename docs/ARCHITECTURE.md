@@ -2,9 +2,9 @@
 
 ## Compiler strategy
 
-The project uses a Scala 3 `ResearchPlugin` with a custom phase before `typer`.
-The phase rewrites untyped compiler trees and replaces the compilation-unit
-tree before ordinary typing continues.
+The project uses a Scala 3 standard compiler plugin whose custom phase is
+scheduled after `parser` and before `typer`. The phase rewrites untyped compiler
+trees and replaces the compilation-unit tree before ordinary typing continues.
 
 ```text
 source parsing

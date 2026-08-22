@@ -35,7 +35,7 @@ bypass.
 ### Exact compiler mismatch
 
 The plugin, handler API, handler, and consumer must use
-`3.8.5-RC1-bin-20260405-9478256-NIGHTLY`. Rebuilding only one raw-tree
+`3.8.4`. Rebuilding only one raw-tree
 participant with another compiler line is unsupported.
 
 ### Missing handler

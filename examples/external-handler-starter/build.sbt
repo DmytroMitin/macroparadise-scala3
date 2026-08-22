@@ -6,8 +6,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.sys.process.{Process, ProcessLogger}
 
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
+ThisBuild / scalaVersion := "3.8.4"
 ThisBuild / publish / skip := true
 
 Global / onLoad := { state =>
@@ -21,7 +20,7 @@ lazy val verifyNegativeMatrix = taskKey[Unit]("Verify P1-P7 stop before consumer
 lazy val verifyStarter = taskKey[Unit]("Verify precheck-gated ordinary typed starter consumption")
 lazy val markConsumerCompileStart = taskKey[Unit]("Record that the real consumer compile began")
 
-val ExactScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+val ExactScalaVersion = "3.8.4"
 val PluginProperty = "macroparadise.starter.plugin"
 val PluginApiProperty = "macroparadise.starter.pluginApi"
 val EvidenceProperty = "macroparadise.starter.evidenceDir"
@@ -276,7 +275,11 @@ lazy val root: Project = project.in(file("."))
           expectedHandler = "starter.negative.BindingMismatchHandler",
           expectedAnnotation = "starter.negative.bindingMismatch"
         ),
-        Lane("P4", "EXACT_COMPILER_MISMATCH", expectedScala = "3.8.4"),
+        Lane(
+          "P4",
+          "EXACT_COMPILER_MISMATCH",
+          expectedScala = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+        ),
         Lane("P5", "EXACT_JDK_MISMATCH", expectedJdk = 26),
         Lane("P6", "FORBIDDEN_HANDLER_DEPENDENCY", compileClasspath = handlerClasspath :+ plugin),
         Lane("P7", "MISSING_ARTIFACT", marker = evidence / "missing-marker.jar")
@@ -331,7 +334,11 @@ lazy val root: Project = project.in(file("."))
       val compactLanes = Vector(
         CompactLane("C1", "METADATA_HANDLER_CLASS_MISMATCH", expectedHandler = "starter.handler.OtherHandler"),
         CompactLane("C2", "WRONG_ARTIFACT_ROLE", expectedAnnotation = "starter.marker.otherGreeting"),
-        CompactLane("C3", "EXACT_COMPILER_MISMATCH", expectedScala = "3.8.4"),
+        CompactLane(
+          "C3",
+          "EXACT_COMPILER_MISMATCH",
+          expectedScala = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+        ),
         CompactLane("C4", "EXACT_JDK_MISMATCH", expectedJdk = 26),
         CompactLane("C5", "FORBIDDEN_HANDLER_DEPENDENCY", compileClasspath = handlerClasspath :+ plugin),
         CompactLane(

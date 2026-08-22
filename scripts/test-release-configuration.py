@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GROUP = "com.github.dmytromitin"
 VERSION = "0.1.0"
-SCALA_VERSION = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+SCALA_VERSION = "3.8.4"
 PLUGIN_ID = "macroparadise"
 
 
@@ -28,6 +28,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertIn(f'ThisBuild / organizationName := "{GROUP}"', self.build)
         self.assertIn('ThisBuild / versionScheme := Some("early-semver")', self.build)
         self.assertIn(f'ThisBuild / scalaVersion := "{SCALA_VERSION}"', self.build)
+        self.assertNotIn("Resolver.scalaNightlyRepository", self.build)
         self.assertNotIn("io.github.dmytromitin", self.build)
         self.assertEqual(
             (ROOT / "project/build.properties").read_text(encoding="utf-8").strip(),

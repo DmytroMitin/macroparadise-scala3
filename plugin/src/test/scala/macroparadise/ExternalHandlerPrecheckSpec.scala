@@ -25,8 +25,8 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     val failure = failed(
       validateEnvironment(
         Environment(
-          expectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
-          actualScalaVersion = "3.8.4",
+          expectedScalaVersion = "3.8.4",
+          actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
           expectedJdkMajor = 25,
           actualJdkMajor = 25
         )
@@ -40,8 +40,8 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
     val failure = failed(
       validateEnvironment(
         Environment(
-          expectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
-          actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+          expectedScalaVersion = "3.8.4",
+          actualScalaVersion = "3.8.4",
           expectedJdkMajor = 25,
           actualJdkMajor = 26
         )
@@ -184,8 +184,8 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
           expectedHandlerClassName = "starter.precheckfixtures.ValidHandler",
           expectedAnnotationName = "starter.precheckfixtures.ValidMarker",
           environment = Environment(
-            expectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
-            actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+            expectedScalaVersion = "3.8.4",
+            actualScalaVersion = "3.8.4",
             expectedJdkMajor = 25,
             actualJdkMajor = 25
           ),
@@ -350,7 +350,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
           "--plugin-api=/artifacts/plugin-api.jar"
         ),
         getClass.getClassLoader,
-        actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        actualScalaVersion = "3.8.4",
         actualJdkMajor = 25
       )
     )
@@ -371,11 +371,11 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         "--marker-class=starter.marker.generateGreeting",
         "--expected-handler-class=starter.handler.GenerateGreetingHandler",
         "--expected-annotation=starter.marker.generateGreeting",
-        "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        "--expected-scala-version=3.8.4",
         "--expected-jdk-major=25"
       ),
       getClass.getClassLoader,
-      actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      actualScalaVersion = "3.8.4",
       actualJdkMajor = 25
     ) match
       case Right(value) => value
@@ -399,11 +399,11 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         s"--handler-compile-classpath=/runtime/plugin-api.jar${separator}/artifacts/compiler.jar",
         "--expected-handler-class=starter.handler.GenerateGreetingHandler",
         "--expected-annotation=starter.marker.generateGreeting",
-        "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        "--expected-scala-version=3.8.4",
         "--expected-jdk-major=25"
       ),
       getClass.getClassLoader,
-      actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+      actualScalaVersion = "3.8.4",
       actualJdkMajor = 25,
       ExternalHandlerPrecheckMain.RuntimeArtifacts(
         plugin = Path.of("/runtime/plugin.jar"),
@@ -466,11 +466,11 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
           s"--handler-compile-classpath=$echoedApi${separator}$compiler",
           "--expected-handler-class=starter.handler.GenerateGreetingHandler",
           "--expected-annotation=starter.marker.generateGreeting",
-          "--expected-scala-version=3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+          "--expected-scala-version=3.8.4",
           "--expected-jdk-major=25"
         ),
         getClass.getClassLoader,
-        actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+        actualScalaVersion = "3.8.4",
         actualJdkMajor = 25,
         ExternalHandlerPrecheckMain.RuntimeArtifacts(plugin, runtimeApi)
       ) match
@@ -555,8 +555,8 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
             expectedHandlerClassName = expectedHandlerClassName,
             expectedAnnotationName = expectedAnnotationName,
             environment = Environment(
-              expectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
-              actualScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY",
+              expectedScalaVersion = "3.8.4",
+              actualScalaVersion = "3.8.4",
               expectedJdkMajor = 25,
               actualJdkMajor = 25
             ),

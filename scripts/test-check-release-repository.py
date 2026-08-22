@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECKER = ROOT / "scripts/check-release-repository.py"
 GROUP_PATH = Path("com/github/dmytromitin")
 VERSION = "0.1.0"
-SCALA_VERSION = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+SCALA_VERSION = "3.8.4"
 MODULES = (
     f"macroparadise-scala3-plugin-api_{SCALA_VERSION}",
     f"macroparadise-scala3-plugin_{SCALA_VERSION}",

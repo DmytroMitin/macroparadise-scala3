@@ -8,11 +8,11 @@ remote package repository.
 
 - JDK feature version 25
 - sbt 1.12.15
-- network access to resolve the pinned Scala nightly and ordinary build
+- network access to resolve the pinned stable Scala release and ordinary build
   dependencies when they are not already cached
 
 The build pins Scala
-`3.8.5-RC1-bin-20260405-9478256-NIGHTLY`. The global load check rejects other
+`3.8.4`. The global load check rejects other
 JDK feature versions before normal tasks execute.
 
 Confirm the active JVM before loading sbt:
@@ -66,18 +66,16 @@ machine-local sbt/Ivy repository:
 sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
 ```
 
-In a fresh external sbt project, use the exact Scala nightly and the
+In a fresh external sbt project, use exact Scala 3.8.4 and the
 full-crossed plugin coordinate:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
-
+ThisBuild / scalaVersion := "3.8.4"
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
 ```
 
 Do not replace `.cross(CrossVersion.full)` with `%%`: the published artifact is
-`macroparadise-scala3-plugin_3.8.5-RC1-bin-20260405-9478256-NIGHTLY` and is
+`macroparadise-scala3-plugin_3.8.4` and is
 tied to that exact compiler. These coordinates are the first-release candidate
 only; `0.1.0` is not available from Maven Central until a later owner-authorized
 release.

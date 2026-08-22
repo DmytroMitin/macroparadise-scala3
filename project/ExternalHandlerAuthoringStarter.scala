@@ -15,7 +15,7 @@ object ExternalHandlerAuthoringStarter {
   val PublishingClassification =
     "REMOTE_PUBLISHING_REMAINS_DISABLED_LOCAL_SELECTED_ARTIFACTS_ONLY"
 
-  val ExpectedScalaVersion = "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+  val ExpectedScalaVersion = "3.8.4"
   val ExpectedSbtVersion = "1.12.15"
 
   final case class Config(scalaVersion: String, sbtVersion: String, jdkMajor: Int)

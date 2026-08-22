@@ -4,13 +4,13 @@
 
 - JDK feature version 25
 - sbt 1.12.15
-- Scala `3.8.5-RC1-bin-20260405-9478256-NIGHTLY`
+- Scala `3.8.4`
 - MUnit 1.2.4 for repository tests
 
 The build uses compiler-internal APIs and a pre-typer research phase. JDK 25 is
-enforced at sbt load, and the Scala version is pinned exactly. A newer nightly,
-release candidate, or stable compiler is a separate compatibility experiment,
-not an automatic supported substitute.
+enforced at sbt load, and the Scala version is pinned exactly. A different
+nightly, release candidate, or stable compiler is a separate compatibility
+experiment, not an automatic supported substitute.
 
 ## Plugin and handler compatibility
 

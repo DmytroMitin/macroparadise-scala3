@@ -10,7 +10,7 @@ class ExternalHandlerTraceIsolationSpec extends munit.FunSuite:
   private val scalaVersion =
     sys.props.getOrElse(
       "macroparadise.testScalaVersion",
-      "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
+      "3.8.4"
     )
   private val pluginJar =
     new File(

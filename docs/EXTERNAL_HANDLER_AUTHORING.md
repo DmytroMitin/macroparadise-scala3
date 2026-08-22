@@ -19,7 +19,7 @@ sbt.version=1.12.15
 ```
 
 Use JDK feature version 25 and Scala
-`3.8.5-RC1-bin-20260405-9478256-NIGHTLY` exactly. The handler API exposes
+`3.8.4` exactly. The handler API exposes
 compiler internals; a nearby Scala or JDK version is not an interchangeable
 substitute.
 
@@ -182,9 +182,7 @@ A separate marker/handler build then compiles against the exact full-cross API
 coordinate, not the plugin implementation or any test fixture:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
-
+ThisBuild / scalaVersion := "3.8.4"
 libraryDependencies +=
   ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.0")
     .cross(CrossVersion.full)
@@ -202,9 +200,7 @@ no `compilerPlugin` dependency, so Macro-Paradise is not active while either
 producer is compiled:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.5-RC1-bin-20260405-9478256-NIGHTLY"
-ThisBuild / resolvers += Resolver.scalaNightlyRepository
-
+ThisBuild / scalaVersion := "3.8.4"
 val mpOrg = "com.github.dmytromitin"
 val mpVersion = "0.1.0"
 val mpApi =
