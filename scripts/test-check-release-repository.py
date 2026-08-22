@@ -92,6 +92,64 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             self.assertEqual(manifest["signing"]["status"], "OWNER_GATED_NOT_SIGNED")
             self.assertTrue(manifest["assertions"]["all_checksums_verified"])
 
+    def test_manifest_binds_release_contract_checksums_and_owner_signature_slots(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = self.fixture(root)
+            first = self.run_checker(root / "project", repository)
+            self.assertEqual(first.returncode, 0, first.stdout)
+            first_bytes = (root / "manifest.json").read_bytes()
+            second = self.run_checker(root / "project", repository)
+            self.assertEqual(second.returncode, 0, second.stdout)
+            self.assertEqual((root / "manifest.json").read_bytes(), first_bytes)
+
+            manifest = json.loads(first_bytes)
+            self.assertEqual(manifest["schema"], "macroparadise-release-candidate-manifest-v2")
+            self.assertEqual(
+                manifest["source"],
+                {
+                    "identity": "test-source",
+                    "status": "PREPARED_WORKTREE_AWAITING_PUBLICATION_COMMIT",
+                },
+            )
+            self.assertEqual(
+                manifest["release_contract"],
+                {
+                    "organization": "com.github.dmytromitin",
+                    "version": "0.1.0",
+                    "scala_full_version": "3.8.4",
+                    "jdk_feature": 25,
+                    "sbt_version": "1.12.15",
+                    "plugin_name": "macroparadise",
+                    "future_tag_if_separately_authorized": "v0.1.0",
+                    "publication_allowlist": ["pluginApi", "plugin"],
+                    "nightly_resolver_required": False,
+                },
+            )
+            self.assertEqual(len(manifest["primary_manifest_sha256"]), 64)
+            rendered = first_bytes.decode("utf-8")
+            self.assertNotIn("/" + "tmp/", rendered)
+            self.assertNotIn("/" + "home/", rendered)
+            for coordinate in manifest["coordinates"]:
+                for item in coordinate["files"]:
+                    self.assertEqual(set(item["checksums"]), {"md5", "sha1", "sha256", "sha512"})
+                    self.assertEqual(
+                        item["detached_signature"],
+                        {
+                            "filename": item["filename"] + ".asc",
+                            "status": "OWNER_SIGNATURE_REQUIRED_NOT_PRESENT",
+                        },
+                    )
+            self.assertEqual(
+                manifest["license"],
+                {
+                    "name": "Apache-2.0",
+                    "url": "https://www.apache.org/licenses/LICENSE-2.0",
+                    "distribution": "repo",
+                },
+            )
+            self.assertEqual(manifest["remote_state"], "NOT_UPLOADED_NOT_PUBLISHED_NO_TAG_NO_GITHUB_RELEASE")
+
     def test_missing_documentation_jar_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

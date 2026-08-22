@@ -8,7 +8,7 @@ if [[ -z "$source_identity" ]]; then
   exit 2
 fi
 
-output_root="$repository_root/target/prompt128-local-release-rehearsal"
+output_root="$repository_root/target/release-candidate-rehearsal"
 raw_repository="$output_root/raw-repository"
 candidate_repository="$output_root/candidate-repository"
 manifest_json="$output_root/CANDIDATE_MANIFEST.json"
@@ -20,8 +20,10 @@ mkdir -p "$raw_repository" "$candidate_repository"
 (
   cd "$repository_root"
   sbt -batch \
-    "set ThisBuild / publishTo := Some(Resolver.file(\"prompt128-task-local\", file(\"$raw_repository\"))(Resolver.mavenStylePatterns))" \
+    "set ThisBuild / publishTo := Some(Resolver.file(\"release-candidate-task-local\", file(\"$raw_repository\"))(Resolver.mavenStylePatterns))" \
     "set ThisBuild / credentials := Nil" \
+    "pluginApi/clean" \
+    "plugin/clean" \
     "pluginApi/publish" \
     "plugin/publish"
 )
@@ -61,7 +63,7 @@ python3 "$repository_root/scripts/check-release-repository.py" \
   --json "$manifest_json" \
   --markdown "$manifest_markdown"
 
-echo "PROMPT128_NO_REMOTE_RELEASE_ACTION_PERFORMED"
-echo "PROMPT128_OWNER_SIGNING_AND_UPLOAD_NOT_AUTHORIZED"
+echo "NO_REMOTE_RELEASE_ACTION_PERFORMED"
+echo "OWNER_SIGNING_AND_UPLOAD_NOT_AUTHORIZED"
 echo "manifest_json=$manifest_json"
 echo "manifest_markdown=$manifest_markdown"

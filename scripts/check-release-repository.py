@@ -22,7 +22,8 @@ CHECKSUMS = ("md5", "sha1", "sha256", "sha512")
 PROJECT_URL = "https://github.com/DmytroMitin/macroparadise-scala3"
 LICENSE_NAME = "Apache-2.0"
 LICENSE_URL = "https://www.apache.org/licenses/LICENSE-2.0"
-PASS = "PROMPT128_UNSIGNED_LOCAL_CANDIDATE_REHEARSAL_PASS_OWNER_SIGNING_REMAINS"
+PASS = "UNSIGNED_RELEASE_CANDIDATE_REHEARSAL_PASS_OWNER_SIGNING_REMAINS"
+SOURCE_STATUS_PREPARED = "PREPARED_WORKTREE_AWAITING_PUBLICATION_COMMIT"
 
 
 def digest(path: Path, algorithm: str) -> str:
@@ -107,7 +108,12 @@ def pom_dependencies(path: Path, module: str, errors: list[str]) -> list[dict[st
     return sorted(dependencies, key=lambda item: (item["scope"], item["group"], item["artifact"]))
 
 
-def check(project: Path, repository: Path, source_identity: str) -> tuple[dict[str, object], list[str]]:
+def check(
+    project: Path,
+    repository: Path,
+    source_identity: str,
+    source_status: str = SOURCE_STATUS_PREPARED,
+) -> tuple[dict[str, object], list[str]]:
     errors: list[str] = []
     group_root = repository / GROUP_PATH
     actual_modules = {path.name for path in group_root.iterdir() if path.is_dir()} if group_root.is_dir() else set()
@@ -142,10 +148,16 @@ def check(project: Path, repository: Path, source_identity: str) -> tuple[dict[s
                     errors.append(f"CHECKSUM_INVALID:{module}:{deployable.name}:{algorithm}")
             files.append(
                 {
+                    "relative_path": deployable.relative_to(repository).as_posix(),
                     "filename": deployable.name,
                     "size": deployable.stat().st_size,
                     "sha256": digest(deployable, "sha256"),
                     "sha512": digest(deployable, "sha512"),
+                    "checksums": {algorithm: digest(deployable, algorithm) for algorithm in CHECKSUMS},
+                    "detached_signature": {
+                        "filename": deployable.name + ".asc",
+                        "status": "OWNER_SIGNATURE_REQUIRED_NOT_PRESENT",
+                    },
                     "signature": None,
                     "signature_status": "OWNER_GATED_NOT_SIGNED",
                 }
@@ -175,17 +187,58 @@ def check(project: Path, repository: Path, source_identity: str) -> tuple[dict[s
             }
         )
 
+    primary_records = sorted(
+        (
+            {
+                "relative_path": item["relative_path"],
+                "size": item["size"],
+                "sha256": item["sha256"],
+                "sha512": item["sha512"],
+            }
+            for coordinate in coordinates
+            for item in coordinate["files"]  # type: ignore[index]
+        ),
+        key=lambda item: str(item["relative_path"]),
+    )
+    primary_manifest_bytes = json.dumps(
+        primary_records,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
     manifest: dict[str, object] = {
-        "schema": "macroparadise-prompt128-local-candidate-manifest-v1",
+        "schema": "macroparadise-release-candidate-manifest-v2",
         "source_identity": source_identity,
+        "source": {
+            "identity": source_identity,
+            "status": source_status,
+        },
         "candidate_version": VERSION,
         "scala_compiler_line": SCALA_VERSION,
+        "release_contract": {
+            "organization": GROUP,
+            "version": VERSION,
+            "scala_full_version": SCALA_VERSION,
+            "jdk_feature": 25,
+            "sbt_version": "1.12.15",
+            "plugin_name": "macroparadise",
+            "future_tag_if_separately_authorized": "v0.1.0",
+            "publication_allowlist": ["pluginApi", "plugin"],
+            "nightly_resolver_required": False,
+        },
+        "license": {
+            "name": LICENSE_NAME,
+            "url": LICENSE_URL,
+            "distribution": "repo",
+        },
         "coordinates": coordinates,
+        "primary_manifest_sha256": hashlib.sha256(primary_manifest_bytes).hexdigest(),
         "signing": {
             "required_for_remote_release": True,
             "status": "OWNER_GATED_NOT_SIGNED",
-            "reason": "No private key use is authorized by this local rehearsal task.",
+            "reason": "Owner signatures are a separate authorization and must cover these frozen primary bytes without rebuilding.",
         },
+        "remote_state": "NOT_UPLOADED_NOT_PUBLISHED_NO_TAG_NO_GITHUB_RELEASE",
         "assertions": {
             "exact_coordinate_set": not any(error.startswith("COORDINATE_") for error in errors),
             "non_snapshot": "SNAPSHOT" not in VERSION,
@@ -237,14 +290,24 @@ def main() -> int:
     parser.add_argument("project", type=Path)
     parser.add_argument("repository", type=Path)
     parser.add_argument("--source-identity", required=True)
+    parser.add_argument(
+        "--source-status",
+        default=SOURCE_STATUS_PREPARED,
+        choices=(SOURCE_STATUS_PREPARED, "COMMITTED_RELEASE_CANDIDATE"),
+    )
     parser.add_argument("--json", type=Path, required=True)
     parser.add_argument("--markdown", type=Path, required=True)
     args = parser.parse_args()
-    manifest, errors = check(args.project.resolve(), args.repository.resolve(), args.source_identity)
+    manifest, errors = check(
+        args.project.resolve(),
+        args.repository.resolve(),
+        args.source_identity,
+        args.source_status,
+    )
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
-        print("PROMPT128_LOCAL_CANDIDATE_REHEARSAL_BLOCKED", file=sys.stderr)
+        print("UNSIGNED_RELEASE_CANDIDATE_REHEARSAL_BLOCKED", file=sys.stderr)
         return 3
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.markdown.parent.mkdir(parents=True, exist_ok=True)

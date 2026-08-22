@@ -103,11 +103,27 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertTrue(script_path.is_file())
         script = script_path.read_text(encoding="utf-8")
         self.assertIn("Resolver.file", script)
+        self.assertIn('"pluginApi/clean"', script)
+        self.assertIn('"plugin/clean"', script)
         self.assertIn("pluginApi/publish", script)
         self.assertIn("plugin/publish", script)
         self.assertIn("check-release-repository.py", script)
         for forbidden in ("publishSigned", "sonatype", "centralPortal", "git tag", "gh release"):
             self.assertNotIn(forbidden, script)
+
+        signing_path = ROOT / "scripts/rehearse-release-signing.py"
+        self.assertTrue(signing_path.is_file())
+        signing = signing_path.read_text(encoding="utf-8")
+        self.assertIn("EPHEMERAL_TEST_ONLY_NOT_FOR_UPLOAD", signing)
+        self.assertIn("secret_key_material_retained", signing)
+        self.assertNotIn("publishSigned", signing)
+
+        for test_script in (
+            "test-release-configuration.py",
+            "test-check-release-repository.py",
+            "test-rehearse-release-signing.py",
+        ):
+            self.assertIn(test_script, self.build)
 
 
 if __name__ == "__main__":

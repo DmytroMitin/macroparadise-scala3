@@ -136,10 +136,17 @@ verifyPublicProductTestsNonzero := {
 }
 
 verifyConsumerReleaseConfiguration := {
-  val script = baseDirectory.value / "scripts" / "test-release-configuration.py"
-  val exit = scala.sys.process.Process(Seq("python3", script.getAbsolutePath), baseDirectory.value).!
-  require(exit == 0, s"consumer/release configuration checks failed with exit $exit")
-  streams.value.log.info("consumer/release configuration verified")
+  val scripts = Vector(
+    "test-release-configuration.py",
+    "test-check-release-repository.py",
+    "test-rehearse-release-signing.py"
+  )
+  scripts.foreach { name =>
+    val script = baseDirectory.value / "scripts" / name
+    val exit = scala.sys.process.Process(Seq("python3", script.getAbsolutePath), baseDirectory.value).!
+    require(exit == 0, s"consumer/release configuration check $name failed with exit $exit")
+  }
+  streams.value.log.info(s"consumer/release configuration verified: scripts=${scripts.mkString(",")}")
 }
 
 verifyPublicProductPublicationPolicy := {
