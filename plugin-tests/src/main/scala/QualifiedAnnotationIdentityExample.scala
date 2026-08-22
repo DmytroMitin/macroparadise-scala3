@@ -1,4 +1,6 @@
-@qualifiedone.audit
+import qualifiedone.audit
+
+@audit
 class QualifiedOneAuditUser
 
 @qualifiedtwo.audit

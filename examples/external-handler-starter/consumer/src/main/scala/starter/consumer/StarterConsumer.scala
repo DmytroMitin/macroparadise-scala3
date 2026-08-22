@@ -1,6 +1,8 @@
 package starter.consumer
 
-@starter.marker.generateGreeting
+import starter.marker.generateGreeting
+
+@generateGreeting
 final class Greeter
 
 object StarterConsumer:

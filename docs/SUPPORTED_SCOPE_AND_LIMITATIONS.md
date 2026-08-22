@@ -40,24 +40,42 @@ admission.
 
 ## Annotation identity and imports
 
-External handler identity accepts either a retained simple name or an exact
-dot-qualified syntactic name. New handlers should prefer a qualified name.
+External handler identity accepts a retained legacy simple name, an exact
+dot-qualified syntactic name, or the canonical identity witnessed by one
+unambiguous, source-preceding explicit import at package scope. New handlers
+should declare a qualified name.
 
 ```scala
-@starter.marker.generateGreeting
+import starter.marker.generateGreeting
+
+@generateGreeting
 class Greeter
 ```
 
-The plugin reads raw pre-typer identifier/select chains. It does not resolve:
+Before typer, the plugin canonicalizes this occurrence to
+`starter.marker.generateGreeting`. Metadata lookup, handler binding,
+composition, and normalized handler input use that canonical identity while
+the raw annotation tree and source position remain unchanged. Direct qualified
+syntax remains supported.
 
-- imported simple names;
+Two explicit imports that provide the same short annotation name fail with a
+deterministic ambiguity diagnostic listing the canonical candidates. The
+plugin does not implement or infer:
+
 - renamed imports or aliases;
 - wildcard imports;
+- local or nested imports;
+- given imports or exports;
 - symbols or semantic package identity;
 - semantic types.
 
-A qualified source name never falls back to its final segment. An ambiguous
-simple name fails closed.
+A qualified source name never falls back to its final segment. An unwitnessed
+short name retains the previous bounded behavior and is never assigned a
+guessed package. The reserved `paradise3` compatibility namespace retains its
+established simple-identity import behavior. Existing external handlers whose
+captured descriptors are simple also retain that legacy identity; the imported
+canonical form is selected only when marker metadata selects a handler that
+declares the matching qualified identity.
 
 ## Composition
 

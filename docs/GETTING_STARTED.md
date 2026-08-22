@@ -150,6 +150,22 @@ plugin and handler artifacts are compilation tools, not automatic runtime
 application dependencies. This standard multi-project sbt shape is suitable
 for CLI use and IntelliJ/BSP import; no IDE metadata is required.
 
+With the marker on that ordinary classpath, the supported natural source form
+is one explicit import followed by the short annotation:
+
+```scala
+import starter.marker.generateGreeting
+
+@generateGreeting
+final class Greeter
+```
+
+The plugin canonicalizes only this bounded explicit-import form before typer.
+It does not implement wildcard, alias, local/nested, given, export, or general
+semantic name resolution. Omitting `.dependsOn(marker)` is an ordinary sbt
+classpath error and can surface as Dotty unresolved-import plus cyclic-
+completion diagnostics; it is not a Macro-Paradise identity failure.
+
 Read [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the marker,
 handler, classpath, output, and diagnostic contracts.
 

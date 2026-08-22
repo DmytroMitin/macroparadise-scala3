@@ -37,9 +37,11 @@ enum ExpansionTargetProfile:
 trait ParadiseAnnotationExpander:
   /** Canonical syntactic annotation class name claimed by this precompiled handler.
     *
-    * A legacy simple name remains supported. A dot-qualified name matches only
-    * the same dot-qualified raw source identity; the plugin does not resolve
-    * imports or aliases to synthesize a qualified name.
+    * A legacy simple name remains supported. A dot-qualified name matches
+    * direct qualified source syntax or the bounded source-syntactic form of one
+    * unambiguous, source-preceding, package-scope explicit unchanged import.
+    * The plugin does not invoke typer or resolve wildcard, renamed/aliased,
+    * local/nested, given, exported, shadowing-dependent, or semantic imports.
     */
   def annotationName: String
 

@@ -104,6 +104,8 @@ object AnnotationApplication:
     *
     * Expected missing or unsupported shapes return a focused diagnostic rather
     * than throwing. Parsing is structural and never uses printable tree text.
+    * A plugin-canonicalized explicit-import identity may be qualified even
+    * though the preserved raw annotation constructor uses its short final name.
     */
   def fromInput(
       input: ExpansionInput
@@ -133,7 +135,11 @@ object AnnotationApplication:
       // @annotation[T](...) is Apply(Select(New(AppliedTypeTree(...)), <init>), args).
       case Apply(constructor, rawTermArguments) =>
         normalizeConstructor(expectedAnnotationName, constructor, rawTree).flatMap: normalized =>
-          if normalized.annotationName != expectedAnnotationName then
+          val importedShortMatchesCanonical =
+            !normalized.annotationName.contains('.') &&
+              expectedAnnotationName.contains('.') &&
+              expectedAnnotationName.endsWith(s".${normalized.annotationName}")
+          if normalized.annotationName != expectedAnnotationName && !importedShortMatchesCanonical then
             Left(
               ExpansionDiagnostic(
                 s"annotation application name mismatch: input expects @$expectedAnnotationName but raw tree names @${normalized.annotationName}",
@@ -143,7 +149,7 @@ object AnnotationApplication:
           else
             Right(
               AnnotationApplication(
-                annotationName = normalized.annotationName,
+                annotationName = expectedAnnotationName,
                 typeArguments = normalized.typeArguments,
                 termArguments = rawTermArguments.map(normalizeTermArgument),
                 rawTree = rawTree,

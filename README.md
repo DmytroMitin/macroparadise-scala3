@@ -135,12 +135,12 @@ compile time. Same-compilation marker metadata is not currently claimed.
 ## External-handler starter
 
 The fixture-independent starter separates a marker, a precompiled handler, and
-an ordinary consumer. It verifies qualified annotation identity, metadata
-binding, exact compiler/JDK compatibility, class-loader identity, dependency
-boundaries, generated-member typing, runtime behavior, and a fail-closed
-precheck matrix. Its packaged precheck retains the maximum-witness explicit
-form and adds a bounded compact form without changing the experimental handler
-API.
+an ordinary consumer. It verifies qualified identity plus bounded explicit-
+import canonicalization, metadata binding, exact compiler/JDK compatibility,
+class-loader identity, dependency boundaries, generated-member typing, runtime
+behavior, and a fail-closed precheck matrix. Its packaged precheck retains the
+maximum-witness explicit form and adds a bounded compact form without changing
+the experimental handler API.
 
 ```sh
 sbt -batch verifyExternalHandlerAuthoringStarter
@@ -160,7 +160,8 @@ The current implementation provides bounded evidence for:
 - structured primary, companion, and ordered additional-output roles;
 - raw untyped output as an expert escape hatch;
 - precompiled external handlers selected explicitly or by marker metadata;
-- qualified syntactic annotation identities;
+- qualified syntactic annotation identities and unambiguous package-level
+  explicit-import canonicalization;
 - plugin-owned, source-ordered composition for handlers that explicitly opt in;
 - a restricted, opt-in generic-trait target profile used by one contextual
   companion-method fixture.
@@ -174,8 +175,9 @@ positive evidence remains bounded to the combinations in the test suite.
 
 - External handlers and their raw tree values are tied to the exact compiler
   build.
-- Qualified annotation matching is syntactic. General import, alias, wildcard,
-  symbol, and semantic type resolution are not implemented.
+- Annotation matching is syntactic. One unambiguous, source-preceding,
+  package-level explicit import is supported; alias, wildcard, local/nested,
+  given, export, symbol, and general semantic resolution are not implemented.
 - General same-module handler support is deferred. A clean-build prototype
   exists, but handler-only changes do not reliably invalidate consumers through
   Zinc under the current design.

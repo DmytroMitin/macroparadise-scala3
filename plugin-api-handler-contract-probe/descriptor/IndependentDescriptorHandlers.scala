@@ -34,6 +34,12 @@ final class NullComposition extends StaticAnnotation
 @expander("external.descriptorprobe.MetadataProfileFailureHandler")
 final class MetadataProfileFailure extends StaticAnnotation
 
+@expander("external.descriptorprobe.MetadataSimpleForCanonicalHandler")
+final class MetadataSimpleForCanonical extends StaticAnnotation
+
+@expander("")
+final class EmptyMetadataWithLegacy extends StaticAnnotation
+
 @expander("external.descriptorprobe.ExplicitMetadataReuseHandler")
 final class ExplicitMetadataReuse extends StaticAnnotation
 
@@ -200,6 +206,15 @@ final class MetadataProfileFailureHandler extends ProbeHandler:
   protected val markerName = "MetadataProfileFailure"
   override def targetProfile: ExpansionTargetProfile =
     throw IllegalStateException("metadata  profile  failure")
+
+final class MetadataSimpleForCanonicalHandler extends ProbeHandler:
+  protected val markerName = "MetadataSimpleForCanonical"
+
+final class ExplicitCanonicalForMetadataSimpleHandler extends ProbeHandler:
+  protected val markerName = "external.descriptorprobe.MetadataSimpleForCanonical"
+
+final class EmptyMetadataWithLegacyHandler extends ProbeHandler:
+  protected val markerName = "EmptyMetadataWithLegacy"
 
 private abstract class BindingProbeHandler(
     declaredAnnotationName: String

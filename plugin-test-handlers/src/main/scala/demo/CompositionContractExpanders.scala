@@ -157,6 +157,16 @@ final class CompositionReconstructsCurrentExpander extends ParadiseAnnotationExp
       List(CompositionContractTrees.withoutCurrentAndWithRebuiltCurrent(input))
     )
 
+final class QualifiedImportedReconstructsCurrentExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "qualifiedunknown.audit"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionOutcome.Expanded(
+      List(CompositionContractTrees.withoutCurrentAndWithRebuiltCurrent(input))
+    )
+
 final class CompositionDuplicatesLaterExpander extends ParadiseAnnotationExpander:
   val annotationName: String = "compositionDuplicatesLater"
   override val compositionPolicy: ExpansionCompositionPolicy =

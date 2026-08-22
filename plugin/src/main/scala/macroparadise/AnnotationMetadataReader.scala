@@ -257,6 +257,8 @@ private[macroparadise] final class StructuredFirstAnnotationMetadataReader(
     fallback: AnnotationMetadataReader,
     trace: MetadataReaderTrace
 ) extends AnnotationMetadataReader:
+  private val UnavailablePrefix = "structured annotation metadata reader unavailable:"
+
   def findExpanderClass(annotationName: String): MetadataLookupResult =
     val structuredResult = structured.findExpanderClass(annotationName)
     trace.record("structured", annotationName, structuredResult)
@@ -267,14 +269,16 @@ private[macroparadise] final class StructuredFirstAnnotationMetadataReader(
         val fallbackResult = fallback.findExpanderClass(annotationName)
         trace.record("string", annotationName, fallbackResult)
         fallbackResult
-      case structuredFailure: MetadataLookupResult.Failed =>
+      case structuredFailure @ MetadataLookupResult.Failed(message) =>
         val fallbackResult = fallback.findExpanderClass(annotationName)
         trace.record("string", annotationName, fallbackResult)
         fallbackResult match
           case found: MetadataLookupResult.Found =>
             found
-          case MetadataLookupResult.NotFound =>
+          case MetadataLookupResult.NotFound if message.startsWith(UnavailablePrefix) =>
             MetadataLookupResult.NotFound
+          case MetadataLookupResult.NotFound =>
+            structuredFailure
           case fallbackFailure: MetadataLookupResult.Failed =>
             fallbackFailure
 
@@ -485,7 +489,7 @@ private[macroparadise] final class TastyStringAnnotationMetadataReader(apiLoader
             case Some(className) if className.trim.nonEmpty =>
               MetadataLookupResult.Found(className.trim)
             case _ =>
-              MetadataLookupResult.Failed(s"empty annotation metadata expander class name for `$annotationClassName`")
+              MetadataLookupResult.NotFound
         else MetadataLookupResult.NotFound
       catch
         case NonFatal(error) =>

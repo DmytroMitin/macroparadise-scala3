@@ -534,7 +534,9 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
       StructuredFirstAnnotationMetadataReader(
         new AnnotationMetadataReader:
           def findExpanderClass(annotationName: String): MetadataLookupResult =
-            MetadataLookupResult.Failed("structured unavailable"),
+            MetadataLookupResult.Failed(
+              "structured annotation metadata reader unavailable: test"
+            ),
         new AnnotationMetadataReader:
           def findExpanderClass(annotationName: String): MetadataLookupResult =
             MetadataLookupResult.NotFound,
@@ -542,6 +544,24 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
       )
 
     assertEquals(reader.findExpanderClass("ordinaryAnnotation"), MetadataLookupResult.NotFound)
+  }
+
+  test("structured-first reader preserves semantic structured failures when fallback finds nothing") {
+    val failure =
+      MetadataLookupResult.Failed(
+        "empty annotation metadata expander class name for `legacy.EmptyMarker`"
+      )
+    val reader =
+      StructuredFirstAnnotationMetadataReader(
+        new AnnotationMetadataReader:
+          def findExpanderClass(annotationName: String): MetadataLookupResult = failure,
+        new AnnotationMetadataReader:
+          def findExpanderClass(annotationName: String): MetadataLookupResult =
+            MetadataLookupResult.NotFound,
+        MetadataReaderTrace.disabled
+      )
+
+    assertEquals(reader.findExpanderClass("legacy.EmptyMarker"), failure)
   }
 
   test("structured-first reader skips fallback after structured metadata is found") {

@@ -52,8 +52,25 @@ lazy val consumer = project
         s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
       )
     }
-  )
+)
 ```
+
+The consumer source can use the ordinary first-use form:
+
+```scala
+package starter.consumer
+
+import starter.marker.generateGreeting
+
+@generateGreeting
+final class Greeter
+```
+
+The marker project must remain on the consumer's ordinary compile classpath via
+`.dependsOn(marker)`. Omitting that edge is an sbt build-graph error. Dotty may
+then report the unresolved import together with an E046 cyclic-completion
+diagnostic; that compiler diagnostic is independent of Macro-Paradise's
+pre-typer identity resolver.
 
 Only the self-contained plugin coordinate activates the compiler plugin. Do
 not construct a second `-Xplugin` path that appends `plugin-api`. The marker is
@@ -218,14 +235,30 @@ The candidate coordinates are locally usable but are not available from Maven
 Central. The repository's built-in `@gen` annotation is a fixture and is not
 the supported public authoring API.
 
-## Qualified identity boundary
+## Explicit-import identity boundary
 
-`starter.marker.generateGreeting` must match the raw source identity exactly.
-The plugin does not resolve a short name introduced by an import, an alias, or
-a wildcard import. Qualified syntax never falls back to `generateGreeting`.
+`starter.marker.generateGreeting` remains the canonical handler identity. The
+pre-typer plugin can obtain it from either direct qualified annotation syntax
+or one unambiguous, source-preceding package-level explicit import:
 
-This limitation is deliberate: the handler path runs before ordinary semantic
-name resolution.
+```scala
+import starter.marker.generateGreeting
+@generateGreeting
+final class Greeter
+```
+
+This is source-syntactic canonicalization, not typer or semantic name
+resolution. The resolver reads only raw `Import` plus identifier/select trees.
+It does not support renamed or wildcard imports, local/nested imports, given
+imports, exports, package-object semantics, shadowing, or annotation/type
+aliases. Two explicit imports for the same short name fail closed and list the
+canonical candidates. A short use without a safe explicit witness is never
+assigned a guessed package. Direct qualified syntax is unchanged.
+
+Existing handlers with captured simple descriptors keep their legacy simple
+identity after metadata selection. This compatibility does not let a directly
+qualified annotation fall back to its final segment. New handlers should use
+the canonical qualified descriptor shown above.
 
 ## Classpath and loading
 

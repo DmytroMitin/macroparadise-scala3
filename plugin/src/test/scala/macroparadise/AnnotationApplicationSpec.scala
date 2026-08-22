@@ -91,6 +91,27 @@ class AnnotationApplicationSpec extends munit.FunSuite:
     )
   }
 
+  test("retains a canonical imported identity while preserving the short raw application") {
+    val (input, context) =
+      parsedInput(
+        "@externalTypedLabel[Int](\"imported\") class ImportedShort"
+      )
+    given Context = context
+
+    val rawTree = input.currentAnnotation.get
+    val application = normalized(
+      input.copy(annotationName = "example.annotations.externalTypedLabel")
+    )
+
+    assertEquals(application.annotationName, "example.annotations.externalTypedLabel")
+    assertEquals(
+      application.requireSingleStringLiteralArgument("value"),
+      Right("imported")
+    )
+    assert(application.rawTree eq rawTree)
+    assertEquals(application.pos.span, rawTree.sourcePos.span)
+  }
+
   test("preserves one raw type argument") {
     val (input, context) =
       parsedInput("@externalTypedLabel[Int](\"value\") class OneType")

@@ -1884,12 +1884,108 @@ class ConflictSpec extends munit.FunSuite:
         fail(s"expected qualified collision success, got $other")
   }
 
-  test("ambiguous simple external annotation metadata fails closed") {
+  test("one explicit import canonicalizes a short external annotation identity") {
     val outcome =
       compileSnippet(
         """import qualifiedone.audit
-          |@audit class AmbiguousSimpleAuditUser
+          |@audit class ImportedShortAuditUser
+          |object ImportedShortAuditWitness:
+          |  val value = new ImportedShortAuditUser().qualifiedOneAuditName
           |""".stripMargin,
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
+      )
+
+    outcome match
+      case CompileOutcome.Succeeded(outputFiles) =>
+        assert(outputFiles.exists(_.endsWith("ImportedShortAuditUser.class")), outputFiles.mkString("\n"))
+      case other => fail(s"expected explicit-import short annotation success, got $other")
+  }
+
+  test("an exact canonical handler wins over a registered legacy simple-name handler") {
+    val outcome =
+      compileSnippet(
+        """import qualifiedone.audit
+          |@audit class CanonicalOverLegacyUser
+          |object CanonicalOverLegacyWitness:
+          |  val value = new CanonicalOverLegacyUser().qualifiedOneAuditName
+          |""".stripMargin,
+        pluginOptions = Seq(
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.LegacySimpleAuditExpander",
+          "-P:macroparadise:handler=demo.QualifiedOneAuditExpander"
+        )
+      )
+
+    outcome match
+      case CompileOutcome.Succeeded(outputFiles) =>
+        assert(outputFiles.exists(_.endsWith("CanonicalOverLegacyUser.class")), outputFiles.mkString("\n"))
+      case other => fail(s"expected canonical handler precedence, got $other")
+  }
+
+  test("a reconstructed imported canonical annotation violates composition closure") {
+    val outcome =
+      compileSnippet(
+        """import qualifiedunknown.audit
+          |import paradise3.externalDebug
+          |@audit
+          |@externalDebug
+          |class ReconstructedImportedCanonicalUser
+          |""".stripMargin,
+        pluginOptions = Seq(
+          s"-P:macroparadise:handlerClasspath=$handlerJar",
+          "-P:macroparadise:handler=demo.QualifiedImportedReconstructsCurrentExpander"
+        )
+      )
+
+    assertBoundaryDiagnostic(
+      outcome,
+      "output-validation",
+      "category=COMPOSITION_ANNOTATION_PRESERVATION",
+      "reason=RECONSTRUCTED_CURRENT_HANDLED_ANNOTATION",
+      "unexpected reconstructed current handled annotation @qualifiedunknown.audit"
+    )
+  }
+
+  test("a nested import shadowing a package import fails at the bounded resolver") {
+    val outcome =
+      compileSnippet(
+        """import qualifiedone.audit
+          |object LocalImportScope:
+          |  import qualifiedtwo.audit
+          |  @audit class NestedAuditUser
+          |""".stripMargin,
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
+      )
+
+    assertDiagnostic(
+      outcome,
+      "unsupported local/nested import scope for short annotation `@audit`",
+      "use a qualified annotation"
+    )
+  }
+
+  test("two explicit imports for one short annotation fail with deterministic canonical candidates") {
+    val outcome =
+      compileSnippet(
+        """import qualifiedtwo.audit
+          |import qualifiedone.audit
+          |@audit class AmbiguousImportedShortAuditUser
+          |""".stripMargin,
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
+      )
+
+    assertDiagnostic(
+      outcome,
+      "ambiguous explicit-import annotation identity for `@audit`",
+      "qualifiedone.audit",
+      "qualifiedtwo.audit"
+    )
+  }
+
+  test("a direct short annotation without an explicit witness keeps the existing fail-closed discovery boundary") {
+    val outcome =
+      compileSnippet(
+        "@audit class UnwitnessedShortAuditUser",
         pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )
 
@@ -1897,9 +1993,7 @@ class ConflictSpec extends munit.FunSuite:
       outcome,
       "discovery",
       "category=METADATA_DISCOVERY_FAILURE",
-      "ambiguous runtime annotation metadata for `audit`",
-      "qualifiedone.audit",
-      "qualifiedtwo.audit"
+      "ambiguous runtime annotation metadata for `audit`"
     )
   }
 
@@ -1907,6 +2001,24 @@ class ConflictSpec extends munit.FunSuite:
     val outcome =
       compileSnippet(
         """@qualifiedwrong.audit class WrongQualifiedBindingUser
+          |""".stripMargin,
+        pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
+      )
+
+    assertBoundaryDiagnostic(
+      outcome,
+      "loading",
+      "category=METADATA_HANDLER_ANNOTATION_MISMATCH",
+      "annotation=@qualifiedwrong.audit",
+      "declaredAnnotation=@qualifiedtwo.audit"
+    )
+  }
+
+  test("explicit-import metadata binding mismatch reports both canonical identities") {
+    val outcome =
+      compileSnippet(
+        """import qualifiedwrong.audit
+          |@audit class WrongImportedBindingUser
           |""".stripMargin,
         pluginOptions = Seq(s"-P:macroparadise:handlerClasspath=$handlerJar")
       )

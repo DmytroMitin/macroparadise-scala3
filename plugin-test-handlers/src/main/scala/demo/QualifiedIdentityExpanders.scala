@@ -26,6 +26,11 @@ final class QualifiedTwoAuditExpander extends QualifiedStringMethodExpander:
   protected val methodName: String = "qualifiedTwoAuditName"
   protected val prefix: String = "two"
 
+final class LegacySimpleAuditExpander extends QualifiedStringMethodExpander:
+  val annotationName: String = "audit"
+  protected val methodName: String = "legacySimpleAuditName"
+  protected val prefix: String = "legacy"
+
 final class DuplicateQualifiedOneAuditExpander extends QualifiedStringMethodExpander:
   val annotationName: String = "qualifiedone.audit"
   protected val methodName: String = "duplicateQualifiedOneAuditName"

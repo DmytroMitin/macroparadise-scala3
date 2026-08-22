@@ -25,8 +25,8 @@ The projects are intentionally separate:
   `@expander("starter.handler.GenerateGreetingHandler")`;
 - `handler` packages `starter.handler.GenerateGreetingHandler` against only
   `pluginApi` plus the exact compiler/runtime universe;
-- `consumer` uses `@starter.marker.generateGreeting` and ordinarily typechecks
-  `new Greeter().generatedGreeting`;
+- `consumer` explicitly imports `starter.marker.generateGreeting`, uses
+  `@generateGreeting`, and ordinarily typechecks `new Greeter().generatedGreeting`;
 - `precheck-fixtures/marker` and `precheck-fixtures/handler` exist only for the
   metadata/descriptor robustness lanes;
 - `metadata-fixtures/handler-b` packages only handler B so the marker-A versus

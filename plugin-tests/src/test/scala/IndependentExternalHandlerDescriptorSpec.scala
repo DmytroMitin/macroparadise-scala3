@@ -125,6 +125,51 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
       )
   }
 
+  test("canonical explicit registration does not downgrade to metadata-selected simple identity") {
+    withCompiledProbe: probe =>
+      val metadataHandler =
+        "external.descriptorprobe.MetadataSimpleForCanonicalHandler"
+      val canonicalHandler =
+        "external.descriptorprobe.ExplicitCanonicalForMetadataSimpleHandler"
+      val result = compileConsumer(
+        "MetadataSimpleForCanonical",
+        handlerOptions(probe.artifact, Some(canonicalHandler)),
+        probe.artifact,
+        className = "CanonicalMetadataConflictTarget",
+        target = "class"
+      )
+
+      assertBindingMismatch(
+        result,
+        "external.descriptorprobe.MetadataSimpleForCanonical",
+        metadataHandler,
+        "MetadataSimpleForCanonical",
+        expectedDiagnostics = 1
+      )
+  }
+
+  test("failed canonical metadata cannot be rescued by a registered legacy simple handler") {
+    withCompiledProbe: probe =>
+      val legacyHandler =
+        "external.descriptorprobe.EmptyMetadataWithLegacyHandler"
+      val result = compileConsumer(
+        "EmptyMetadataWithLegacy",
+        handlerOptions(probe.artifact, Some(legacyHandler)),
+        probe.artifact,
+        className = "FailedCanonicalMetadataTarget",
+        target = "class"
+      )
+      val messages = result.messages.mkString("\n")
+
+      assert(result.hasErrors, messages)
+      assert(messages.contains("stage=discovery"), messages)
+      assert(messages.contains("category=METADATA_DISCOVERY_FAILURE"), messages)
+      assert(messages.contains("annotation=@external.descriptorprobe.EmptyMetadataWithLegacy"), messages)
+      assert(messages.contains("empty annotation metadata expander class name"), messages)
+      assertEquals(result.outputFiles, Nil)
+      assertEquals(result.invocationTrace.count(_.contains(s"handler=$legacyHandler")), 0)
+  }
+
   test("explicit matching metadata reuses one exact descriptor capture without reload") {
     withCompiledProbe: probe =>
       val handler = "external.descriptorprobe.ExplicitMetadataReuseHandler"
@@ -392,8 +437,12 @@ class IndependentExternalHandlerDescriptorSpec extends munit.FunSuite:
           1
         )
         assertEquals(
-          result.metadataTrace.count(_.startsWith("runtime-candidate external.descriptorprobe.RunScopedFailure ")),
+          result.metadataTrace.count(_.startsWith("runtime external.descriptorprobe.RunScopedFailure ")),
           2
+        )
+        assertEquals(
+          result.metadataTrace.count(_.startsWith("runtime-candidate external.descriptorprobe.RunScopedFailure ")),
+          0
         )
 
       assertNotEquals(runScopedInstanceIds(firstRun, handler), runScopedInstanceIds(secondRun, handler))

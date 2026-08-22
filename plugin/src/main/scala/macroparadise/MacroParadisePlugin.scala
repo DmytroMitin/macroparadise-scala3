@@ -59,6 +59,11 @@ private object ExternalHandlerInvocationTrace:
     ExternalHandlerInvocationTrace(path)
 
 private object ExternalHandlerLoading:
+  final case class MetadataDiscoveryResult(
+      handlers: List[LoadedExternalHandler],
+      legacySimpleRequests: Set[ExplicitImportAnnotationIdentityRequest]
+  )
+
   private val BuiltInAnnotationNames = Set("gen", "debug")
 
   final case class DeferredSameModuleHandler(
@@ -275,55 +280,76 @@ private object ExternalHandlerLoading:
             None
 
   def discoverMetadataHandlers(
-      annotationNames: Set[String],
+      annotationRequests: Set[ExplicitImportAnnotationIdentityRequest],
       loaded: LoadedHandlers
-  )(using Context): List[LoadedExternalHandler] =
+  )(using Context): MetadataDiscoveryResult =
     val classCache = loaded.metadataHandlerRunCache
     val emittedDiscoveredClassNames = scala.collection.mutable.Set.empty[String]
+    val legacySimpleRequests = scala.collection.mutable.Set.empty[ExplicitImportAnnotationIdentityRequest]
 
-    annotationNames.toList.sorted
-      .filterNot(BuiltInAnnotationNames)
-      .flatMap: annotationName =>
-        loaded.metadataReader.findExpanderClass(annotationName) match
-          case MetadataLookupResult.Found(className) =>
-            val resolution =
-              classCache.resolve(className)(
-                loadHandler(className, loaded.handlerLoader, loaded.handlerClasspath)
+    val handlers =
+      annotationRequests.toList
+        .sortBy(request => (request.annotationName, request.importedShortName.getOrElse("")))
+        .filterNot(request => BuiltInAnnotationNames.contains(request.annotationName))
+        .flatMap: request =>
+          val lookupAnnotationName = request.annotationName
+          val hasCanonicalExplicit =
+            loaded.explicit.exists(_.descriptor.annotationName == request.annotationName)
+          val hasLegacySimpleExplicit =
+            !hasCanonicalExplicit && request.importedShortName.exists: shortName =>
+              loaded.explicit.exists(_.descriptor.annotationName == shortName)
+          loaded.metadataReader.findExpanderClass(lookupAnnotationName) match
+            case MetadataLookupResult.Found(className) =>
+              val resolution =
+                classCache.resolve(className)(
+                  loadHandler(className, loaded.handlerLoader, loaded.handlerClasspath)
+                )
+              resolution.loadedHandler match
+                case Some(handler) =>
+                  val bindingAnnotationName =
+                    request.importedShortName match
+                      case Some(shortName)
+                          if !hasCanonicalExplicit &&
+                            !handler.descriptor.annotationName.contains('.') =>
+                        legacySimpleRequests += request
+                        shortName
+                      case _ => lookupAnnotationName
+                  MetadataHandlerBinding.validate(
+                    bindingAnnotationName,
+                    className,
+                    handler,
+                    loaded.handlerLoader
+                  ) match
+                    case Left(failure) =>
+                      report.error(failure.diagnostic)
+                      List(invalidMetadataHandler(bindingAnnotationName))
+                    case Right(binding) =>
+                      resolution.origin match
+                        case classCache.Origin.Explicit =>
+                          Nil
+                        case classCache.Origin.Discovered
+                            if emittedDiscoveredClassNames.add(className) =>
+                          List(binding.loadedHandler)
+                        case classCache.Origin.Discovered =>
+                          Nil
+                case None =>
+                  List(invalidMetadataHandler(lookupAnnotationName))
+            case MetadataLookupResult.Failed(message) =>
+              report.error(
+                ExternalHandlerDiagnostics.render(
+                  ExternalHandlerDiagnostics.Stage.Discovery,
+                  "METADATA_DISCOVERY_FAILURE",
+                  "annotation" -> s"@$lookupAnnotationName",
+                  "detail" -> message
+                )
               )
-            resolution.loadedHandler match
-              case Some(handler) =>
-                MetadataHandlerBinding.validate(
-                  annotationName,
-                  className,
-                  handler,
-                  loaded.handlerLoader
-                ) match
-                  case Left(failure) =>
-                    report.error(failure.diagnostic)
-                    List(invalidMetadataHandler(annotationName))
-                  case Right(binding) =>
-                    resolution.origin match
-                      case classCache.Origin.Explicit =>
-                        Nil
-                      case classCache.Origin.Discovered
-                          if emittedDiscoveredClassNames.add(className) =>
-                        List(binding.loadedHandler)
-                      case classCache.Origin.Discovered =>
-                        Nil
-              case None =>
-                List(invalidMetadataHandler(annotationName))
-          case MetadataLookupResult.Failed(message) =>
-            report.error(
-              ExternalHandlerDiagnostics.render(
-                ExternalHandlerDiagnostics.Stage.Discovery,
-                "METADATA_DISCOVERY_FAILURE",
-                "annotation" -> s"@$annotationName",
-                "detail" -> message
-              )
-            )
-            List(invalidMetadataHandler(annotationName))
-          case MetadataLookupResult.NotFound =>
-            Nil
+              List(invalidMetadataHandler(lookupAnnotationName))
+            case MetadataLookupResult.NotFound =>
+              if hasLegacySimpleExplicit then
+                legacySimpleRequests += request
+              Nil
+
+    MetadataDiscoveryResult(handlers, legacySimpleRequests.toSet)
 
   def validateUniqueHandlers(
       handlers: List[LoadedExternalHandler]
@@ -1171,35 +1197,36 @@ private object ParadiseTreeRewrite:
         .getOrElse("<no-message>")
 
   private object HandledAnnotations:
-    def matchingExpanders(typeDef: TypeDef)(using Context): List[AnnotationExpander] =
+    def matchingExpanders(typeDef: TypeDef)(using Context, ExplicitImportAnnotationIdentityResolver): List[AnnotationExpander] =
       matchingExpanders(typeDef, Nil)
 
     def matchingExpanders(
         typeDef: TypeDef,
         externalExpanders: List[AnnotationExpander]
-    )(using Context): List[AnnotationExpander] =
+    )(using Context, ExplicitImportAnnotationIdentityResolver): List[AnnotationExpander] =
       matchingExpanders(Trees.mods(typeDef).annotations, externalExpanders)
 
     def matchingAnnotationsInSourceOrder(
         typeDef: TypeDef,
-        externalExpanders: List[AnnotationExpander]
-    )(using Context): List[MatchingAnnotation] =
+        externalExpanders: List[AnnotationExpander],
+        identityWitnesses: List[Tree] = Nil
+    )(using Context, ExplicitImportAnnotationIdentityResolver): List[MatchingAnnotation] =
       // MAY DEPEND ON SCALA VERSION
       // The pre-typer modifier annotation list is assumed to preserve source
       // order. Keep the original raw tree here so identity-based stripping can
       // remove exactly the annotation whose turn is being expanded.
       Trees.mods(typeDef).annotations.flatMap: annotation =>
         expanders(externalExpanders)
-          .find(expander => isAnnotationNamed(annotation, expander.annotationName))
+          .find(expander => isAnnotationNamed(annotation, expander.annotationName, identityWitnesses))
           .map(expander => MatchingAnnotation(annotation, expander))
 
-    def matchingExpanders(moduleDef: ModuleDef)(using Context): List[AnnotationExpander] =
+    def matchingExpanders(moduleDef: ModuleDef)(using Context, ExplicitImportAnnotationIdentityResolver): List[AnnotationExpander] =
       matchingExpanders(moduleDef, Nil)
 
     def matchingExpanders(
         moduleDef: ModuleDef,
         externalExpanders: List[AnnotationExpander]
-    )(using Context): List[AnnotationExpander] =
+    )(using Context, ExplicitImportAnnotationIdentityResolver): List[AnnotationExpander] =
       matchingExpanders(Trees.mods(moduleDef).annotations, externalExpanders)
 
     def annotationLabel(matching: List[AnnotationExpander]): String =
@@ -1210,9 +1237,12 @@ private object ParadiseTreeRewrite:
           many.map(expander => s"@${expander.annotationName}").mkString("handled annotations ", ", ", "")
 
     def strip(typeDef: TypeDef)(using Context): TypeDef =
-      strip(typeDef, Nil)
+      val currentMods = Trees.mods(typeDef)
+      val preserved = currentMods.annotations.filterNot: annotation =>
+        annotationName(annotation).exists(name => builtInExpanders.exists(_.annotationName == name))
+      typeDef.withMods(currentMods.withAnnotations(preserved)).asInstanceOf[TypeDef]
 
-    def strip(typeDef: TypeDef, externalExpanders: List[AnnotationExpander])(using Context): TypeDef =
+    def strip(typeDef: TypeDef, externalExpanders: List[AnnotationExpander])(using Context, ExplicitImportAnnotationIdentityResolver): TypeDef =
       val currentMods = Trees.mods(typeDef)
       typeDef.withMods(currentMods.withAnnotations(removeHandledAnnotations(currentMods.annotations, externalExpanders))).asInstanceOf[TypeDef]
 
@@ -1230,30 +1260,40 @@ private object ParadiseTreeRewrite:
       typeDef.withMods(currentMods.withAnnotations(annotations)).asInstanceOf[TypeDef]
 
     def strip(moduleDef: ModuleDef)(using Context): ModuleDef =
-      strip(moduleDef, Nil)
+      val currentMods = Trees.mods(moduleDef)
+      val preserved = currentMods.annotations.filterNot: annotation =>
+        annotationName(annotation).exists(name => builtInExpanders.exists(_.annotationName == name))
+      moduleDef.withMods(currentMods.withAnnotations(preserved)).asInstanceOf[ModuleDef]
 
-    def strip(moduleDef: ModuleDef, externalExpanders: List[AnnotationExpander])(using Context): ModuleDef =
+    def strip(moduleDef: ModuleDef, externalExpanders: List[AnnotationExpander])(using Context, ExplicitImportAnnotationIdentityResolver): ModuleDef =
       val currentMods = Trees.mods(moduleDef)
       moduleDef.withMods(currentMods.withAnnotations(removeHandledAnnotations(currentMods.annotations, externalExpanders))).asInstanceOf[ModuleDef]
 
     private def matchingExpanders(
         annotations: List[Tree],
         externalExpanders: List[AnnotationExpander]
-    )(using Context): List[AnnotationExpander] =
+    )(using Context, ExplicitImportAnnotationIdentityResolver): List[AnnotationExpander] =
       expanders(externalExpanders).filter: expander =>
         annotations.exists(isAnnotationNamed(_, expander.annotationName))
 
     private def removeHandledAnnotations(
         annotations: List[Tree],
         externalExpanders: List[AnnotationExpander]
-    )(using Context): List[Tree] =
+    )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
       annotations.filterNot(isHandledAnnotation(_, externalExpanders))
 
-    private def isHandledAnnotation(tree: Tree, externalExpanders: List[AnnotationExpander])(using Context): Boolean =
+    private def isHandledAnnotation(tree: Tree, externalExpanders: List[AnnotationExpander])(using Context, ExplicitImportAnnotationIdentityResolver): Boolean =
       expanders(externalExpanders).exists(expander => isAnnotationNamed(tree, expander.annotationName))
 
-    private def isAnnotationNamed(tree: Tree, expectedName: String)(using Context): Boolean =
-      annotationName(tree).contains(expectedName)
+    private def isAnnotationNamed(
+        tree: Tree,
+        expectedName: String,
+        identityWitnesses: List[Tree] = Nil
+    )(using context: Context, resolver: ExplicitImportAnnotationIdentityResolver): Boolean =
+      resolver
+        .identityOfUsingWitnesses(tree, identityWitnesses)
+        .toOption
+        .exists(_.value == expectedName)
 
     def annotationName(tree: Tree)(using Context): Option[String] =
       SyntacticAnnotationIdentity.fromTree(tree).map(_.value)
@@ -1262,11 +1302,15 @@ private object ParadiseTreeRewrite:
       unit: CompilationUnit,
       loadedExternalHandlers: ExternalHandlerLoading.LoadedHandlers
   )(using Context): Tree =
-    val discoveredHandlers =
+    given identityResolver: ExplicitImportAnnotationIdentityResolver =
+      ExplicitImportAnnotationIdentityResolver.fromUnitTree(unit.untpdTree)
+    val discovery =
       ExternalHandlerLoading.discoverMetadataHandlers(
-        collectAnnotationNames(unit.untpdTree),
+        collectAnnotationIdentityRequests(unit.untpdTree),
         loadedExternalHandlers
       )
+    discovery.legacySimpleRequests.foreach(identityResolver.preferLegacySimpleIdentity)
+    val discoveredHandlers = discovery.handlers
     val externalHandlers =
       ExternalHandlerLoading.validateUniqueHandlers(
         dedupeHandlersByClass(loadedExternalHandlers.explicit ++ discoveredHandlers)
@@ -1296,33 +1340,39 @@ private object ParadiseTreeRewrite:
       seen += key
       isNew
 
-  private def collectAnnotationNames(tree: Tree)(using Context): Set[String] =
-    val names = Set.newBuilder[String]
+  private def collectAnnotationIdentityRequests(
+      tree: Tree
+  )(using context: Context, resolver: ExplicitImportAnnotationIdentityResolver): Set[ExplicitImportAnnotationIdentityRequest] =
+    val requests = Set.newBuilder[ExplicitImportAnnotationIdentityRequest]
 
     def loop(current: Tree): Unit =
       current match
         case typeDef: TypeDef =>
           Trees.mods(typeDef).annotations.foreach: annotation =>
-            HandledAnnotations.annotationName(annotation).foreach(names += _)
+            resolver.requestOf(annotation) match
+              case Right(request) => requests += request
+              case Left(diagnostic) => report.error(diagnostic.message, diagnostic.pos)
           typeDef.rhs match
             case template: Template =>
               template.body(using summon[Context]).foreach(loop)
             case _ =>
         case moduleDef: ModuleDef =>
           Trees.mods(moduleDef).annotations.foreach: annotation =>
-            HandledAnnotations.annotationName(annotation).foreach(names += _)
+            resolver.requestOf(annotation) match
+              case Right(request) => requests += request
+              case Left(diagnostic) => report.error(diagnostic.message, diagnostic.pos)
           moduleDef.impl.body(using summon[Context]).foreach(loop)
         case pkg: PackageDef =>
           pkg.stats.foreach(loop)
         case _ =>
 
     loop(tree)
-    names.result()
+    requests.result()
 
   private def rewritePackageStats(
       stats: List[Tree],
       externalExpanders: List[AnnotationExpander]
-  )(using Context): List[Tree] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     rewritePackageStats(stats, TopLevelRewriteContext(collectTopLevelNames(stats)), externalExpanders)
 
   private def collectTopLevelNames(stats: List[Tree]): Set[String] =
@@ -1335,7 +1385,7 @@ private object ParadiseTreeRewrite:
       stats: List[Tree],
       topLevel: TopLevelRewriteContext,
       externalExpanders: List[AnnotationExpander]
-  )(using Context): List[Tree] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     stats match
       case Nil => Nil
       case (typeDef: TypeDef) :: rest =>
@@ -1375,7 +1425,7 @@ private object ParadiseTreeRewrite:
       topLevel: TopLevelRewriteContext,
       matchingAnnotations: List[MatchingAnnotation],
       externalExpanders: List[AnnotationExpander]
-  )(using Context): List[Tree] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     matchingAnnotations match
       case MatchingAnnotation(annotation, expander) :: Nil =>
         val (existingCompanion, remainingStats) =
@@ -1398,7 +1448,7 @@ private object ParadiseTreeRewrite:
       topLevel: TopLevelRewriteContext,
       annotations: List[MatchingAnnotation],
       externalExpanders: List[AnnotationExpander]
-  )(using Context): List[Tree] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     val (existingCompanion, remainingStats) =
       // ASSUMPTION
       // A following top-level companion is removed from package stats exactly
@@ -1577,7 +1627,7 @@ private object ParadiseTreeRewrite:
       later: List[MatchingAnnotation],
       externalExpanders: List[AnnotationExpander],
       trees: List[Tree]
-  )(using Context): Option[ExpansionDiagnostic] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Option[ExpansionDiagnostic] =
     val returnedPrimary =
       trees.collectFirst:
         case typeDef: TypeDef => typeDef
@@ -1608,7 +1658,9 @@ private object ParadiseTreeRewrite:
                 val returnedHandled =
                   HandledAnnotations.matchingAnnotationsInSourceOrder(
                     primary,
-                    externalExpanders
+                    externalExpanders,
+                    identityWitnesses =
+                      (consumed ++ (current :: later)).map(_.annotation)
                   )
                 returnedHandled.iterator
                   .filterNot: returned =>
@@ -1673,7 +1725,7 @@ private object ParadiseTreeRewrite:
       topLevel: TopLevelRewriteContext,
       externalExpanders: List[AnnotationExpander],
       restoredCompanionOnRejection: Option[ModuleDef] = None
-  )(using Context): List[Tree] =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     result match
       case ValidatedExpansionResult.Expanded(trees) =>
         trees ++ rewritePackageStats(remainingStats, topLevel, externalExpanders)
@@ -1715,7 +1767,7 @@ private object ParadiseTreeRewrite:
       targetDescription: String,
       matching: List[AnnotationExpander],
       externalExpanders: List[AnnotationExpander]
-  )(using Context): TypeDef =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): TypeDef =
     reportUnsupportedTarget(typeDef, targetDescription, matching)
     HandledAnnotations.strip(typeDef, externalExpanders)
 
@@ -1724,7 +1776,7 @@ private object ParadiseTreeRewrite:
       targetDescription: String,
       matching: List[AnnotationExpander],
       externalExpanders: List[AnnotationExpander]
-  )(using Context): ModuleDef =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): ModuleDef =
     reportUnsupportedTarget(moduleDef, targetDescription, matching)
     HandledAnnotations.strip(moduleDef, externalExpanders)
 
@@ -1773,7 +1825,7 @@ private object ParadiseTreeRewrite:
   private def stripNestedHandledAnnotations(
       tree: Tree,
       externalExpanders: List[AnnotationExpander]
-  )(using Context): Tree =
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Tree =
     tree match
       case typeDef: TypeDef =>
         typeDef.rhs match

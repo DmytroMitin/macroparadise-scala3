@@ -67,9 +67,20 @@ value to generic JVM class loading or scan other classpaths for a guess.
 
 ### Annotation identity mismatch
 
-Prefer an exact qualified source form. Imported simple names, aliases, and
-wildcards are not semantically resolved. Two metadata-bearing classes with the
-same simple name cause the simple identity to fail closed.
+Use an exact qualified source form or one unambiguous, source-preceding
+package-level explicit import. The latter is canonicalized syntactically before
+typer; it does not enable alias, wildcard, local/nested, given, export, or
+semantic resolution. Two matching explicit imports produce a deterministic
+ambiguity diagnostic with both canonical candidates. An unwitnessed short name
+retains the existing fail-closed discovery behavior.
+
+### Marker missing from the ordinary consumer classpath
+
+The consumer must `.dependsOn(marker)`. The handler JAR supplied through
+`handlerClasspath` does not add the marker to the ordinary compile classpath.
+If the edge is missing, Dotty can report E008 for the unresolved import and E046
+for cyclic completion around the annotation. Treat both as ordinary build-graph
+or type-resolution evidence, not as a Macro-Paradise-generated compiler cycle.
 
 ### Target rejected before invocation
 
