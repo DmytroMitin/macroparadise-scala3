@@ -46,17 +46,17 @@ unambiguous, source-preceding explicit import at package scope. New handlers
 should declare a qualified name.
 
 ```scala
-import starter.marker.generateGreeting
+import a.b.identity
 
-@generateGreeting
-class Greeter
+@identity
+class Something
 ```
 
 Before typer, the plugin canonicalizes this occurrence to
-`starter.marker.generateGreeting`. Metadata lookup, handler binding,
-composition, and normalized handler input use that canonical identity while
-the raw annotation tree and source position remain unchanged. Direct qualified
-syntax remains supported.
+`a.b.identity`. Metadata lookup, handler binding, composition, and normalized
+handler input use that canonical identity while the raw annotation tree and
+source position remain unchanged. Direct `@a.b.identity` syntax remains
+supported as a control or fallback.
 
 Two explicit imports that provide the same short annotation name fail with a
 deterministic ambiguity diagnostic listing the canonical candidates. The
@@ -66,8 +66,9 @@ plugin does not implement or infer:
 - wildcard imports;
 - local or nested imports;
 - given imports or exports;
-- symbols or semantic package identity;
-- semantic types.
+- shadowing-dependent semantics;
+- package-object semantics;
+- symbols, semantic package identity, or semantic annotation/type aliases.
 
 A qualified source name never falls back to its final segment. An unwitnessed
 short name retains the previous bounded behavior and is never assigned a

@@ -115,9 +115,9 @@ The exact admitted shape is one concrete top-level, non-case, non-generic
 class with one non-contextual primary-constructor clause containing one bare or
 immutable `val name: String`, no default, and an accessible constructor.
 
-## Try the external-handler starter
+## Try a user-defined external handler
 
-Pin the consumer build tool in `project/build.properties`:
+Pin the external build tool in `project/build.properties`:
 
 ```text
 sbt.version=1.12.15
@@ -130,7 +130,43 @@ Without it, a runner may choose and even write a different default sbt version.
 That is build-tool divergence, not a Macro-Paradise semantic mode. sbt 2 is not
 part of the supported boundary.
 
-Run:
+### Start with `@identity`
+
+The canonical minimal first-use example has a precompiled marker, a precompiled
+handler that returns the class unchanged, and this consumer:
+
+```scala
+package com.example.core
+
+import com.example.`macro`.annotations.identity
+
+@identity
+class Something
+```
+
+The normal form is the explicit import plus short `@identity` shown above. A
+direct-qualified annotation remains supported as a control or fallback:
+
+```scala
+@com.example.`macro`.annotations.identity
+class Something
+```
+
+The complete copy/paste marker, handler, and three-project sbt graph are in
+[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md). The repository
+mechanically compiles both source forms with:
+
+```sh
+sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
+```
+
+Successful unchanged-class compilation proves marker discovery, metadata
+binding, canonicalization, handler loading, and one handler invocation. It does
+not depend on generated-member helpers or more involved tree construction.
+
+### Continue with generated output
+
+Run the fixture-independent `generateGreeting` starter:
 
 ```sh
 sbt -batch verifyExternalHandlerAuthoringStarter
@@ -139,7 +175,8 @@ sbt -batch verifyExternalHandlerAuthoringStarter
 The task packages the real plugin and experimental handler API, then runs a
 nested marker/handler/consumer build with task-owned local paths. The ordinary
 consumer typechecks and executes a generated `generatedGreeting` method only
-after the preconsumer checks pass.
+after the preconsumer checks pass. This second example proves transformation
+output after the identity smoke test has isolated the wiring contract.
 
 The marker and handler are compiled before the annotated consumer, without the
 Macro-Paradise plugin active in either producer compilation. The consumer's
@@ -150,21 +187,11 @@ plugin and handler artifacts are compilation tools, not automatic runtime
 application dependencies. This standard multi-project sbt shape is suitable
 for CLI use and IntelliJ/BSP import; no IDE metadata is required.
 
-With the marker on that ordinary classpath, the supported natural source form
-is one explicit import followed by the short annotation:
-
-```scala
-import starter.marker.generateGreeting
-
-@generateGreeting
-final class Greeter
-```
-
-The plugin canonicalizes only this bounded explicit-import form before typer.
-It does not implement wildcard, alias, local/nested, given, export, or general
-semantic name resolution. Omitting `.dependsOn(marker)` is an ordinary sbt
-classpath error and can surface as Dotty unresolved-import plus cyclic-
-completion diagnostics; it is not a Macro-Paradise identity failure.
+The plugin canonicalizes only the bounded explicit-import form before typer. It
+does not implement wildcard, alias, local/nested, given, export, shadowing-
+dependent, package-object, or general semantic name resolution. Omitting the
+marker project dependency is an ordinary sbt classpath error and can surface as
+Dotty E008 plus E046 diagnostics; it is not a Macro-Paradise identity failure.
 
 Read [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the marker,
 handler, classpath, output, and diagnostic contracts.

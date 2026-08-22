@@ -67,12 +67,16 @@ value to generic JVM class loading or scan other classpaths for a guess.
 
 ### Annotation identity mismatch
 
-Use an exact qualified source form or one unambiguous, source-preceding
-package-level explicit import. The latter is canonicalized syntactically before
-typer; it does not enable alias, wildcard, local/nested, given, export, or
-semantic resolution. Two matching explicit imports produce a deterministic
-ambiguity diagnostic with both canonical candidates. An unwitnessed short name
-retains the existing fail-closed discovery behavior.
+The normal form is one unambiguous, source-preceding package-level explicit
+import followed by the short annotation, such as `import a.b.identity` and
+`@identity`, while the handler declares canonical identity `a.b.identity`.
+Direct `@a.b.identity` syntax remains supported as a control or fallback. The
+imported-short form is canonicalized syntactically before typer; it does not
+enable renamed/aliased, wildcard, local/nested, given, export, shadowing-
+dependent, package-object, or semantic resolution. Two matching explicit
+imports produce a deterministic ambiguity diagnostic with both canonical
+candidates. An unwitnessed short name retains the existing fail-closed
+discovery behavior.
 
 ### Marker missing from the ordinary consumer classpath
 

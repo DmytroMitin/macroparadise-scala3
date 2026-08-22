@@ -1,7 +1,9 @@
 # External handler authoring
 
-The executable starter under `examples/external-handler-starter` is the
-smallest supported authoring example. It separates three roles:
+Start with a user-defined `@identity` annotation. It is the smallest supported
+authoring example because it exercises the complete external-handler wiring
+contract without generating a member. The independent external sbt verifier
+separates three roles:
 
 1. a marker JAR containing one annotation and runtime handler metadata;
 2. a precompiled handler JAR built against the experimental handler contract
@@ -22,55 +24,53 @@ compiler internals; a nearby Scala or JDK version is not an interchangeable
 substitute.
 
 ```text
-marker project                 handler project
-     |                              |
-     | consumer dependsOn(marker)   | handler / Compile / packageBin
-     +---------------+--------------+
-                     |
-                consumer project
-                - compilerPlugin(plugin)
-                - handlerClasspath=<handler JAR>
+    macroAnnotations project             macroHandlers project
+             |                                   |
+             | core dependsOn(macroAnnotations)  | macroHandlers / Compile / packageBin
+             +------------------+----------------+
+                                |
+                           core project
+                           - compilerPlugin(macroparadisePlugin)
+                           - handlerClasspath=<handler JAR>
 ```
 
-The consumer does not `dependsOn(handler)`. The `packageBin` lookup is the sbt
-task dependency that compiles and packages the handler before consumer
+The consumer does not `dependsOn(macroHandlers)`. The `packageBin` lookup is the
+sbt task dependency that compiles and packages the handler before consumer
 scalac-options are evaluated. This keeps handler implementation classes off the
 ordinary application compile and runtime classpaths:
 
 ```scala
-lazy val consumer = project
-  .dependsOn(marker)
+lazy val core = project
+  .dependsOn(macroAnnotations)
   .settings(
-    libraryDependencies += compilerPlugin(
-      ("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0")
-        .cross(CrossVersion.full)
-    ),
+    libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
-      val handlerJar = (handler / Compile / packageBin).value
+      val handlerJar = (macroHandlers / Compile / packageBin).value
       Seq(
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
       )
     }
-)
+  )
 ```
 
-The consumer source can use the ordinary first-use form:
+The normal first-use source form is one explicit import followed by the short
+annotation:
 
 ```scala
-package starter.consumer
+package com.example.core
 
-import starter.marker.generateGreeting
+import com.example.`macro`.annotations.identity
 
-@generateGreeting
-final class Greeter
+@identity
+class Something
 ```
 
 The marker project must remain on the consumer's ordinary compile classpath via
-`.dependsOn(marker)`. Omitting that edge is an sbt build-graph error. Dotty may
-then report the unresolved import together with an E046 cyclic-completion
-diagnostic; that compiler diagnostic is independent of Macro-Paradise's
-pre-typer identity resolver.
+`.dependsOn(macroAnnotations)`. Omitting that edge is an sbt build-graph error.
+Dotty reports the unresolved import as E008 and can also report E046 cyclic
+completion around the missing annotation; those compiler diagnostics are
+independent of Macro-Paradise's pre-typer identity resolver.
 
 Only the self-contained plugin coordinate activates the compiler plugin. Do
 not construct a second `-Xplugin` path that appends `plugin-api`. The marker is
@@ -80,24 +80,25 @@ does not load its implementation.
 Run it from the repository root:
 
 ```sh
-sbt -batch verifyExternalHandlerAuthoringStarter
+sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 ```
 
 The task packages the product artifacts, runs the isolated nested build, checks
-the positive consumer/runtime flow, and verifies a fail-closed negative matrix.
-It does not publish artifacts.
+the imported-short and direct-qualified consumers, and verifies missing-handler
+and missing-marker negatives. It does not publish artifacts.
 
 ## Marker
 
 The marker owns metadata, not the implementation:
 
 ```scala
-package starter.marker
+package com.example.`macro`.annotations
 
 import paradise3.api.expander
+import scala.annotation.StaticAnnotation
 
-@expander("starter.handler.GenerateGreetingHandler")
-final class generateGreeting extends scala.annotation.StaticAnnotation
+@expander("com.example.macro.handlers.IdentityHandler")
+class identity extends StaticAnnotation
 ```
 
 The handler must already be compiled and available through the explicit
@@ -108,26 +109,27 @@ class name; empty, whitespace-only, or malformed values fail precheck as
 
 ## Handler
 
-The starter handler implements `ParadiseAnnotationExpander`:
+The identity handler implements `ParadiseAnnotationExpander` and returns the
+annotated class unchanged:
 
 ```scala
-package starter.handler
+package com.example.`macro`.handlers
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.*
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
 
-final class GenerateGreetingHandler extends ParadiseAnnotationExpander:
-  val annotationName: String = "starter.marker.generateGreeting"
+final class IdentityHandler extends ParadiseAnnotationExpander:
+  override def annotationName: String =
+    "com.example.macro.annotations.identity"
 
-  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.withAnnotatedClassView(input): view =>
-      ExpansionHelpers.addStringMethodToClass(
-        input,
-        methodName = "generatedGreeting",
-        value = s"Hello, ${view.className}!"
-      )
+  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionOutcome.Expanded(List(input.annotatedClass))
 ```
+
+Successful compilation is the observable smoke test. It proves marker
+discovery, metadata binding, imported-short canonicalization, handler loading,
+and exactly one handler invocation without depending on generated-member helper
+behavior or more involved tree construction.
 
 The safe defaults are:
 
@@ -137,6 +139,20 @@ The safe defaults are:
 
 Override a capability only when the handler has evidence for the corresponding
 plugin-owned admission, composition, or companion contract.
+
+## Generated-output follow-on
+
+After the identity smoke test passes, the executable
+[`generateGreeting` starter](../examples/external-handler-starter/README.md)
+is the next example. Its handler uses `ExpansionHelpers` to add
+`generatedGreeting`, and the consumer typechecks and runs that generated member.
+It proves transformation output in addition to the same marker, handler, and
+consumer wiring; generated helpers are not required merely to prove discovery
+and invocation.
+
+```sh
+sbt -batch verifyExternalHandlerAuthoringStarter
+```
 
 ## API boundary
 
@@ -194,11 +210,14 @@ val mpVersion = "0.1.0"
 val mpApi =
   (mpOrg % "macroparadise-scala3-plugin-api" % mpVersion)
     .cross(CrossVersion.full)
+val macroparadisePlugin =
+  (mpOrg % "macroparadise-scala3-plugin" % mpVersion)
+    .cross(CrossVersion.full)
 
-lazy val marker = project
+lazy val macroAnnotations = project
   .settings(libraryDependencies += mpApi)
 
-lazy val handler = project
+lazy val macroHandlers = project
   .settings(
     libraryDependencies ++= Seq(
       mpApi,
@@ -206,18 +225,12 @@ lazy val handler = project
     )
   )
 
-lazy val consumer = project
-  .dependsOn(marker)
+lazy val core = project
+  .dependsOn(macroAnnotations)
   .settings(
-    libraryDependencies ++= Seq(
-      compilerPlugin(
-        (mpOrg % "macroparadise-scala3-plugin" % mpVersion)
-          .cross(CrossVersion.full)
-      ),
-      mpApi
-    ),
+    libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
-      val handlerJar = (handler / Compile / packageBin).value
+      val handlerJar = (macroHandlers / Compile / packageBin).value
       Seq(
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
@@ -226,10 +239,12 @@ lazy val consumer = project
   )
 ```
 
-The executable coordinate-resolution mirror is
-`verifyIndependentExternalSbtConsumerFromLocalRepository`; the checked-in
-starter uses the same marker/handler/consumer topology with explicit local
-artifact paths.
+The executable `@identity` mirror is
+`verifyIndependentExternalSbtConsumerFromLocalRepository`. It compiles the
+literal marker, handler, and consumer shapes above in a disposable external sbt
+build, audits the graph and plugin options, and keeps its artifacts task-local.
+The checked-in generated-greeting starter uses the same three-role topology
+with explicit local artifact paths.
 
 The candidate coordinates are locally usable but are not available from Maven
 Central. The repository's built-in `@gen` annotation is a fixture and is not
@@ -237,14 +252,22 @@ the supported public authoring API.
 
 ## Explicit-import identity boundary
 
-`starter.marker.generateGreeting` remains the canonical handler identity. The
-pre-typer plugin can obtain it from either direct qualified annotation syntax
-or one unambiguous, source-preceding package-level explicit import:
+`com.example.macro.annotations.identity` is the canonical handler identity. The
+normal form is one unambiguous, source-preceding package-level explicit import
+followed by the short annotation:
 
 ```scala
-import starter.marker.generateGreeting
-@generateGreeting
-final class Greeter
+import com.example.`macro`.annotations.identity
+
+@identity
+class Something
+```
+
+Direct qualified syntax remains supported as a control or fallback:
+
+```scala
+@com.example.`macro`.annotations.identity
+class Something
 ```
 
 This is source-syntactic canonicalization, not typer or semantic name
@@ -253,7 +276,8 @@ It does not support renamed or wildcard imports, local/nested imports, given
 imports, exports, package-object semantics, shadowing, or annotation/type
 aliases. Two explicit imports for the same short name fail closed and list the
 canonical candidates. A short use without a safe explicit witness is never
-assigned a guessed package. Direct qualified syntax is unchanged.
+assigned a guessed package. The qualified control does not broaden those
+boundaries.
 
 Existing handlers with captured simple descriptors keep their legacy simple
 identity after metadata selection. This compatibility does not let a directly
@@ -405,9 +429,13 @@ preconsumer stop boundary.
 
 ## What the starter proves
 
-The positive flow typechecks and runs `new Greeter().generatedGreeting`, which
-returns `Hello, Greeter!`. It proves one precompiled qualified
-marker/handler/consumer path on the pinned toolchain.
+The independent external sbt proof compiles the exact imported-short `@identity`
+example above, observes canonical metadata selection and one `IdentityHandler`
+invocation, and compiles the direct-qualified control. Its missing-marker lane
+remains an ordinary E008/E046 build-graph failure. The generated-greeting
+starter then typechecks and runs `new Greeter().generatedGreeting`, which
+returns `Hello, Greeter!`. Together they prove wiring first and generated output
+second on the pinned toolchain.
 
 It does not prove a marker declared in the same compilation as its annotated
 use, same-module handlers, remotely released coordinates, arbitrary targets,

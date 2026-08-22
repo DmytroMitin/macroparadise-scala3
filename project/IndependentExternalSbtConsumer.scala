@@ -176,8 +176,10 @@ object IndependentExternalSbtConsumer {
 
   private final case class MultiProjectFirstUseResult(
       negative: NegativeEvidence,
-      generatedMethodPresent: Boolean,
-      handlerRuntimeIsolated: Boolean
+      importedIdentityCompiled: Boolean,
+      qualifiedIdentityCompiled: Boolean,
+      handlerRuntimeIsolated: Boolean,
+      missingMarker: NegativeEvidence
   )
 
   def repositoryCoordinate(module: String): Coordinate =
@@ -520,9 +522,17 @@ object IndependentExternalSbtConsumer {
       generatedMethodPresent = true,
       runtimeText,
       parentFirst,
-      multiProjectFirstUseProven = multiProjectFirstUse.generatedMethodPresent,
+      multiProjectFirstUseProven =
+        multiProjectFirstUse.importedIdentityCompiled &&
+          multiProjectFirstUse.qualifiedIdentityCompiled,
       handlerRuntimeIsolated = multiProjectFirstUse.handlerRuntimeIsolated,
-      negatives = Vector(multiProjectFirstUse.negative, missingHandler, missingMarker, duplicateApi)
+      negatives = Vector(
+        multiProjectFirstUse.negative,
+        multiProjectFirstUse.missingMarker,
+        missingHandler,
+        missingMarker,
+        duplicateApi
+      )
     )
   }
 
@@ -593,12 +603,16 @@ object IndependentExternalSbtConsumer {
       evidenceDirectory: String
   ): String = {
     val dependency =
-      if (positive) ".dependsOn(marker)"
-      else ".dependsOn(marker, handler)"
+      if (positive) ".dependsOn(macroAnnotations)"
+      else ".dependsOn(macroAnnotations, macroHandlers)"
     val handlerOption =
       if (positive)
-        """      val handlerJar = (handler / Compile / packageBin).value
-          |      base ++ Seq("-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath)""".stripMargin
+        s"""      val handlerJar = (macroHandlers / Compile / packageBin).value
+           |      base ++ Seq(
+           |        "-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath,
+           |        "-P:macroparadise:metadataReaderTrace=" + file("${scalaString(evidenceDirectory)}/" + tracePrefix + "-metadata.trace").getAbsolutePath,
+           |        "-P:macroparadise:externalHandlerInvocationTrace=" + file("${scalaString(evidenceDirectory)}/" + tracePrefix + "-invocation.trace").getAbsolutePath
+           |      )""".stripMargin
       else "      base"
     val positiveLiteral = positive.toString
     s"""import sbt._
@@ -625,52 +639,81 @@ object IndependentExternalSbtConsumer {
        |    .cross(CrossVersion.full)
        |
        |lazy val firstUseAudit = taskKey[Unit]("Audit the external handler first-use graph")
-       |lazy val firstUseRuntime = taskKey[Unit]("Run the generated-definition consumer")
        |
-       |lazy val marker = project.in(file("marker"))
+       |lazy val macroAnnotations = project.in(file("macro-annotations"))
        |  .settings(
-       |    name := "external-first-use-marker",
+       |    name := "external-identity-first-use-marker",
        |    libraryDependencies += mpApi
        |  )
        |
-       |lazy val handler = project.in(file("handler"))
+       |lazy val macroHandlers = project.in(file("macro-handlers"))
        |  .settings(
-       |    name := "external-first-use-handler",
+       |    name := "external-identity-first-use-handler",
        |    libraryDependencies ++= Seq(
        |      mpApi,
        |      "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
        |    )
        |  )
        |
+       |def identityConsumerSettings(tracePrefix: String) = Seq(
+       |  libraryDependencies += compilerPlugin(mpPlugin),
+       |  Compile / scalacOptions ++= {
+       |    val base = Seq("-Xplugin-require:macroparadise")
+       |$handlerOption
+       |  }
+       |)
+       |
        |lazy val core = project.in(file("core"))
        |  $dependency
-       |  .settings(
-       |    name := "external-first-use-core",
-       |    libraryDependencies += compilerPlugin(mpPlugin),
-       |    Compile / scalacOptions ++= {
-       |      val base = Seq("-Xplugin-require:macroparadise")
-       |$handlerOption
-       |    }
-       |  )
+       |  .settings(identityConsumerSettings("imported"))
+       |  .settings(name := "external-identity-first-use-core")
+       |
+       |lazy val qualifiedControl = project.in(file("qualified-control"))
+       |  .dependsOn(macroAnnotations)
+       |  .settings(identityConsumerSettings("qualified"))
+       |  .settings(name := "external-identity-qualified-control")
+       |
+       |lazy val missingMarker = project.in(file("missing-marker"))
+       |  .settings(identityConsumerSettings("missing-marker"))
+       |  .settings(name := "external-identity-missing-marker")
        |
        |lazy val root = project.in(file("."))
-       |  .aggregate(marker, handler, core)
+       |  .aggregate(macroAnnotations, macroHandlers, core, qualifiedControl, missingMarker)
        |  .settings(
        |    publish / skip := true,
        |    firstUseAudit := {
        |      val options = (core / Compile / scalacOptions).value
+       |      val qualifiedOptions = (qualifiedControl / Compile / scalacOptions).value
        |      val pluginOptions = options.filter(_.startsWith("-Xplugin:"))
        |      val handlerOptions = options.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
        |      val compileClasspath = (core / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
        |      val runtimeClasspath = (core / Runtime / fullClasspath).value.files.map(_.getCanonicalFile).distinct
-       |      val handlerClasses = (handler / Compile / classDirectory).value.getCanonicalFile
-       |      val handlerJar = (handler / Compile / packageBin).value.getCanonicalFile
+       |      val qualifiedCompileClasspath = (qualifiedControl / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
+       |      val qualifiedRuntimeClasspath = (qualifiedControl / Runtime / fullClasspath).value.files.map(_.getCanonicalFile).distinct
+       |      val missingMarkerClasspath = (missingMarker / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
+       |      val markerClasses = (macroAnnotations / Compile / classDirectory).value.getCanonicalFile
+       |      val handlerClasses = (macroHandlers / Compile / classDirectory).value.getCanonicalFile
+       |      val handlerJar = (macroHandlers / Compile / packageBin).value.getCanonicalFile
+       |      val producerOptions = (macroAnnotations / Compile / scalacOptions).value ++ (macroHandlers / Compile / scalacOptions).value
+       |      require(!producerOptions.exists(_.startsWith("-Xplugin")), "marker/handler compilation activated Macro Paradise")
+       |      require(!producerOptions.exists(_.startsWith("-P:macroparadise:")), "marker/handler compilation received Macro Paradise options")
        |      require(pluginOptions.size == 1, "expected exactly one compiler-plugin activation path, found " + pluginOptions)
        |      require(!pluginOptions.head.contains("plugin-api"), "compiler-plugin activation still appends plugin-api")
+       |      require(compileClasspath.contains(markerClasses), "marker project is absent from the imported consumer classpath")
+       |      require(qualifiedCompileClasspath.contains(markerClasses), "marker project is absent from the qualified control classpath")
+       |      require(!missingMarkerClasspath.contains(markerClasses), "missing-marker control unexpectedly contains marker output")
        |      if ($positiveLiteral) {
        |        require(handlerOptions == Seq("-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath), "handler option does not equal handler/packageBin")
+       |        require(qualifiedOptions.count(_.startsWith("-Xplugin:")) == 1, "qualified control does not use exactly one compiler-plugin coordinate")
+       |        require(qualifiedOptions.filter(_.startsWith("-P:macroparadise:handlerClasspath=")) == handlerOptions, "qualified control handler option differs from handler/packageBin")
+       |        require(options.count(_.startsWith("-P:macroparadise:metadataReaderTrace=")) == 1, "imported consumer metadata witness is absent")
+       |        require(options.count(_.startsWith("-P:macroparadise:externalHandlerInvocationTrace=")) == 1, "imported consumer invocation witness is absent")
+       |        require(qualifiedOptions.count(_.startsWith("-P:macroparadise:metadataReaderTrace=")) == 1, "qualified control metadata witness is absent")
+       |        require(qualifiedOptions.count(_.startsWith("-P:macroparadise:externalHandlerInvocationTrace=")) == 1, "qualified control invocation witness is absent")
        |        require(!compileClasspath.contains(handlerClasses), "handler implementation leaked onto the ordinary source compilation classpath")
        |        require(!runtimeClasspath.contains(handlerClasses) && !runtimeClasspath.contains(handlerJar), "handler implementation leaked onto the application runtime classpath")
+       |        require(!qualifiedCompileClasspath.contains(handlerClasses), "handler implementation leaked onto the qualified control classpath")
+       |        require(!qualifiedRuntimeClasspath.contains(handlerClasses) && !qualifiedRuntimeClasspath.contains(handlerJar), "handler implementation leaked onto the qualified control runtime classpath")
        |      } else {
        |        require(handlerOptions.isEmpty, "negative first-use graph unexpectedly configures the handler loader")
        |        require(compileClasspath.contains(handlerClasses), "negative graph does not reproduce dependsOn(handler) ordinary-classpath visibility")
@@ -681,16 +724,11 @@ object IndependentExternalSbtConsumer {
        |          "pluginOptions=" + pluginOptions.mkString("|") + "\\n" +
        |          "handlerOptions=" + handlerOptions.mkString("|") + "\\n" +
        |          "ordinaryClasspathContainsHandlerClasses=" + compileClasspath.contains(handlerClasses) + "\\n" +
-       |          "runtimeClasspathContainsHandlerClasses=" + runtimeClasspath.contains(handlerClasses) + "\\n",
+       |          "runtimeClasspathContainsHandlerClasses=" + runtimeClasspath.contains(handlerClasses) + "\\n" +
+       |          "markerHandlerCompilerPluginActive=" + producerOptions.exists(_.startsWith("-Xplugin")) + "\\n" +
+       |          "missingMarkerClasspathContainsMarkerClasses=" + missingMarkerClasspath.contains(markerClasses) + "\\n",
        |        StandardCharsets.UTF_8
        |      )
-       |    },
-       |    firstUseRuntime := {
-       |      val classpath = (core / Runtime / fullClasspath).value.files.map(_.getAbsolutePath).mkString(File.pathSeparator)
-       |      val java = file(sys.props("java.home")) / "bin" / "java"
-       |      val output = Process(Vector(java.getAbsolutePath, "-cp", classpath, "contractprobeconsumer.IndependentPackagedConsumer"), baseDirectory.value).!!
-       |      require(output == "IndependentConsumerUser\\n", "unexpected runtime output: " + output.replace("\\n", "\\\\n"))
-       |      IO.write(file("${scalaString(evidenceDirectory)}/runtime.txt"), output, StandardCharsets.UTF_8)
        |    }
        |  )
        |""".stripMargin
@@ -735,7 +773,7 @@ object IndependentExternalSbtConsumer {
       runSbt(
         layout.multiProjectGreen,
         layout,
-        Vector("clean", "firstUseAudit", "core/compile", "firstUseRuntime"),
+        Vector("clean", "firstUseAudit", "core/compile", "qualifiedControl/compile"),
         Map.empty,
         greenLog
       ) == 0,
@@ -746,23 +784,95 @@ object IndependentExternalSbtConsumer {
     val coreClasses = singleDirectory(new File(layout.multiProjectGreen, "core"), "classes")
     val javapLog = new File(greenEvidence, "core-javap.txt")
     val javap = runProcess(
-      Vector(javaTool("javap"), "-classpath", coreClasses.getAbsolutePath, "contractprobeconsumer.IndependentConsumerUser"),
+      Vector(javaTool("javap"), "-classpath", coreClasses.getAbsolutePath, "com.example.core.Something"),
       layout.multiProjectGreen,
       Map.empty,
       javapLog
     )
-    val generatedMethodPresent = javap._1 == 0 && javap._2.contains("java.lang.String independentHandlerName()")
-    require(generatedMethodPresent, "corrected multi-project graph lacks the generated definition")
+    val importedIdentityCompiled =
+      javap._1 == 0 && javap._2.contains("public com.example.core.Something()")
+    require(importedIdentityCompiled, "imported-short identity consumer did not compile unchanged")
+    val qualifiedClasses = singleDirectory(new File(layout.multiProjectGreen, "qualified-control"), "classes")
+    val qualifiedJavapLog = new File(greenEvidence, "qualified-control-javap.txt")
+    val qualifiedJavap = runProcess(
+      Vector(javaTool("javap"), "-classpath", qualifiedClasses.getAbsolutePath, "com.example.core.Something"),
+      layout.multiProjectGreen,
+      Map.empty,
+      qualifiedJavapLog
+    )
+    val qualifiedIdentityCompiled =
+      qualifiedJavap._1 == 0 && qualifiedJavap._2.contains("public com.example.core.Something()")
+    require(qualifiedIdentityCompiled, "direct-qualified identity control did not compile unchanged")
+
+    val canonicalAnnotation = "com.example.macro.annotations.identity"
+    val identityHandler = "com.example.macro.handlers.IdentityHandler"
+    val importedMetadata = readLines(new File(greenEvidence, "imported-metadata.trace"))
+    val importedInvocations = readLines(new File(greenEvidence, "imported-invocation.trace"))
+    val qualifiedMetadata = readLines(new File(greenEvidence, "qualified-metadata.trace"))
+    val qualifiedInvocations = readLines(new File(greenEvidence, "qualified-invocation.trace"))
+    def isExactMetadataSelection(line: String): Boolean =
+      line.split(" ", 3).toList match {
+        case List(_, annotation, result) =>
+          annotation == canonicalAnnotation && result == s"Found($identityHandler)"
+        case _ => false
+      }
+    val exactInvocation =
+      s"handler=$identityHandler annotation=$canonicalAnnotation class=Something"
+    require(
+      importedMetadata.count(isExactMetadataSelection) == 1,
+      s"imported-short identity metadata selection was not singular: ${importedMetadata.mkString(" | ")}"
+    )
+    require(
+      importedInvocations.count(_ == exactInvocation) == 1,
+      s"imported-short identity handler invocation was not singular: ${importedInvocations.mkString(" | ")}"
+    )
+    require(
+      qualifiedMetadata.count(isExactMetadataSelection) == 1,
+      s"direct-qualified identity metadata selection was not singular: ${qualifiedMetadata.mkString(" | ")}"
+    )
+    require(
+      qualifiedInvocations.count(_ == exactInvocation) == 1,
+      s"direct-qualified identity handler invocation was not singular: ${qualifiedInvocations.mkString(" | ")}"
+    )
+
     val audit = read(new File(greenEvidence, "audit.txt"))
     val handlerRuntimeIsolated =
       audit.contains("ordinaryClasspathContainsHandlerClasses=false") &&
-        audit.contains("runtimeClasspathContainsHandlerClasses=false")
+        audit.contains("runtimeClasspathContainsHandlerClasses=false") &&
+        audit.contains("markerHandlerCompilerPluginActive=false") &&
+        audit.contains("missingMarkerClasspathContainsMarkerClasses=false")
     require(handlerRuntimeIsolated, "handler implementation polluted the corrected compile/runtime classpath")
-    require(read(new File(greenEvidence, "runtime.txt")) == ExpectedRuntimeOutput, "corrected multi-project runtime proof changed")
+
+    val missingMarkerLog = new File(layout.evidence, "commands/02c-identity-missing-marker.log")
+    val missingMarkerExit = runSbt(
+      layout.multiProjectGreen,
+      layout,
+      Vector("missingMarker/clean", "missingMarker/compile"),
+      Map.empty,
+      missingMarkerLog
+    )
+    val missingMarkerText = read(missingMarkerLog)
+    require(missingMarkerExit != 0, "identity consumer without marker dependency unexpectedly compiled")
+    require(
+      missingMarkerText.contains("[E008]") && missingMarkerText.contains("[E046]"),
+      "identity missing-marker lane lacked the ordinary E008/E046 build-graph diagnostics"
+    )
+    require(
+      !missingMarkerText.contains("external handler failure: stage="),
+      "identity missing-marker lane was misclassified as a Macro-Paradise handler failure"
+    )
+    require(
+      readLines(new File(greenEvidence, "missing-marker-invocation.trace")).isEmpty,
+      "identity handler ran despite the missing marker dependency"
+    )
+    val missingMarkerOutputs = outputFilesAfterFailure(new File(layout.multiProjectGreen, "missing-marker"))
+    require(missingMarkerOutputs.isEmpty, "identity missing-marker lane emitted partial output")
     write(
       new File(layout.evidence, "multi-project-first-use-summary.txt"),
       "red=HANDLER_LOAD_FAILURE_ACTIONABLE\n" +
-        "green=GENERATED_DEFINITION_AND_RUNTIME_READY\n" +
+        "importedShort=IDENTITY_COMPILE_AND_SINGLE_INVOCATION_READY\n" +
+        "qualifiedControl=IDENTITY_COMPILE_AND_SINGLE_INVOCATION_READY\n" +
+        "missingMarker=ORDINARY_E008_E046_BUILD_GRAPH_FAILURE\n" +
         "compilerPluginCoordinate=single-full-cross\n" +
         "manualPluginApiXplugin=false\n" +
         "handlerRelationship=task-packageBin-only\n" +
@@ -775,8 +885,15 @@ object IndependentExternalSbtConsumer {
         "stage=loading category=HANDLER_LOAD_FAILURE handlerClasspathConfigured=false",
         redOutputs.size
       ),
-      generatedMethodPresent,
-      handlerRuntimeIsolated
+      importedIdentityCompiled,
+      qualifiedIdentityCompiled,
+      handlerRuntimeIsolated,
+      NegativeEvidence(
+        "identity-missing-marker",
+        missingMarkerExit,
+        "ordinary E008/E046 build-graph failure",
+        missingMarkerOutputs.size
+      )
     )
   }
 
@@ -788,27 +905,39 @@ object IndependentExternalSbtConsumer {
       positive: Boolean
   ): Unit = {
     Files.createDirectories(new File(directory, "project").toPath)
-    Files.createDirectories(new File(directory, "marker/src/main/scala").toPath)
-    Files.createDirectories(new File(directory, "handler/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "macro-annotations/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "macro-handlers/src/main/scala").toPath)
     Files.createDirectories(new File(directory, "core/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "qualified-control/src/main/scala").toPath)
+    Files.createDirectories(new File(directory, "missing-marker/src/main/scala").toPath)
     Files.createDirectories(evidence.toPath)
     write(new File(directory, "project/build.properties"), "sbt.version=" + config.sbtVersion + "\n")
     val build = multiProjectBuildText(layout.repository.toURI.toString, config, positive, evidence.getAbsolutePath)
     write(new File(directory, "build.sbt"), build)
     write(new File(evidence, "build.sbt"), build)
     Files.copy(
-      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/marker/IndependentMarker.scala").toPath,
-      new File(directory, "marker/src/main/scala/IndependentMarker.scala").toPath,
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/marker/identity.scala").toPath,
+      new File(directory, "macro-annotations/src/main/scala/identity.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
     Files.copy(
-      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/three-stage/handler/IndependentHandler.scala").toPath,
-      new File(directory, "handler/src/main/scala/IndependentHandler.scala").toPath,
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/handler/IdentityHandler.scala").toPath,
+      new File(directory, "macro-handlers/src/main/scala/IdentityHandler.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
     Files.copy(
-      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/e2e/IndependentPackagedConsumer.scala").toPath,
-      new File(directory, "core/src/main/scala/IndependentPackagedConsumer.scala").toPath,
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/imported/IdentityConsumer.scala").toPath,
+      new File(directory, "core/src/main/scala/IdentityConsumer.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/qualified/IdentityConsumer.scala").toPath,
+      new File(directory, "qualified-control/src/main/scala/IdentityConsumer.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/imported/IdentityConsumer.scala").toPath,
+      new File(directory, "missing-marker/src/main/scala/IdentityConsumer.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
   }

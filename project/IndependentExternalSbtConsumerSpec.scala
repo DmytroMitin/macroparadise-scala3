@@ -1,7 +1,7 @@
 import java.io.File
 
 object IndependentExternalSbtConsumerSpec {
-  val CaseCount = 41
+  val CaseCount = 46
 
   def run(): Unit = {
     import IndependentExternalSbtConsumer._
@@ -54,10 +54,42 @@ object IndependentExternalSbtConsumerSpec {
       multiProjectBuildText("file:/task/repository", buildConfig, positive = false, "/task/evidence")
     check(positiveMultiProject.contains("compilerPlugin("), "positive multi-project build lacks ordinary compilerPlugin activation")
     check(positiveMultiProject.contains(".cross(CrossVersion.full)"), "positive multi-project build lacks the exact full-cross coordinate")
-    check(positiveMultiProject.contains("(handler / Compile / packageBin).value"), "positive multi-project build does not derive the handler artifact from packageBin")
-    check(positiveMultiProject.contains(".dependsOn(marker)") && !positiveMultiProject.contains(".dependsOn(marker, handler)"), "positive consumer retains an ordinary handler project dependency")
+    check(
+      positiveMultiProject.contains("lazy val macroAnnotations") && positiveMultiProject.contains("lazy val macroHandlers"),
+      "positive multi-project build does not use the documented marker/handler project roles"
+    )
+    check(
+      positiveMultiProject.contains(
+        """lazy val core = project.in(file("core"))
+          |  .dependsOn(macroAnnotations)
+          |""".stripMargin
+      ),
+      "documented core project is not scoped to the marker-only ordinary dependency"
+    )
+    check(
+      positiveMultiProject.contains(
+        """lazy val qualifiedControl = project.in(file("qualified-control"))
+          |  .dependsOn(macroAnnotations)
+          |""".stripMargin
+      ),
+      "qualified control is not scoped to the marker-only ordinary dependency"
+    )
+    check(
+      positiveMultiProject.contains(
+        """lazy val missingMarker = project.in(file("missing-marker"))
+          |  .settings(identityConsumerSettings("missing-marker"))
+          |""".stripMargin
+      ),
+      "missing-marker control gained an ordinary project dependency"
+    )
+    check(
+      positiveMultiProject.contains("metadataReaderTrace=") && positiveMultiProject.contains("externalHandlerInvocationTrace="),
+      "positive multi-project build lacks exact identity selection/invocation witnesses"
+    )
+    check(positiveMultiProject.contains("(macroHandlers / Compile / packageBin).value"), "positive multi-project build does not derive the handler artifact from packageBin")
+    check(!positiveMultiProject.contains(".dependsOn(macroAnnotations, macroHandlers)"), "positive consumer retains an ordinary handler project dependency")
     check(positiveMultiProject.contains("-P:macroparadise:handlerClasspath="), "positive multi-project build lacks explicit handler wiring")
-    check(negativeMultiProject.contains(".dependsOn(marker, handler)"), "negative multi-project build does not reproduce the intuitive ordinary classpath mistake")
+    check(negativeMultiProject.contains(".dependsOn(macroAnnotations, macroHandlers)"), "negative multi-project build does not reproduce the intuitive ordinary classpath mistake")
     check(
       !negativeMultiProject.contains("base ++ Seq(\"-P:macroparadise:handlerClasspath="),
       "negative multi-project build unexpectedly wires the handler loader"

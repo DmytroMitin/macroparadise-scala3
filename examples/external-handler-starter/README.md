@@ -8,6 +8,13 @@ the repository-root task:
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
+This is the generated-output follow-on, not the smallest wiring example. Start
+with the copy/paste [`@identity` tutorial](../../docs/EXTERNAL_HANDLER_AUTHORING.md):
+its unchanged-class handler isolates discovery, loading, canonicalization, and
+one invocation. This starter keeps `generateGreeting` because a generated
+method is stronger evidence for tree transformation, ordinary typing, and
+runtime use.
+
 The checked-in `project/build.properties` pins `sbt.version=1.12.15` so the
 ordinary runner, direct launcher, IntelliJ, and BSP select the same build-tool
 version. The installed runner's own version is not the build version.

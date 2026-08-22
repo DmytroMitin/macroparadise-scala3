@@ -83,6 +83,94 @@ class ExplicitImportAnnotationIdentityResolverSpec extends munit.FunSuite:
     assertEquals(resolver.identityOf(annotations.head).map(_.value), Right("renamed"))
   }
 
+  test("does not treat a given import as an explicit identity witness") {
+    val (tree, annotations, context) = parsedAnnotations(
+      """package consumer
+        |import a.b.given
+        |@identity class Something
+        |""".stripMargin
+    )
+    given Context = context
+
+    val resolver = ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree)
+
+    assertEquals(resolver.identityOf(annotations.head).map(_.value), Right("identity"))
+  }
+
+  test("fails closed when a nested given import can affect short-name scope") {
+    val (tree, annotations, context) = parsedAllAnnotations(
+      """package consumer
+        |import a.first.identity
+        |object Scope:
+        |  import z.local.given
+        |  @identity class Something
+        |""".stripMargin
+    )
+    given Context = context
+
+    val diagnostic =
+      ExplicitImportAnnotationIdentityResolver
+        .fromUnitTree(tree)
+        .identityOf(annotations.head)
+        .left
+        .toOption
+        .get
+
+    assertEquals(
+      diagnostic.message,
+      "unsupported local/nested import scope for short annotation `@identity`; use a qualified annotation"
+    )
+    assertEquals(diagnostic.pos.span, annotations.head.sourcePos.span)
+  }
+
+  test("does not treat an export as an explicit identity witness") {
+    val (tree, annotations, context) = parsedAnnotations(
+      """package consumer
+        |object Prelude:
+        |  export a.b.identity
+        |import Prelude.identity
+        |@identity class Something
+        |""".stripMargin
+    )
+    given Context = context
+
+    val resolver = ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree)
+    val request = resolver.requestOf(annotations.head).toOption.get
+
+    assertEquals(resolver.identityOf(annotations.head).map(_.value), Right("Prelude.identity"))
+    assertEquals(request.importedShortName, Some("identity"))
+  }
+
+  test("does not infer annotation identity from package-object semantics") {
+    val (tree, annotations, context) = parsedAllAnnotations(
+      """package object consumer:
+        |  class identity extends scala.annotation.StaticAnnotation
+        |  @identity class Something
+        |""".stripMargin
+    )
+    given Context = context
+
+    val resolver = ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree)
+
+    assertEquals(resolver.identityOf(annotations.head).map(_.value), Right("identity"))
+  }
+
+  test("does not perform semantic local-definition shadow resolution") {
+    val (tree, annotations, context) = parsedAllAnnotations(
+      """package consumer
+        |import a.first.identity
+        |object Scope:
+        |  class identity extends scala.annotation.StaticAnnotation
+        |  @identity class Something
+        |""".stripMargin
+    )
+    given Context = context
+
+    val resolver = ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree)
+
+    assertEquals(resolver.identityOf(annotations.head).map(_.value), Right("a.first.identity"))
+  }
+
   test("does not guess a package for a short annotation without an explicit import") {
     val (tree, annotations, context) = parsedAnnotations(
       """package consumer
@@ -199,3 +287,23 @@ class ExplicitImportAnnotationIdentityResolverSpec extends munit.FunSuite:
               Trees.mods(typeDef).annotations.head
         case other => fail(s"expected package tree, found $other")
     (parsed, annotations, context)
+
+  private def parsedAllAnnotations(code: String): (Tree, List[Tree], Context) =
+    val unit = CompilationUnit("ExplicitImportAnnotationIdentityResolverSpec.scala", code)
+    val context = ContextBase().initialCtx.fresh.setCompilationUnit(unit)
+    given Context = context
+    val parsed = new Parsers.Parser(unit.source).parse()
+
+    def collect(tree: Tree): List[Tree] =
+      tree match
+        case packageDef: PackageDef => packageDef.stats.flatMap(collect)
+        case moduleDef: ModuleDef =>
+          Trees.mods(moduleDef).annotations ++ moduleDef.impl.body.flatMap(collect)
+        case typeDef: TypeDef =>
+          Trees.mods(typeDef).annotations ++
+            (typeDef.rhs match
+              case template: Template => template.body.flatMap(collect)
+              case _ => Nil)
+        case _ => Nil
+
+    (parsed, collect(parsed), context)

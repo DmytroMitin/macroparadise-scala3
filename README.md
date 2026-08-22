@@ -134,20 +134,30 @@ compile time. Same-compilation marker metadata is not currently claimed.
 
 ## External-handler starter
 
-The fixture-independent starter separates a marker, a precompiled handler, and
-an ordinary consumer. It verifies qualified identity plus bounded explicit-
-import canonicalization, metadata binding, exact compiler/JDK compatibility,
-class-loader identity, dependency boundaries, generated-member typing, runtime
-behavior, and a fail-closed precheck matrix. Its packaged precheck retains the
-maximum-witness explicit form and adds a bounded compact form without changing
-the experimental handler API.
+Start with the minimal user-defined `@identity` example. Its handler returns the
+annotated class unchanged, so successful compilation isolates marker discovery,
+metadata binding, imported-short canonicalization, handler loading, and one
+invocation from generated-member behavior. The independent external sbt proof
+also compiles the direct-qualified control and checks the exact marker/handler/
+consumer dependency graph.
+
+```sh
+sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
+```
+
+Then use the fixture-independent `generateGreeting` starter to prove generated-
+member typing and runtime behavior on the same three-role topology. Its
+packaged precheck retains the maximum-witness explicit form and a bounded compact
+form without changing the experimental handler API.
 
 ```sh
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
-Start with [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md) and
-the executable [starter example](examples/external-handler-starter/README.md).
+The copy/paste identity tutorial is in
+[External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md); the executable
+[starter example](examples/external-handler-starter/README.md) is the generated-
+output follow-on.
 
 ## Supported experimental boundary
 
