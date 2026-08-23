@@ -169,6 +169,37 @@ The contract is exact-compiler experimental API. It does not promise typed
 trees, stable owners, semantic names, cross-version binary compatibility, or
 general definition builders.
 
+### Placing an already-created companion method
+
+Unreleased `0.1.1-SNAPSHOT` development sources include the bounded
+`ExpansionHelpers.addMethodToCompanion` helper. It accepts an already-created
+raw `untpd.DefDef`; the handler remains responsible for constructing or
+lowering that complete method definition:
+
+```scala
+import paradise3.api.helpers.{CompanionMethodConflictPolicy, ExpansionHelpers}
+
+ExpansionHelpers.addMethodToCompanion(
+  input,
+  generatedMethod,
+  CompanionMethodConflictPolicy.PreserveExisting
+)
+```
+
+The helper removes the current handled annotation, creates or copies the
+same-name companion, and appends the exact supplied method after existing
+direct members. Conflict detection is syntactic and pre-typer: any direct
+companion `MemberDef` with the same raw name conflicts, while nested members do
+not. `PreserveExisting` keeps the existing companion unchanged;
+`CompanionMethodConflictPolicy.Reject` returns an atomic rejected outcome with
+the original annotated class fallback.
+
+This helper does not construct syntax, perform semantic companion or overload
+resolution, replace existing definitions, or accept arbitrary `MemberDef`
+values. It remains compiler-version-sensitive experimental API and must be
+compiled against the matching exact full-cross plugin API artifact. The
+immutable released `0.1.0` coordinate does not contain this helper.
+
 ## Local coordinate for marker and handler authors
 
 First publish the plugin API and plugin from a source clone:

@@ -172,17 +172,77 @@ object ExpansionHelpers:
     * companion resolution.
     */
   def addStringMethodToCompanion(input: ExpansionInput, methodName: String, value: String)(using Context): ExpansionOutcome =
+    val generatedMethod =
+      stringReturningMethod(methodName, value, input.annotatedClass.source)
+    addMethodToCompanion(
+      input,
+      generatedMethod,
+      CompanionMethodConflictPolicy.PreserveExisting
+    )
+
+  /** Place an already-created raw method in the annotated class's companion.
+    *
+    * The caller owns construction and lowering of `generatedMethod`; this
+    * helper inserts that exact `DefDef` without rebuilding or interpreting its
+    * syntax. Placement is a syntactic pre-typer operation. When a same-name
+    * companion is supplied, only direct raw `MemberDef` names participate in
+    * conflict detection, existing member order is preserved, and a non-
+    * conflicting method is appended last. Nested definitions and semantic
+    * overload resolution are outside this contract.
+    *
+    * `PreserveExisting` returns successful structured output with the exact
+    * existing companion unchanged. `Reject` returns one diagnostic and the
+    * original annotated class fallback without consuming its current
+    * annotation or returning a partial companion. Successful output removes
+    * only `input.currentAnnotation` when present and otherwise retains the
+    * established direct-caller fallback that clears all raw annotations.
+    *
+    * This compiler-version-sensitive experimental helper accepts only
+    * `untpd.DefDef`; it is not arbitrary member placement or a general
+    * annotation-authoring facade.
+    */
+  def addMethodToCompanion(
+      input: ExpansionInput,
+      generatedMethod: untpd.DefDef,
+      conflictPolicy: CompanionMethodConflictPolicy
+  )(using Context): ExpansionOutcome =
     input.annotatedClass.rhs match
       case _: Template =>
-        val strippedClass = stripCurrentAnnotation(input)
-        val companion =
-          input.existingCompanion match
-            case Some(existingCompanion) =>
-              mergeStringMethodIntoCompanion(existingCompanion, methodName, value, input.annotatedClass.source)
-            case None =>
-              makeCompanionWithStringMethod(input.annotatedClass.name, methodName, value, input.annotatedClass.source)
-
-        structured(strippedClass, companion = Some(companion))
+        input.existingCompanion match
+          case Some(existingCompanion)
+              if companionHasDirectMemberNamed(existingCompanion, generatedMethod.name) =>
+            conflictPolicy match
+              case CompanionMethodConflictPolicy.PreserveExisting =>
+                structured(
+                  stripCurrentAnnotation(input),
+                  companion = Some(existingCompanion)
+                )
+              case CompanionMethodConflictPolicy.Reject =>
+                rejected(
+                  ExpansionDiagnostic(
+                    s"generated companion method `${generatedMethod.name}` conflicts with existing direct companion member `${generatedMethod.name}` for `${input.className}`",
+                    mostSpecificCurrentAnnotationPosition(input)
+                  ),
+                  input.annotatedClass
+                )
+          case Some(existingCompanion) =>
+            structured(
+              stripCurrentAnnotation(input),
+              companion = Some(
+                mergeMethodIntoCompanion(existingCompanion, generatedMethod)
+              )
+            )
+          case None =>
+            structured(
+              stripCurrentAnnotation(input),
+              companion = Some(
+                makeCompanionWithMethod(
+                  input.annotatedClass.name,
+                  generatedMethod,
+                  input.annotatedClass.source
+                )
+              )
+            )
       case _ =>
         ExpansionOutcome.NotApplicable
 
@@ -213,12 +273,7 @@ object ExpansionHelpers:
   )(using Context): ExpansionOutcome =
     input.annotatedClass.rhs match
       case _: Template =>
-        val rejectionPosition =
-          input.currentAnnotation
-            .flatMap(Option(_))
-            .map(_.sourcePos)
-            .filter(_.span.exists)
-            .getOrElse(input.annotatedClass.sourcePos)
+        val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
         if !isUsableSimpleTypeName(siblingClassName) then
           rejected(
             ExpansionDiagnostic(
@@ -277,10 +332,18 @@ object ExpansionHelpers:
       case defDef: DefDef => defDef.name == termName(methodName)
       case _ => false
 
-  private def makeCompanionWithStringMethod(
+  private def mostSpecificCurrentAnnotationPosition(
+      input: ExpansionInput
+  )(using Context): dotty.tools.dotc.util.SrcPos =
+    input.currentAnnotation
+      .flatMap(Option(_))
+      .map(_.sourcePos)
+      .filter(_.span.exists)
+      .getOrElse(input.annotatedClass.sourcePos)
+
+  private def makeCompanionWithMethod(
       className: TypeName,
-      methodName: String,
-      value: String,
+      generatedMethod: DefDef,
       source: dotty.tools.dotc.util.SourceFile
   )(using Context): ModuleDef =
     given dotty.tools.dotc.util.SourceFile = source
@@ -289,23 +352,14 @@ object ExpansionHelpers:
     // This mirrors the internal built-in companion generation shape: an untyped
     // companion with no explicit parents is enough for current top-level test
     // fixtures, and typer supplies the ordinary object parents.
-    ModuleDef(className.toTermName, makeTemplate(source, List(stringReturningMethod(methodName, value, source))))
+    ModuleDef(className.toTermName, makeTemplate(source, List(generatedMethod)))
 
-  private def mergeStringMethodIntoCompanion(
+  private def mergeMethodIntoCompanion(
       existingCompanion: ModuleDef,
-      methodName: String,
-      value: String,
-      source: dotty.tools.dotc.util.SourceFile
+      generatedMethod: DefDef
   )(using Context): ModuleDef =
     val existingTemplate = existingCompanion.impl
     val existingBody = existingTemplate.body(using summon[Context])
-
-    // ASSUMPTION
-    // User-defined companion members win on conflict, matching the built-in
-    // `generatedFactory` behavior and avoiding duplicate-method crashes.
-    val mergedBody =
-      if companionHasMethod(existingCompanion, methodName) then existingBody
-      else existingBody :+ stringReturningMethod(methodName, value, source)
 
     val mergedTemplate =
       untpd.cpy.Template(existingTemplate)(
@@ -313,14 +367,17 @@ object ExpansionHelpers:
         existingTemplate.parentsOrDerived(using summon[Context]),
         existingTemplate.derived,
         existingTemplate.self,
-        mergedBody
+        existingBody :+ generatedMethod
       )
 
     untpd.cpy.ModuleDef(existingCompanion)(existingCompanion.name, mergedTemplate)
 
-  private def companionHasMethod(existingCompanion: ModuleDef, methodName: String)(using Context): Boolean =
+  private def companionHasDirectMemberNamed(
+      existingCompanion: ModuleDef,
+      methodName: TermName
+  )(using Context): Boolean =
     existingCompanion.impl.body(using summon[Context]).exists:
-      case defDef: DefDef => defDef.name == termName(methodName)
+      case member: MemberDef => member.name == methodName
       case _ => false
 
   private def makeSiblingWithStringMethod(

@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 21
+  val CaseCount = 22
 
   def run(): Unit = {
     var completed = 0
@@ -52,6 +52,22 @@ object ExperimentalPluginApiSurfaceSpec {
             " implements scala.Product,scala.reflect.Enum"
           ),
           ordinaryRecord
+        )
+      )
+    }
+    check("3.3.8 normalizes the companion conflict policy enum encoding") {
+      val enumRecord =
+        "CLASS|paradise3/api/helpers/CompanionMethodConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.CompanionMethodConflictPolicy implements scala.reflect.Enum"
+      assert(
+        ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+          Vector("scala-compiler=3.8.4", enumRecord),
+          "3.3.8"
+        ) == Vector(
+          "scala-compiler=3.3.8",
+          enumRecord.replace(
+            " implements scala.reflect.Enum",
+            " implements scala.Product,scala.reflect.Enum"
+          )
         )
       )
     }
