@@ -149,6 +149,7 @@ verifyPublicProductTestsNonzero := {
 
 verifyConsumerReleaseConfiguration := {
   val scripts = Vector(
+    "test-hosted-ci-matrix.py",
     "test-release-configuration.py",
     "test-check-release-repository.py",
     "test-rehearse-release-signing.py"

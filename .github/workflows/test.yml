@@ -8,7 +8,16 @@ on:
 
 jobs:
   test:
+    name: Test (Scala ${{ matrix.scala-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scala-version: "3.3.8"
+            opposite-scala-version: "3.8.4"
+          - scala-version: "3.8.4"
+            opposite-scala-version: "3.3.8"
 
     steps:
       - name: Checkout repository
@@ -24,7 +33,11 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Verify public-product build boundary
+      - name: Prepare opposite exact plugin artifact
+        run: |
+          sbt -Dmacroparadise.exactScalaVersion=${{ matrix.opposite-scala-version }} -batch '++${{ matrix.opposite-scala-version }}!' plugin/packageBin
+
+      - name: Verify public-product build boundary (Scala ${{ matrix.scala-version }})
         run: |
           java -version
-          sbt -batch verifyPublicProductBoundary
+          sbt -Dmacroparadise.exactScalaVersion=${{ matrix.scala-version }} -batch '++${{ matrix.scala-version }}!' verifyPublicProductBoundary
