@@ -2,7 +2,8 @@ import java.io.File
 
 object BuildDependencyCoordinatePolicy {
   val ExpectedScalaVersion =
-    "3.8.4"
+    ExactBuildIdentity.SelectedScalaVersion
+  val SupportedScalaVersions = ExactBuildIdentity.SupportedScalaVersions
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedJdkFeature = 25
   val ExpectedPluginApiProjectId = "pluginApi"
@@ -104,9 +105,12 @@ object BuildDependencyCoordinatePolicy {
           s"dependency organization contains prompt-number contamination: ${dependency.organization}"
     }
 
+    if (!SupportedScalaVersions.contains(shape.scalaVersion))
+      errors +=
+        s"Scala version drift: expected one of ${SupportedScalaVersions.toList.sorted.mkString(", ")}, found ${shape.scalaVersion}"
     if (shape.scalaVersion != ExpectedScalaVersion)
       errors +=
-        s"Scala version drift: expected $ExpectedScalaVersion, found ${shape.scalaVersion}"
+        s"selected exact Scala line mismatch: expected $ExpectedScalaVersion, found ${shape.scalaVersion}"
     if (shape.sbtVersion != ExpectedSbtVersion)
       errors +=
         s"sbt version drift: expected $ExpectedSbtVersion, found ${shape.sbtVersion}"

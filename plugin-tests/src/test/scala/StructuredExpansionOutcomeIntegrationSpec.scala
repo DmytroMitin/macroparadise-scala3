@@ -11,21 +11,23 @@ class StructuredExpansionOutcomeIntegrationSpec extends munit.FunSuite:
       "macroparadise.testScalaVersion",
       "3.8.4"
     )
+  private val projectVersion =
+    sys.props.getOrElse("macroparadise.testProjectVersion", "0.1.1-SNAPSHOT")
   private val pluginJar =
     new File(
-      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-0.1.0.jar"
+      s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-$projectVersion.jar"
     ).getAbsolutePath
   private val pluginApiJar =
     new File(
-      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-0.1.0.jar"
+      s"plugin-api/target/scala-$scalaVersion/macroparadise-scala3-plugin-api_$scalaVersion-$projectVersion.jar"
     ).getAbsolutePath
   private val markerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-$projectVersion.jar"
     ).getAbsolutePath
   private val handlerJar =
     new File(
-      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-0.1.0.jar"
+      s"plugin-test-handlers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-handlers_3-$projectVersion.jar"
     ).getAbsolutePath
   private val pluginPath =
     Seq(pluginJar, markerJar).mkString(File.pathSeparator)

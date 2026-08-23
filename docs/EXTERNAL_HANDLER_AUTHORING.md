@@ -18,10 +18,9 @@ Pin the build tool in `project/build.properties`:
 sbt.version=1.12.15
 ```
 
-Use JDK feature version 25 and Scala
-`3.8.4` exactly. The handler API exposes
-compiler internals; a nearby Scala or JDK version is not an interchangeable
-substitute.
+Use JDK feature version 25 and select exact Scala `3.3.8` or `3.8.4`. The
+plugin, API, marker, handler, and consumer must all use the same selected line;
+a nearby or cross-line artifact is not interchangeable.
 
 ```text
     macroAnnotations project             macroHandlers project
@@ -182,9 +181,9 @@ A separate marker/handler build then compiles against the exact full-cross API
 coordinate, not the plugin implementation or any test fixture:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.4"
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
 libraryDependencies +=
-  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.0")
+  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.1-SNAPSHOT")
     .cross(CrossVersion.full)
 ```
 
@@ -200,9 +199,9 @@ no `compilerPlugin` dependency, so Macro-Paradise is not active while either
 producer is compiled:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.4"
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
 val mpOrg = "com.github.dmytromitin"
-val mpVersion = "0.1.0"
+val mpVersion = "0.1.1-SNAPSHOT"
 val mpApi =
   (mpOrg % "macroparadise-scala3-plugin-api" % mpVersion)
     .cross(CrossVersion.full)
@@ -242,9 +241,10 @@ build, audits the graph and plugin options, and keeps its artifacts task-local.
 The checked-in generated-greeting starter uses the same three-role topology
 with explicit local artifact paths.
 
-The candidate coordinates are locally usable but are not available from Maven
-Central. The repository's built-in `@gen` annotation is a fixture and is not
-the supported public authoring API.
+These snapshot coordinates are locally usable from unreleased `main` but are
+not published remotely. Released `0.1.0` remains available only for exact
+Scala `3.8.4`. The repository's built-in `@gen` annotation is a fixture and is
+not the supported public authoring API.
 
 ## Explicit-import identity boundary
 

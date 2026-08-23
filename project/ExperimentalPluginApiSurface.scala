@@ -14,9 +14,13 @@ object ExperimentalPluginApiSurface {
     "COMBINED_EXPERIMENTAL_SURFACE_BASELINE_REMEASURED"
   val FormatVersion = "1"
   val ExpectedScalaVersion =
-    "3.8.4"
+    ExactBuildIdentity.SelectedScalaVersion
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
+  val ReviewedNormalizedSha256ByScalaVersion = Map(
+    "3.3.8" -> "6cd22bbef9932f80c376d5cb5f408ce0c134b105ab9d1f2bf637aab5db949053",
+    "3.8.4" -> "1684bec50b218d4d5f4a1b63dbb33c00452ec2ca2d17339227e057c18cf92fed"
+  )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
     "exact-build-experimental-precompiled-handler-contract-and-fixtures"
@@ -197,7 +201,10 @@ object ExperimentalPluginApiSurface {
       surface.manifestLines
     )
 
-    val expected = parseManifest(readLines(baselineFile.toPath))
+    val expected = expectedSurfaceForExactCompilerLine(
+      parseManifest(readLines(baselineFile.toPath)),
+      config.scalaVersion
+    )
     val actual = parseManifest(surface.manifestLines)
     val drift = compare(expected, actual)
     if (!drift.isEmpty)
@@ -708,6 +715,41 @@ object ExperimentalPluginApiSurface {
       (expectedKeys -- actualKeys).toVector.sorted.map(expectedByKey),
       changed
     )
+  }
+
+  def expectedSurfaceForExactCompilerLine(
+      released384Surface: Vector[String],
+      exactScalaVersion: String
+  ): Vector[String] = {
+    require(
+      ExactBuildIdentity.SupportedScalaVersions.contains(exactScalaVersion),
+      s"unsupported exact Scala line $exactScalaVersion"
+    )
+    if (exactScalaVersion == "3.8.4") released384Surface
+    else {
+      val enumEntries = Set(
+        "paradise3/api/AnnotatedClassView$DefinitionKind.class",
+        "paradise3/api/AnnotatedClassView$Variance.class",
+        "paradise3/api/AnnotationTermArgument.class",
+        "paradise3/api/ExpansionCompositionPolicy.class",
+        "paradise3/api/ExpansionOutcome.class",
+        "paradise3/api/ExpansionTargetProfile.class"
+      )
+      released384Surface.map {
+        case line if line.startsWith("scala-compiler=") =>
+          s"scala-compiler=$exactScalaVersion"
+        case line if line.startsWith("CLASS|") =>
+          val fields = line.split("\\|", 4)
+          if (
+            enumEntries.contains(fields(1)) &&
+            fields(3).endsWith(" implements scala.reflect.Enum")
+          )
+            line.stripSuffix(" implements scala.reflect.Enum") +
+              " implements scala.Product,scala.reflect.Enum"
+          else line
+        case line => line
+      }
+    }
   }
 
   def validateClassification(records: Seq[String]): Vector[String] = {

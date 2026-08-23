@@ -1,5 +1,6 @@
-ThisBuild / version := "0.1.0"
+ThisBuild / version := "0.1.1-SNAPSHOT"
 ThisBuild / scalaVersion := "3.8.4"
+ThisBuild / crossScalaVersions := Seq("3.3.8", "3.8.4")
 ThisBuild / publish / skip := true
 ThisBuild / organization := "com.github.dmytromitin"
 ThisBuild / organizationName := "com.github.dmytromitin"
@@ -34,7 +35,15 @@ Global / onLoad ~= { previous =>
 }
 
 lazy val commonSettings = Seq(
-  libraryDependencies += "org.scalameta" %% "munit" % "1.2.4" % Test
+  libraryDependencies += "org.scalameta" %% "munit" % "1.2.4" % Test,
+  Test / testOptions += {
+    val activeScalaVersion = scalaVersion.value
+    val activeProjectVersion = version.value
+    Tests.Setup(() => {
+      System.setProperty("macroparadise.testScalaVersion", activeScalaVersion)
+      System.setProperty("macroparadise.testProjectVersion", activeProjectVersion)
+    })
+  }
 )
 
 lazy val selectedPublicationSettings = Seq(
@@ -43,6 +52,9 @@ lazy val selectedPublicationSettings = Seq(
   Compile / packageSrc / mappings += file("LICENSE") -> "META-INF/LICENSE",
   Compile / packageDoc / mappings += file("LICENSE") -> "META-INF/LICENSE"
 )
+
+def experimentalPluginApiSurfaceBaseline(root: File, exactScalaVersion: String): File =
+  root / "project" / "experimental-plugin-api-surface-baseline.txt"
 
 lazy val verifyJdkVersionEnforcement =
   taskKey[Unit]("Verify the JDK 25 detector and fail-fast message contract")
@@ -469,7 +481,7 @@ verifyPluginApiSourceProjectSplit := {
     (pluginApi / Compile / packageBin).value,
     (pluginTestMarkers / Compile / packageBin).value,
     (pluginApi / Compile / dependencyClasspath).value.files,
-    baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt"
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value)
   )
   streams.value.log.info(s"plugin API source-project split verified: ${result.render}")
 }
@@ -527,7 +539,7 @@ verifyBuildDependencyCoordinatePolicy := {
     pluginTestMarkersProject.dependencies.exists(_.project == pluginApiRef),
     pluginApiProject.dependencies.exists(_.project == pluginTestMarkersRef),
     rootProject.aggregate.map(_.project).toSet,
-    (baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt").isFile,
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value).isFile,
     Set(
       renderExperimentalPluginApiSurfaceBaseline.key.label,
       verifyExperimentalPluginApiSurfaceBaseline.key.label
@@ -582,7 +594,7 @@ verifyPluginApiCleanResolution := {
     pluginTestMarkersProject.dependencies.exists(_.project == pluginApiRef),
     pluginApiProject.dependencies.exists(_.project == pluginTestMarkersRef),
     rootProject.aggregate.map(_.project).toSet,
-    (baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt").isFile,
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value).isFile,
     Set(
       renderExperimentalPluginApiSurfaceBaseline.key.label,
       verifyExperimentalPluginApiSurfaceBaseline.key.label
@@ -620,7 +632,7 @@ renderExperimentalPluginApiSurfaceBaseline := {
     ExperimentalPluginApiSurface.Config(
       scalaVersion.value,
       sbtVersion.value,
-      version.value
+      ExperimentalPluginApiSurface.ExpectedProjectVersion
     ),
     evidence
   )
@@ -637,13 +649,13 @@ verifyExperimentalPluginApiSurfaceBaseline := {
     (pluginApi / Compile / packageBin).value,
     (pluginTestMarkers / Compile / packageBin).value,
     (pluginApi / Compile / dependencyClasspath).value.files,
-    baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt",
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value),
     baseDirectory.value / "plugin-api-surface-probe" / "positive" / "IsolatedPluginApiSurfaceProbe.scala",
     baseDirectory.value / "plugin-api-surface-probe" / "negative" / "ForbiddenImplementationProbe.scala",
     ExperimentalPluginApiSurface.Config(
       scalaVersion.value,
       sbtVersion.value,
-      version.value
+      ExperimentalPluginApiSurface.ExpectedProjectVersion
     ),
     target.value / "experimental-plugin-api-surface-baseline"
   )
@@ -660,12 +672,12 @@ renderExperimentalHandlerContractArtifact := {
   val identity = ExperimentalHandlerContractArtifact.render(
     (pluginApi / Compile / packageBin).value,
     (pluginTestMarkers / Compile / packageBin).value,
-    baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt",
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value),
     destination,
     ExperimentalHandlerContractArtifact.Config(
       scalaVersion.value,
       sbtVersion.value,
-      version.value
+      ExperimentalPluginApiSurface.ExpectedProjectVersion
     )
   )
   streams.value.log.info(
@@ -684,7 +696,7 @@ verifyExperimentalHandlerContractArtifact := {
     (pluginApi / Compile / packageBin).value,
     (pluginTestMarkers / Compile / packageBin).value,
     (pluginApi / Compile / dependencyClasspath).value.files,
-    baseDirectory.value / "project" / "experimental-plugin-api-surface-baseline.txt",
+    experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value),
     baseDirectory.value / "plugin-test-handlers" / "src" / "main" / "scala",
     baseDirectory.value / "plugin-api-handler-contract-probe" / "positive" /
       "IndependentMarkerAndHandler.scala",
@@ -713,7 +725,7 @@ verifyExperimentalHandlerContractArtifact := {
     ExperimentalHandlerContractArtifact.Config(
       scalaVersion.value,
       sbtVersion.value,
-      version.value
+      ExperimentalPluginApiSurface.ExpectedProjectVersion
     ),
     ExperimentalHandlerContractArtifactSpec.CaseCount
   )
@@ -795,6 +807,8 @@ lazy val plugin = (project in file("plugin"))
     crossVersion := CrossVersion.full,
     description := "Exact-build experimental Scala 3 compiler plugin for pre-typer annotation expansion; embeds its runtime API classes and requires the matching Scala compiler build.",
     makePomConfiguration ~= (_.withConfigurations(Vector(Compile, Runtime, Provided, Optional))),
+    Compile / unmanagedSourceDirectories +=
+      (Compile / sourceDirectory).value / s"scala-${scalaVersion.value}",
     Compile / packageBin / mappings ++=
       (pluginApi / Compile / packageBin / mappings).value.filter {
         case (_, path) => path.startsWith("paradise3/api/")

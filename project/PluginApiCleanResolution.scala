@@ -403,14 +403,14 @@ object PluginApiCleanResolution {
     regularFiles(repositoryRoot.resolve("plugin-api").resolve("target"))
       .filter(
         _.getFileName.toString ==
-          s"macroparadise-scala3-plugin-api_$compilerVersion-0.1.0.jar"
+          s"macroparadise-scala3-plugin-api_$compilerVersion-${ExactBuildIdentity.DevelopmentVersion}.jar"
       )
 
   private def packagedMarkerJars(repositoryRoot: Path): List[Path] =
     regularFiles(repositoryRoot.resolve("plugin-test-markers").resolve("target"))
       .filter(
         _.getFileName.toString ==
-          "macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
+          s"macroparadise-scala3-plugin-test-markers_3-${ExactBuildIdentity.DevelopmentVersion}.jar"
       )
 
   private def updateReports(repositoryRoot: Path): List[Path] =

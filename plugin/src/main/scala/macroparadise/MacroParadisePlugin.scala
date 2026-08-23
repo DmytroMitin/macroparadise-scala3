@@ -8,7 +8,7 @@ import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Flags.{Enum, Param, Trait}
 import dotty.tools.dotc.core.Names.*
-import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
+import dotty.tools.dotc.plugins.PluginPhase
 import dotty.tools.dotc.report
 import dotty.tools.dotc.util.SrcPos
 import paradise3.api.{
@@ -25,14 +25,6 @@ import java.lang.reflect.InvocationTargetException
 import java.net.URLClassLoader
 import java.nio.file.{Files, InvalidPathException, Path, StandardOpenOption}
 import scala.util.control.NonFatal
-
-class MacroParadisePlugin extends StandardPlugin:
-  val name: String = "macroparadise"
-  override val description: String =
-    "compiler plugin that expands narrow built-in annotations before typer"
-
-  override def initialize(options: List[String])(using Context): List[PluginPhase] =
-    List(ParadiseGenPhase(ExternalHandlerLoading.load(options)))
 
 private final class ExternalHandlerInvocationTrace private (path: Option[Path]):
   def record(handlerClass: String, annotationName: String, className: String): Unit =
@@ -72,8 +64,15 @@ private object ExternalHandlerLoading:
       metadataReader: AnnotationMetadataReader,
       metadataHandlerRunCache: MetadataHandlerRunCache,
       deferredSameModule: Option[DeferredSameModuleHandler],
-      invocationTrace: ExternalHandlerInvocationTrace
-  )
+      invocationTrace: ExternalHandlerInvocationTrace,
+      ownedLoaders: List[URLClassLoader]
+  ) extends AutoCloseable:
+    override def close(): Unit =
+      RunLocalResourceScope.closeAll(
+        ownedLoaders
+        .foldLeft(List.empty[URLClassLoader]): (distinct, loader) =>
+          if distinct.exists(_ eq loader) then distinct else loader :: distinct
+      )
 
   enum DeferredLoadResult:
     case Available(handler: LoadedExternalHandler)
@@ -111,13 +110,17 @@ private object ExternalHandlerLoading:
     val pluginLoader = classOf[MacroParadisePlugin].getClassLoader
     val loader = handlerLoader(handlerClasspath)
     val metadataLoader = compilerClasspathMetadataLoader(pluginLoader)
+    val ownedLoaders =
+      List(loader, metadataLoader).collect:
+        case urlLoader: URLClassLoader if urlLoader ne pluginLoader => urlLoader
 
     StructuredMetadataDistributionContract.parseAndValidate(options) match
       case Left(message) =>
         invalidStructuredMetadataConfiguration(
           message,
           pluginLoader,
-          invocationTrace
+          invocationTrace,
+          ownedLoaders
         )
       case Right(structuredMetadataPaths) =>
         val metadataReader =
@@ -171,7 +174,8 @@ private object ExternalHandlerLoading:
             invalidStructuredMetadataConfiguration(
               message,
               pluginLoader,
-              invocationTrace
+              invocationTrace,
+              ownedLoaders
             )
           case Right(reader) =>
             val deferredSameModule = parseDeferredSameModuleHandler(options)
@@ -188,13 +192,15 @@ private object ExternalHandlerLoading:
                 explicitHandlers
               ),
               deferredSameModule = deferredSameModule,
-              invocationTrace = invocationTrace
+              invocationTrace = invocationTrace,
+              ownedLoaders = ownedLoaders
             )
 
   private def invalidStructuredMetadataConfiguration(
       message: String,
       pluginLoader: ClassLoader,
-      invocationTrace: ExternalHandlerInvocationTrace
+      invocationTrace: ExternalHandlerInvocationTrace,
+      ownedLoaders: List[URLClassLoader]
   )(using Context): LoadedHandlers =
     val diagnostic =
       s"invalid experimental structured metadata configuration: $message"
@@ -207,7 +213,8 @@ private object ExternalHandlerLoading:
         UnavailableStructuredAnnotationMetadataReader(diagnostic),
       metadataHandlerRunCache = MetadataHandlerRunCache(Nil),
       deferredSameModule = None,
-      invocationTrace = invocationTrace
+      invocationTrace = invocationTrace,
+      ownedLoaders = ownedLoaders
     )
 
   private object TraceFileOption:
@@ -539,8 +546,10 @@ private object ExternalHandlerLoading:
         report.error(failure.diagnostic)
         None
 
-final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.LoadedHandlers) extends PluginPhase:
+final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
   import DeferredSameModuleHandlerSupport.*
+
+  private var activeExternalHandlers: Option[ExternalHandlerLoading.LoadedHandlers] = None
 
   override val phaseName = "paradiseGen"
   override val description =
@@ -548,6 +557,22 @@ final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.Loade
 
   override def runsAfter = Set("parser")
   override def runsBefore = Set("typer")
+
+  override def runOn(units: List[CompilationUnit])(using ctx: Context): List[CompilationUnit] =
+    RunLocalResourceScope.use(ExternalHandlerLoading.load(options)): loaded =>
+      require(
+        activeExternalHandlers.isEmpty,
+        "macroparadise phase run-local handlers are already active"
+      )
+      activeExternalHandlers = Some(loaded)
+      try super.runOn(units)
+      finally activeExternalHandlers = None
+
+  private def externalHandlers: ExternalHandlerLoading.LoadedHandlers =
+    activeExternalHandlers.getOrElse:
+      throw IllegalStateException(
+        "macroparadise handler state is unavailable outside PluginPhase.runOn"
+      )
 
   override def run(using ctx: Context): Unit =
     val unit = ctx.compilationUnit
@@ -592,7 +617,8 @@ final case class ParadiseGenPhase(externalHandlers: ExternalHandlerLoading.Loade
         // `CompilationUnit.suspend` is a compiler-internal API. On the pinned
         // compiler build, `Phase.runOn` catches the exception and a fresh `Run` reparses
         // and recompiles the suspended unit.
-        unit.suspend(
+        CompilationUnitSuspension.suspend(
+          unit,
           s"waiting for same-module handler ${deferred.handlerClassName} from ${deferred.dependencySourceIdentity.value}"
         )
       case DeferredHandlerAction.LoadCompiledHandler(reason) =>

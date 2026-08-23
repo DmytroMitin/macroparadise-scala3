@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   printf '%s\n' \
-    'Usage: scripts/verify-public-product-fresh-copy.sh [--source PATH] [--include-untracked PATH]...' \
+    'Usage: scripts/verify-public-product-fresh-copy.sh [--source PATH] [--scala-version 3.3.8|3.8.4] [--include-untracked PATH]...' \
     '' \
     'Create a disposable product-only copy with fresh dependency/output caches' \
     'and run the canonical verifyPublicProductBoundary gate inside it.' \
@@ -13,6 +13,7 @@ usage() {
 }
 
 source_root=''
+scala_version='3.8.4'
 include_untracked=()
 while (($# > 0)); do
   case "$1" in
@@ -26,6 +27,11 @@ while (($# > 0)); do
       include_untracked+=("$2")
       shift 2
       ;;
+    --scala-version)
+      (($# >= 2)) || { usage >&2; exit 2; }
+      scala_version="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -37,6 +43,14 @@ while (($# > 0)); do
       ;;
   esac
 done
+
+case "$scala_version" in
+  3.3.8|3.8.4) ;;
+  *)
+    printf 'Unsupported exact Scala version: %s\n' "$scala_version" >&2
+    exit 2
+    ;;
+esac
 
 if [[ -z "$source_root" ]]; then
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -148,7 +162,7 @@ printf 'FRESH_PUBLIC_PRODUCT_COPY_PREPARED files=%s tracked=%s allowedUntracked=
   export COURSIER_CACHE="$cache_root/coursier"
   export IVY_HOME="$cache_root/ivy"
   export SBT_OPTS="${SBT_OPTS:-} -Dsbt.global.base=$cache_root/sbt-global -Dsbt.boot.directory=$cache_root/sbt-boot -Dsbt.ivy.home=$cache_root/ivy"
-  sbt -batch verifyPublicProductBoundary
+  sbt "-Dmacroparadise.exactScalaVersion=$scala_version" -batch "++$scala_version!" verifyPublicProductBoundary
 )
 printf 'FRESH_PUBLIC_PRODUCT_COPY_PASS files=%s tracked=%s allowedUntracked=%s\n' \
   "$copied" "$tracked" "$allowed_untracked"

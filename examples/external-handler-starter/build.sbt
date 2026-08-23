@@ -6,10 +6,17 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.sys.process.{Process, ProcessLogger}
 
-ThisBuild / scalaVersion := "3.8.4"
+val ExactScalaVersion =
+  sys.props.getOrElse("macroparadise.starter.scalaVersion", "3.8.4")
+
+ThisBuild / scalaVersion := ExactScalaVersion
 ThisBuild / publish / skip := true
 
 Global / onLoad := { state =>
+  require(
+    Set("3.3.8", "3.8.4").contains(ExactScalaVersion),
+    s"unsupported exact Scala line $ExactScalaVersion"
+  )
   val actual = java.lang.Runtime.version().feature()
   if (actual != 25) sys.error(s"external-handler starter requires JDK 25, found $actual")
   state
@@ -20,7 +27,6 @@ lazy val verifyNegativeMatrix = taskKey[Unit]("Verify P1-P7 stop before consumer
 lazy val verifyStarter = taskKey[Unit]("Verify precheck-gated ordinary typed starter consumption")
 lazy val markConsumerCompileStart = taskKey[Unit]("Record that the real consumer compile began")
 
-val ExactScalaVersion = "3.8.4"
 val PluginProperty = "macroparadise.starter.plugin"
 val PluginApiProperty = "macroparadise.starter.pluginApi"
 val EvidenceProperty = "macroparadise.starter.evidenceDir"

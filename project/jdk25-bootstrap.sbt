@@ -45,7 +45,7 @@ Global / verifyJdk25BeforeMetaBuildCompilation := {
         .getOrElse("feature unavailable")
     throw new MessageOnlyException(
       s"Unsupported JVM for macroparadise-scala3: detected JVM version `$detectedDisplay` ($featureText); required major version is 25. " +
-        "This project is pinned to JDK 25 because it uses a compiler-internal Scala 3.8.4 pre-typer plugin toolchain. " +
+        "This project is pinned to JDK 25 because it uses compiler-internal exact Scala 3.3.8/3.8.4 pre-typer plugin toolchains. " +
         "Select JDK 25 before rerunning sbt."
     )
   }

@@ -56,9 +56,10 @@ PATH="$fake_bin:$PATH" FRESH_COPY_TEST_SOURCE="$source_root" \
   FRESH_COPY_TEST_EXPECT_TASK_OWNED=1 FRESH_COPY_TEST_EVIDENCE="$evidence" \
   "$script_dir/verify-public-product-fresh-copy.sh" \
     --source "$source_root" \
+    --scala-version 3.3.8 \
     --include-untracked docs/task-owned.md
 
-grep -Fx -- '-batch verifyPublicProductBoundary' "$evidence/args"
+grep -Fx -- '-Dmacroparadise.exactScalaVersion=3.3.8 -batch ++3.3.8! verifyPublicProductBoundary' "$evidence/args"
 grep -F -- '/caches/coursier' "$evidence/coursier"
 grep -F -- '/copy' "$evidence/cwd"
 

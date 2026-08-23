@@ -19,8 +19,8 @@ object IndependentExternalSbtConsumer {
 
   val RepositoryOrganization = "com.github.dmytromitin"
   val ProducerOrganization = "local.contractprobe.externalConsumer"
-  val Version = "0.1.0"
-  val ExpectedScalaVersion = "3.8.4"
+  val Version = ExactBuildIdentity.DevelopmentVersion
+  val ExpectedScalaVersion = ExactBuildIdentity.SelectedScalaVersion
   val PluginApiModule = s"macroparadise-scala3-plugin-api_$ExpectedScalaVersion"
   val PluginModule = s"macroparadise-scala3-plugin_$ExpectedScalaVersion"
   val MarkerModule = "independent-marker_3"
@@ -339,6 +339,7 @@ object IndependentExternalSbtConsumer {
 
     val publisherLog = new File(layout.evidence, "commands/01-source-publisher.log")
     val publisherCommands = Vector(
+      s"++${config.scalaVersion}!",
       s"""set ThisBuild / publishTo := Some(Resolver.file("externalConsumer-task-repository", file("${scalaString(layout.repository.getAbsolutePath)}"))(Resolver.mavenStylePatterns))""",
       "set ThisBuild / credentials := Nil",
       "pluginApi/publish",

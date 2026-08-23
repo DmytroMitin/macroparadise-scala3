@@ -1,7 +1,8 @@
 # Product roadmap
 
-This roadmap is organized by capability. It does not promise dates, release
-cadence, compatibility duration, or remote artifact availability.
+This roadmap is organized by capability. Released `0.1.0` is available for
+exact Scala `3.8.4`; the roadmap does not promise dates, another release,
+release cadence, or compatibility duration.
 
 ## Proven core compiler mechanism
 
@@ -11,8 +12,8 @@ cadence, compatibility duration, or remote artifact availability.
   annotation-consumption, and rollback behavior executable.
 - Keep plugin and consumer test discovery nonzero and retain the normalized
   experimental API surface gate.
-- Keep every project unpublished until artifact publication is separately
-  designed and authorized.
+- Keep remote publication limited to separately designed and authorized
+  releases; ordinary development and CI remain non-publishing.
 
 ## Experimental external-handler authoring and runtime
 

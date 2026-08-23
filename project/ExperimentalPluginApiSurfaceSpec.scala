@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 19
+  val CaseCount = 21
 
   def run(): Unit = {
     var completed = 0
@@ -27,6 +27,34 @@ object ExperimentalPluginApiSurfaceSpec {
       "scala-compiler=exact",
       "artifact-role=experimental"
     )
+
+    check("released 3.8.4 surface remains byte-for-byte unchanged") {
+      assert(
+        ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+          header,
+          "3.8.4"
+        ) == header
+      )
+    }
+    check("3.3.8 normalizes only its known enum superclass encoding") {
+      val enumRecord =
+        "CLASS|paradise3/api/ExpansionOutcome.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionOutcome implements scala.reflect.Enum"
+      val ordinaryRecord =
+        "CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput implements scala.Product"
+      assert(
+        ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+          Vector("scala-compiler=3.8.4", enumRecord, ordinaryRecord),
+          "3.3.8"
+        ) == Vector(
+          "scala-compiler=3.3.8",
+          enumRecord.replace(
+            " implements scala.reflect.Enum",
+            " implements scala.Product,scala.reflect.Enum"
+          ),
+          ordinaryRecord
+        )
+      )
+    }
 
     check("deterministic ordering") {
       assert(

@@ -333,7 +333,7 @@ object ExperimentalHandlerContractArtifact {
     val identity = candidateIdentity(destination, plan)
     require(
       surface.normalizedSha256 ==
-        "1684bec50b218d4d5f4a1b63dbb33c00452ec2ca2d17339227e057c18cf92fed",
+        ExperimentalPluginApiSurface.ReviewedNormalizedSha256ByScalaVersion(config.scalaVersion),
       s"reviewed normalized surface SHA changed to ${surface.normalizedSha256}"
     )
     identity
@@ -506,7 +506,10 @@ object ExperimentalHandlerContractArtifact {
       ),
       None
     )
-    val expected = ExperimentalPluginApiSurface.parseManifest(readManifest(baselineFile))
+    val expected = ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+      ExperimentalPluginApiSurface.parseManifest(readManifest(baselineFile)),
+      config.scalaVersion
+    )
     val actual = ExperimentalPluginApiSurface.parseManifest(surface.manifestLines)
     val drift = ExperimentalPluginApiSurface.compare(expected, actual)
     require(drift.isEmpty, s"full pluginApi no longer matches the experimental API baseline:\n${drift.render}")

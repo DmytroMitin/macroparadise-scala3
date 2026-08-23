@@ -34,9 +34,9 @@ bypass.
 
 ### Exact compiler mismatch
 
-The plugin, handler API, handler, and consumer must use
-`3.8.4`. Rebuilding only one raw-tree
-participant with another compiler line is unsupported.
+The plugin, handler API, handler, and consumer must use one exact supported
+line: `3.3.8` or `3.8.4`. Rebuilding only one raw-tree participant with the
+other line fails closed as an exact compiler mismatch.
 
 ### Missing handler
 

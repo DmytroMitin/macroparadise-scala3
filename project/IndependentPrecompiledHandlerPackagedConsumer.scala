@@ -15,10 +15,11 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val ReadyClassification = "INDEPENDENT_PRECOMPILED_HANDLER_END_TO_END_PACKAGED_CONSUMER_READY"
   val MetadataClassification = "INDEPENDENT_MARKER_METADATA_DISCOVERY_AND_HANDLER_INVOCATION_PROVEN"
   val ContractClassification = "CONTRACT_ONLY_PLUGIN_API_SUFFICIENT_FOR_EXTERNAL_END_TO_END_USE"
-  val ExpectedScalaVersion = "3.8.4"
+  val ExpectedScalaVersion = ExactBuildIdentity.SelectedScalaVersion
   val ExpectedSbtVersion = "1.12.15"
-  val ExpectedProjectVersion = "0.1.0"
-  val IndependentArtifactBasename = "independent-marker-handler_3-0.1.0.jar"
+  val ExpectedProjectVersion = ExactBuildIdentity.DevelopmentVersion
+  val IndependentArtifactBasename =
+    s"independent-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
@@ -497,13 +498,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   }
 
   private def validateConfig(config: Config): Unit = {
-    val selectedNewerExactNightly =
-      config.scalaVersion.matches(
-        "^3\\.10\\.0-RC1-bin-[0-9]{8}-[0-9a-f]{7,40}-NIGHTLY$"
-      )
     require(
-      config.scalaVersion == ExpectedScalaVersion || selectedNewerExactNightly,
-      s"requires pinned Scala $ExpectedScalaVersion or the configured exact 3.10 compatibility nightly"
+      config.scalaVersion == ExpectedScalaVersion,
+      s"requires selected exact Scala $ExpectedScalaVersion"
     )
     require(config.sbtVersion == ExpectedSbtVersion, s"requires sbt $ExpectedSbtVersion")
     require(config.projectVersion == ExpectedProjectVersion, s"requires project $ExpectedProjectVersion")

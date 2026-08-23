@@ -15,7 +15,7 @@ object ExternalHandlerAuthoringStarter {
   val PublishingClassification =
     "REMOTE_PUBLISHING_REMAINS_DISABLED_LOCAL_SELECTED_ARTIFACTS_ONLY"
 
-  val ExpectedScalaVersion = "3.8.4"
+  val ExpectedScalaVersion = ExactBuildIdentity.SelectedScalaVersion
   val ExpectedSbtVersion = "1.12.15"
 
   final case class Config(scalaVersion: String, sbtVersion: String, jdkMajor: Int)
@@ -107,6 +107,7 @@ object ExternalHandlerAuthoringStarter {
     val rendered = command.mkString("\n")
     if (!rendered.contains("macroparadise.starter.plugin=")) errors += "plugin path property missing"
     if (!rendered.contains("macroparadise.starter.pluginApi=")) errors += "pluginApi path property missing"
+    if (!rendered.contains("macroparadise.starter.scalaVersion=")) errors += "exact Scala property missing"
     if (rendered.contains("macroparadise.starter.expandTrace="))
       errors += "starter command exposes an internal expansion-trace property"
     Vector("clean", "verifyStarter", "verifyNegativeMatrix").foreach { task =>
@@ -252,6 +253,7 @@ object ExternalHandlerAuthoringStarter {
       "-Djava.io.tmpdir=" + temporary.getAbsolutePath,
       "-Dmacroparadise.starter.plugin=" + pluginArtifact.getCanonicalPath,
       "-Dmacroparadise.starter.pluginApi=" + pluginApiArtifact.getCanonicalPath,
+      "-Dmacroparadise.starter.scalaVersion=" + config.scalaVersion,
       "-Dmacroparadise.starter.evidenceDir=" + evidence.getAbsolutePath,
       "clean",
       "verifyStarter",

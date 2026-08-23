@@ -4,13 +4,12 @@
 
 - JDK feature version 25
 - sbt 1.12.15
-- Scala `3.8.4`
+- Scala `3.3.8` or `3.8.4`, selected and tested as separate exact lines
 - MUnit 1.2.4 for repository tests
 
 The build uses compiler-internal APIs and a pre-typer research phase. JDK 25 is
-enforced at sbt load, and the Scala version is pinned exactly. A different
-nightly, release candidate, or stable compiler is a separate compatibility
-experiment, not an automatic supported substitute.
+enforced at sbt load, and each Scala lane is pinned exactly. Binary-crossed or
+nearby compiler versions are not substitutes.
 
 ## Plugin and handler compatibility
 
@@ -41,15 +40,15 @@ or semantic-versioning commitment.
 
 ## Publication
 
-Version `0.1.0` and group `com.github.dmytromitin` identify the selected local
-release candidate. Only `macroparadise-scala3-plugin` and
+Version `0.1.0` is the immutable Maven Central release and supports exact Scala
+`3.8.4` only. Unreleased `main` uses `0.1.1-SNAPSHOT` and separately qualifies
+exact Scala `3.3.8` and `3.8.4`. Only `macroparadise-scala3-plugin` and
 `macroparadise-scala3-plugin-api` set `publish / skip := false`, both with
 `CrossVersion.full`; every aggregate, fixture, test, consumer, example, and
 spike remains skipped. `publishLocal` is supported for those two artifacts.
 
-No remote publication destination or credentials are configured, and ordinary
-CI does not publish. The candidate is not available from Maven Central and is
-not a released compatibility promise.
+No remote publication destination or credentials are configured for ordinary
+development/CI, and this requalification does not publish `0.1.1-SNAPSHOT`.
 
 See [Versioning and stability](VERSIONING_AND_STABILITY.md) and
 [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md).

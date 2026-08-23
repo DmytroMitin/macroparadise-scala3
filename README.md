@@ -8,8 +8,9 @@ ordinary Scala typing in the same compilation run.
 The core mechanism and a precompiled external-handler path are executable and
 well tested. The project is still compiler-sensitive research: its API,
 configuration, supported shapes, and compatibility policy may change. The
-`0.1.0` candidate is locally publishable from a clone but is not available from
-Maven Central or another remote package repository.
+immutable `0.1.0` release supports exact Scala `3.8.4` and is available
+from Maven Central. Unreleased `main` is now qualified separately for exact
+Scala `3.3.8` and `3.8.4` at development version `0.1.1-SNAPSHOT`.
 
 ## A small example
 
@@ -39,7 +40,7 @@ The source build requires:
 
 - JDK feature version 25;
 - sbt 1.12.15;
-- Scala `3.8.4`.
+- Scala `3.3.8` or `3.8.4`, selected as a separate exact build lane.
 
 The build rejects other JDK feature versions before normal tasks run. The
 plugin and handler contract expose Scala compiler internals, so a nearby Scala
@@ -88,28 +89,35 @@ For a smaller ordinary development pass:
 sbt -batch test
 ```
 
-## Local candidate installation
+## Release and development installation
 
-The source checkout, local installation, and a future Central release are
-separate states. Build and test the checkout with the commands above. To put
-the selected `0.1.0` candidate in your machine's sbt/Ivy local repository, run:
-
-```sh
-sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
-```
-
-Then an external sbt build using exact Scala 3.8.4 can load the full-cross
-compiler plugin with:
+The immutable Central release and unreleased source checkout are separate
+states. Released `0.1.0` is an exact Scala `3.8.4` artifact:
 
 ```scala
 ThisBuild / scalaVersion := "3.8.4"
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
 ```
 
+To install unreleased `0.1.1-SNAPSHOT` from this checkout for one exact line,
+select that line explicitly and publish only to the machine-local repository:
+
+```sh
+sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "plugin/publishLocal"
+```
+
+Then a local development consumer uses the matching exact line and snapshot:
+
+```scala
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1-SNAPSHOT").cross(CrossVersion.full))
+```
+
 `CrossVersion.full` is required; `%%` produces only a binary Scala suffix and
-does not name this exact-compiler plugin. These are the selected future Maven
-Central coordinates, but `0.1.0` is not available from Maven Central until a
-separately authorized release is completed.
+does not name this exact-compiler plugin. The new 3.3.8 line and snapshot
+version are source-build/local-publication support only; no 0.1.1 artifact has
+been published remotely.
 
 The plugin JAR is self-contained for compiler loading: it embeds the exact
 unshaded `paradise3.api` runtime classes that the plugin links against. Its POM
@@ -195,8 +203,8 @@ positive evidence remains bounded to the combinations in the test suite.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
 - Local publication is enabled only for the exact-cross plugin and handler API.
-  There is no remotely released coordinate, release cadence, or production
-  support commitment.
+  Released `0.1.0` has no implied release cadence or production support
+  commitment.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.
@@ -224,6 +232,7 @@ explained in the [Security policy](SECURITY.md).
 
 The source is licensed under the [Apache License 2.0](LICENSE). The plugin and
 handler-facing API remain experimental, compiler-version-specific, and without
-stability guarantees. No plugin or handler-contract artifact is published
-remotely. Only the plugin and plugin API support `publishLocal`; internal
-fixtures, tests, examples, consumers, and spikes remain unpublished.
+stability guarantees. The exact Scala 3.8.4 plugin and plugin API are published
+as `0.1.0`; the 0.1.1-SNAPSHOT/Scala 3.3.8 work is not published remotely.
+Only the plugin and plugin API support `publishLocal`; internal fixtures,
+tests, examples, consumers, and spikes remain unpublished.

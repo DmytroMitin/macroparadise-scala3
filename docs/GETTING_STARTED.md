@@ -1,8 +1,8 @@
 # Getting started
 
-Macro-Paradise for Scala 3 can be built from source and installed locally. The
-selected `0.1.0` candidate is not available from Maven Central or another
-remote package repository.
+Macro-Paradise `0.1.0` is available from Maven Central for exact Scala `3.8.4`.
+Unreleased `main` uses `0.1.1-SNAPSHOT` and can be built or installed locally
+for exact Scala `3.3.8` or `3.8.4` as separate lanes.
 
 ## Requirements
 
@@ -11,8 +11,8 @@ remote package repository.
 - network access to resolve the pinned stable Scala release and ordinary build
   dependencies when they are not already cached
 
-The build pins Scala
-`3.8.4`. The global load check rejects other
+The build accepts only exact Scala `3.3.8` and `3.8.4`; select one lane
+explicitly for cross-line qualification. The global load check rejects other
 JDK feature versions before normal tasks execute.
 
 Confirm the active JVM before loading sbt:
@@ -57,28 +57,33 @@ sbt -batch test
 
 It is narrower than the canonical product gate.
 
-## Publish the candidate locally
+## Use the release or publish unreleased main locally
 
-From a clone on the exact toolchain, publish only the two user artifacts to the
-machine-local sbt/Ivy repository:
-
-```sh
-sbt -batch "pluginApi/publishLocal" "plugin/publishLocal"
-```
-
-In a fresh external sbt project, use exact Scala 3.8.4 and the
-full-crossed plugin coordinate:
+The released coordinate remains exact Scala `3.8.4`:
 
 ```scala
 ThisBuild / scalaVersion := "3.8.4"
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
 ```
 
+From a clone, publish only the two unreleased user artifacts for one selected
+exact line to the machine-local sbt/Ivy repository:
+
+```sh
+sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
+```
+
+In a fresh external development project, use the same exact line and snapshot:
+
+```scala
+ThisBuild / scalaVersion := "3.3.8"
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1-SNAPSHOT").cross(CrossVersion.full))
+```
+
 Do not replace `.cross(CrossVersion.full)` with `%%`: the published artifact is
-`macroparadise-scala3-plugin_3.8.4` and is
-tied to that exact compiler. These coordinates are the first-release candidate
-only; `0.1.0` is not available from Maven Central until a later owner-authorized
-release.
+`macroparadise-scala3-plugin_3.3.8` and is tied to that exact compiler. The
+same rule applies independently to `_3.8.4`; the two artifacts are not
+interchangeable.
 
 This declaration adds one self-contained plugin JAR to Dotty's plugin loader.
 That JAR contains the exact unshaded runtime `paradise3.api` classes the plugin

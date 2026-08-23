@@ -15,17 +15,19 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
       "macroparadise.testScalaVersion",
       "3.8.4"
     )
+  private val projectVersion =
+    sys.props.getOrElse("macroparadise.testProjectVersion", "0.1.1-SNAPSHOT")
   private val pluginApiJar =
     codeSourcePath(classOf[paradise3.api.expander])
 
   private val currentMarkerJar =
     new File(
-      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-0.1.0.jar"
+      s"plugin-test-markers/target/scala-$scalaVersion/macroparadise-scala3-plugin-test-markers_3-$projectVersion.jar"
     ).getAbsolutePath
 
   private val legacyMarkerJar =
     new File(
-      s"legacy-metadata-marker-fixture/target/scala-$scalaVersion/macroparadise-scala3-legacy-metadata-marker-fixture_3-0.1.0.jar"
+      s"legacy-metadata-marker-fixture/target/scala-$scalaVersion/macroparadise-scala3-legacy-metadata-marker-fixture_3-$projectVersion.jar"
     ).getAbsolutePath
 
   private val apiLoader = getClass.getClassLoader

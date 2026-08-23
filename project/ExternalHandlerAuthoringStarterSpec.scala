@@ -30,6 +30,7 @@ object ExternalHandlerAuthoringStarterSpec {
       "-batch",
       "-Dmacroparadise.starter.plugin=/tmp/plugin.jar",
       "-Dmacroparadise.starter.pluginApi=/tmp/plugin-api.jar",
+      "-Dmacroparadise.starter.scalaVersion=3.8.4",
       "clean",
       "verifyStarter",
       "verifyNegativeMatrix"
