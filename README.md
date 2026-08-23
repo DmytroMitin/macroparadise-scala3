@@ -134,9 +134,12 @@ The supported external-handler flow has three precompiled stages: marker,
 handler, then annotated consumer. The plugin loader sees the self-contained
 plugin JAR; the ordinary source classpath sees the API and precompiled marker;
 the handler is selected through
-`-P:macroparadise:handlerClasspath=<handler-jar>`. The running application does
-not need the compiler plugin or handler JAR merely because they were used at
-compile time. Same-compilation marker metadata is not currently claimed.
+`-P:macroparadise:handlerClasspath=<handler-jar>`. A second build-only option
+contains a SHA-256 identity derived from the packaged marker and handler so
+Zinc invalidates consumers when either changes at a stable path. The running
+application does not need the compiler plugin or handler JAR merely because
+they were used at compile time. Same-compilation marker metadata is not
+currently claimed.
 
 ## External-handler starter
 

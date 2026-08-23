@@ -276,6 +276,13 @@ object ExternalHandlerAuthoringStarter {
     val pluginOptions = readLines(new File(evidence, "consumer-scalac-options.txt"))
     require(pluginOptions.exists(_.startsWith("-Xplugin:")), "consumer plugin path option missing")
     require(pluginOptions.exists(_.startsWith("-P:macroparadise:handlerClasspath=")), "consumer handler path option missing")
+    val externalArtifactIdentities =
+      pluginOptions.filter(_.startsWith("-P:macroparadise:externalArtifactIdentity=sha256:"))
+    require(externalArtifactIdentities.size == 1, "consumer external artifact identity option is not singular")
+    require(
+      externalArtifactIdentities.head.stripPrefix("-P:macroparadise:externalArtifactIdentity=sha256:").matches("[0-9a-f]{64}"),
+      "consumer external artifact identity is not a lowercase SHA-256 value"
+    )
     require(pluginOptions.forall(value => !value.contains("plugin-test")), "consumer plugin options contain repository fixtures")
 
     val runtimeOutput = read(new File(evidence, "runtime.log"))

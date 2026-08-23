@@ -608,9 +608,12 @@ object IndependentExternalSbtConsumer {
       else ".dependsOn(macroAnnotations, macroHandlers)"
     val handlerOption =
       if (positive)
-        s"""      val handlerJar = (macroHandlers / Compile / packageBin).value
+        s"""      val markerJar = (macroAnnotations / Compile / packageBin).value
+           |      val handlerJar = (macroHandlers / Compile / packageBin).value
+           |      val buildIdentity = externalArtifactIdentity(markerJar, handlerJar)
            |      base ++ Seq(
            |        "-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath,
+           |        "-P:macroparadise:externalArtifactIdentity=sha256:" + buildIdentity,
            |        "-P:macroparadise:metadataReaderTrace=" + file("${scalaString(evidenceDirectory)}/" + tracePrefix + "-metadata.trace").getAbsolutePath,
            |        "-P:macroparadise:externalHandlerInvocationTrace=" + file("${scalaString(evidenceDirectory)}/" + tracePrefix + "-invocation.trace").getAbsolutePath
            |      )""".stripMargin
@@ -620,6 +623,8 @@ object IndependentExternalSbtConsumer {
        |import Keys._
        |import java.io.File
        |import java.nio.charset.StandardCharsets
+       |import java.nio.file.Files
+       |import java.security.MessageDigest
        |import scala.sys.process._
        |
        |ThisBuild / scalaVersion := "${config.scalaVersion}"
@@ -638,6 +643,27 @@ object IndependentExternalSbtConsumer {
        |    .cross(CrossVersion.full)
        |
        |lazy val firstUseAudit = taskKey[Unit]("Audit the external handler first-use graph")
+       |
+       |def sha256(file: File): String = {
+       |  val digest = MessageDigest.getInstance("SHA-256")
+       |  val in = Files.newInputStream(file.toPath)
+       |  try {
+       |    val buffer = new Array[Byte](8192)
+       |    var read = in.read(buffer)
+       |    while (read >= 0) {
+       |      if (read > 0) digest.update(buffer, 0, read)
+       |      read = in.read(buffer)
+       |    }
+       |  } finally in.close()
+       |  digest.digest().map(value => "%02x".format(value & 0xff)).mkString
+       |}
+       |
+       |def externalArtifactIdentity(marker: File, handler: File): String = {
+       |  val digest = MessageDigest.getInstance("SHA-256")
+       |  val value = "marker=" + sha256(marker) + "\\nhandler=" + sha256(handler) + "\\n"
+       |  digest.update(value.getBytes(StandardCharsets.UTF_8))
+       |  digest.digest().map(value => "%02x".format(value & 0xff)).mkString
+       |}
        |
        |lazy val macroAnnotations = project.in(file("macro-annotations"))
        |  .settings(
@@ -685,6 +711,7 @@ object IndependentExternalSbtConsumer {
        |      val qualifiedOptions = (qualifiedControl / Compile / scalacOptions).value
        |      val pluginOptions = options.filter(_.startsWith("-Xplugin:"))
        |      val handlerOptions = options.filter(_.startsWith("-P:macroparadise:handlerClasspath="))
+       |      val identityOptions = options.filter(_.startsWith("-P:macroparadise:externalArtifactIdentity=sha256:"))
        |      val compileClasspath = (core / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
        |      val runtimeClasspath = (core / Runtime / fullClasspath).value.files.map(_.getCanonicalFile).distinct
        |      val qualifiedCompileClasspath = (qualifiedControl / Compile / dependencyClasspath).value.files.map(_.getCanonicalFile).distinct
@@ -703,8 +730,10 @@ object IndependentExternalSbtConsumer {
        |      require(!missingMarkerClasspath.contains(markerClasses), "missing-marker control unexpectedly contains marker output")
        |      if ($positiveLiteral) {
        |        require(handlerOptions == Seq("-P:macroparadise:handlerClasspath=" + handlerJar.getAbsolutePath), "handler option does not equal handler/packageBin")
+       |        require(identityOptions.size == 1 && identityOptions.head.matches("-P:macroparadise:externalArtifactIdentity=sha256:[0-9a-f]{64}"), "external artifact identity is absent or malformed")
        |        require(qualifiedOptions.count(_.startsWith("-Xplugin:")) == 1, "qualified control does not use exactly one compiler-plugin coordinate")
        |        require(qualifiedOptions.filter(_.startsWith("-P:macroparadise:handlerClasspath=")) == handlerOptions, "qualified control handler option differs from handler/packageBin")
+       |        require(qualifiedOptions.filter(_.startsWith("-P:macroparadise:externalArtifactIdentity=sha256:")) == identityOptions, "qualified control build identity differs")
        |        require(options.count(_.startsWith("-P:macroparadise:metadataReaderTrace=")) == 1, "imported consumer metadata witness is absent")
        |        require(options.count(_.startsWith("-P:macroparadise:externalHandlerInvocationTrace=")) == 1, "imported consumer invocation witness is absent")
        |        require(qualifiedOptions.count(_.startsWith("-P:macroparadise:metadataReaderTrace=")) == 1, "qualified control metadata witness is absent")

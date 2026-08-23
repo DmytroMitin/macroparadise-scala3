@@ -212,10 +212,12 @@ lazy val consumer: Project = project.in(file("consumer"))
       val plugin = requiredArtifact(PluginProperty)
       val markerJar = (marker / Compile / packageBin).value
       val handlerJar = (handler / Compile / packageBin).value
+      val externalArtifactIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
       Seq(
         s"-Xplugin:${plugin.getAbsolutePath}",
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:externalArtifactIdentity=sha256:$externalArtifactIdentity"
       )
     },
     markConsumerCompileStart := {

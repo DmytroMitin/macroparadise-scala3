@@ -113,6 +113,16 @@ exercise the research prototype, but it is not an automatic correctness story
 for handler-only edits. Use the precompiled-handler starter for supported
 experimental evaluation.
 
+### Precompiled-handler stale output
+
+If the handler JAR is rebuilt at the same path but generated behavior does not
+change, verify that the consumer `scalacOptions` include the build-only
+`externalArtifactIdentity` derived from both the packaged marker and handler.
+The `packageBin` dependency provides ordering, not a content-sensitive Zinc
+input. A no-op build should retain the identity; changing handler bytes or
+marker binding metadata should change it and recompile the consumer without
+`clean`.
+
 ## Useful commands
 
 Canonical product gate:

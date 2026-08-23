@@ -44,14 +44,22 @@ lazy val core = project
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
+      val markerJar = (macroAnnotations / Compile / packageBin).value
       val handlerJar = (macroHandlers / Compile / packageBin).value
+      val buildIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
       Seq(
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:externalArtifactIdentity=sha256:$buildIdentity"
       )
     }
   )
 ```
+
+`ExternalArtifactIdentity` is the small SHA-256 helper in the checked-in
+starter's [`project` directory](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala).
+It hashes the packaged marker and handler bytes, then hashes the two labelled
+digests into one lowercase value.
 
 The normal first-use source form is one explicit import followed by the short
 annotation:
@@ -256,10 +264,13 @@ lazy val core = project
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
+      val markerJar = (macroAnnotations / Compile / packageBin).value
       val handlerJar = (macroHandlers / Compile / packageBin).value
+      val buildIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
       Seq(
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}"
+        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:externalArtifactIdentity=sha256:$buildIdentity"
       )
     }
   )
@@ -344,8 +355,8 @@ or a second compiler universe.
 
 ## Why the handler path stays explicit
 
-The supported default remains an explicit handler path plus the sbt
-`packageBin` setting above.
+The supported default remains an explicit handler path plus the packaged
+marker/handler content identity in the sbt setting above.
 
 - Automatically searching the ordinary source classpath would make handler
   provenance depend on source/runtime dependency resolution and could admit
@@ -358,8 +369,17 @@ The supported default remains an explicit handler path plus the sbt
 The explicit path keeps the plugin loader, marker lookup, and handler loader
 separate; avoids adding handler implementation code to application runtime;
 and makes the selected artifact visible in `scalacOptions`. The direct
-`handler/packageBin` task dependency also gives Zinc an explicit reason to
-repackage the handler before consumer options are evaluated.
+`handler/packageBin` task dependency repackages the handler before consumer
+options are evaluated, but a stable path alone is not content-sensitive to
+Zinc. The `externalArtifactIdentity` option changes when either packaged marker
+metadata or handler implementation bytes change, so Zinc recompiles the
+unchanged consumer without `clean`.
+
+`externalArtifactIdentity` is intentionally a build-only token. The plugin does
+not interpret or validate its value; the exact option string participates in
+Zinc compiler-option identity. Compute it from the current packaged marker and
+handler bytes rather than assigning a constant, timestamp, path, or manually
+managed version. It is not an artifact-integrity or security check.
 
 If a handler has external runtime dependencies, supply the handler JAR and
 those required dependency JARs as a platform path list. Do not add them to

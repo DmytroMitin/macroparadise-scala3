@@ -1,7 +1,7 @@
 import java.io.File
 
 object IndependentExternalSbtConsumerSpec {
-  val CaseCount = 46
+  val CaseCount = 47
 
   def run(): Unit = {
     import IndependentExternalSbtConsumer._
@@ -89,6 +89,10 @@ object IndependentExternalSbtConsumerSpec {
     check(positiveMultiProject.contains("(macroHandlers / Compile / packageBin).value"), "positive multi-project build does not derive the handler artifact from packageBin")
     check(!positiveMultiProject.contains(".dependsOn(macroAnnotations, macroHandlers)"), "positive consumer retains an ordinary handler project dependency")
     check(positiveMultiProject.contains("-P:macroparadise:handlerClasspath="), "positive multi-project build lacks explicit handler wiring")
+    check(
+      positiveMultiProject.contains("-P:macroparadise:externalArtifactIdentity=sha256:"),
+      "positive multi-project build lacks marker/handler content identity wiring"
+    )
     check(negativeMultiProject.contains(".dependsOn(macroAnnotations, macroHandlers)"), "negative multi-project build does not reproduce the intuitive ordinary classpath mistake")
     check(
       !negativeMultiProject.contains("base ++ Seq(\"-P:macroparadise:handlerClasspath="),

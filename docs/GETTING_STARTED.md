@@ -187,8 +187,12 @@ plugin loader receives only the self-contained plugin JAR. Its ordinary source
 classpath receives the API and precompiled marker, while the precompiled
 handler is selected through `-P:macroparadise:handlerClasspath=...`. Compiler
 plugin and handler artifacts are compilation tools, not automatic runtime
-application dependencies. This standard multi-project sbt shape is suitable
-for CLI use and IntelliJ/BSP import; no IDE metadata is required.
+application dependencies. The consumer options also include a build-only
+`externalArtifactIdentity` SHA-256 derived from the packaged marker and handler;
+that content identity is required for reliable handler-only and marker-metadata
+incremental invalidation while their artifact paths stay stable. This standard
+multi-project sbt shape is suitable for CLI use and BSP import; no IDE metadata
+is required.
 
 The plugin canonicalizes only the bounded explicit-import form before typer. It
 does not implement wildcard, alias, local/nested, given, export, shadowing-
