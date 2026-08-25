@@ -41,22 +41,46 @@ release cadence, or compatibility duration.
 
 ## Same-module handler status
 
-A different-file clean-build prototype demonstrates compiler-unit suspension
-and resumed expansion. General production support remains deferred because the
-current design does not register the implementation-sensitive dependency that
-Zinc, sbt, and IDE/BSP workflows would need after a handler-only edit.
+A bounded different-file design probe established a feasible lifecycle for
+explicit handler-source mapping, content-derived incremental identity,
+compiler-unit suspension, and resumed expansion across clean and incremental
+CLI/Zinc/BSP builds. General production support remains deferred because that
+lifecycle is not implemented or product-qualified.
 
-Revisit this area only when a design can prove consumer invalidation after
-handler implementation changes and can provide command-line and IDE/BSP parity.
-Precompiled handlers remain the supported experimental baseline.
+Future implementation must prove consumer invalidation after handler
+implementation changes. Same-file handlers, dependency cycles, automatic
+discovery, and live IntelliJ behavior remain outside the established design;
+precompiled handlers remain the supported experimental baseline.
+
+## Generic sbt integration
+
+Plan a separately reviewed sbt integration plugin that can turn the current
+manual three-project wiring into an explicit, reusable build contract. A
+credible design must:
+
+- select exact full-cross Macro-Paradise plugin and API coordinates;
+- identify and package marker and handler projects before consumer compilation;
+- derive content identity from the packaged marker and handler rather than from
+  stable paths or timestamps;
+- install the handler classpath and build-only identity compiler options;
+- behave consistently in CLI, BSP, and sbt-delegated IntelliJ builds;
+- retain inspectable manual settings as overrides and an escape hatch;
+- leave room for the bounded same-module source-identity lifecycle only after
+  the precompiled-handler form is proven.
+
+No coordinate, setting key, implementation, or release is promised yet. The
+current manual wiring remains authoritative. A downstream project may provide
+application-specific conveniences; the generic layer should belong here, while
+compiler/plugin behavior remains in the product API rather than in sbt.
 
 ## Optional quasiquotes research
 
-Quasiquotes work may supply compiler-free construction models or exact-build
-friend adapters for selected handler experiments. It remains independent,
-optional research. The product build must not require another checkout, a
-private exchange, or a peer artifact that is unavailable through the task's
-explicit test setup.
+[Quasiquotes for Scala 3](https://github.com/DmytroMitin/quasiquotes-scala3)
+supplies a Scalameta-based compiler-neutral authoring model and exact-build
+lowering experiments. [AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3)
+is an independent downstream consumer of that layering with Macro-Paradise.
+Both remain optional related projects. The product build must not require
+another checkout or an unavailable peer artifact.
 
 ## Open-source, publication, and stability work
 

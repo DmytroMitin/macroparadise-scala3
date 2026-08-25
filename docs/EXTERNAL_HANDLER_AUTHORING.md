@@ -75,9 +75,9 @@ class Something
 
 The marker project must remain on the consumer's ordinary compile classpath via
 `.dependsOn(macroAnnotations)`. Omitting that edge is an sbt build-graph error.
-Dotty reports the unresolved import as E008 and can also report E046 cyclic
-completion around the missing annotation; those compiler diagnostics are
-independent of Macro-Paradise's pre-typer identity resolver.
+Dotty can report unresolved-import and cyclic-completion diagnostics around the
+missing annotation; those compiler diagnostics are independent of
+Macro-Paradise's pre-typer identity resolver.
 
 Only the self-contained plugin coordinate activates the compiler plugin. Do
 not construct a second `-Xplugin` path that appends `plugin-api`. The marker is
@@ -149,9 +149,15 @@ plugin-owned admission, composition, or companion contract.
 
 ## Generated-output follow-on
 
-After the identity smoke test passes, the executable
+After the identity smoke test passes, the user-authored `@gen` from the
+[README](../README.md#a-small-user-authored-example) is the smallest generated-
+output example. The same independent external sbt verifier compiles its literal
+marker, `GenHandler`, and consumer and checks that
+`new GenUser().generatedHello` typechecks.
+
+The executable
 [`generateGreeting` starter](../examples/external-handler-starter/README.md)
-is the next example. Its handler uses `ExpansionHelpers` to add
+is a more extensive follow-on. Its handler uses `ExpansionHelpers` to add
 `generatedGreeting`, and the consumer typechecks and runs that generated member.
 It proves transformation output in addition to the same marker, handler, and
 consumer wiring; generated helpers are not required merely to prove discovery
@@ -278,8 +284,9 @@ lazy val core = project
 
 The executable `@identity` mirror is
 `verifyIndependentExternalSbtConsumerFromLocalRepository`. It compiles the
-literal marker, handler, and consumer shapes above in a disposable external sbt
-build, audits the graph and plugin options, and keeps its artifacts task-local.
+literal identity and user-authored `@gen` marker, handler, and consumer shapes
+in a disposable external sbt build, audits the graph and plugin options, and
+keeps its artifacts task-local.
 The checked-in generated-greeting starter uses the same three-role topology
 with explicit local artifact paths.
 
@@ -353,7 +360,7 @@ types parent first. A handler compiled against the separate `plugin-api` JAR
 therefore implements the plugin-owned runtime identity without a shaded alias
 or a second compiler universe.
 
-## Why the handler path stays explicit
+## Current manual wiring and future sbt integration
 
 The supported default remains an explicit handler path plus the packaged
 marker/handler content identity in the sbt setting above.
@@ -363,8 +370,6 @@ marker/handler content identity in the sbt setting above.
   duplicate API or compiler universes.
 - An opt-in source-classpath search would retain those identity and provenance
   risks while adding another mode for Zinc, BSP, and IDE imports to reproduce.
-- A dedicated sbt plugin would add a separately versioned distribution surface
-  for wiring that one task expression already represents.
 
 The explicit path keeps the plugin loader, marker lookup, and handler loader
 separate; avoids adding handler implementation code to application runtime;
@@ -380,6 +385,16 @@ not interpret or validate its value; the exact option string participates in
 Zinc compiler-option identity. Compute it from the current packaged marker and
 handler bytes rather than assigning a constant, timestamp, path, or manually
 managed version. It is not an artifact-integrity or security check.
+
+A future generic sbt integration plugin is on the roadmap. Its job would be to
+derive the exact full-cross plugin and API coordinates, package a selected
+marker/handler project, calculate content identity, and install the compiler
+options consistently for CLI, BSP, and sbt-delegated IntelliJ builds. The
+design must preserve explicit settings as an inspectable override and escape
+hatch. No plugin coordinate, key name, or release is promised yet; the manual
+wiring above remains the current supported experimental path. A downstream
+project may layer its own build ergonomics without making that integration a
+Macro-Paradise product dependency.
 
 If a handler has external runtime dependencies, supply the handler JAR and
 those required dependency JARs as a platform path list. Do not add them to
@@ -468,21 +483,22 @@ precheck exits with status 2 and reports
 before its category, detail, and usage. `--help` exits successfully without
 loading artifacts or running the precheck.
 
-The starter preserves P1-P7 and C1-C6 and adds M1-M9 paired metadata-authoring
-lanes: nonexistent or non-handler classes, an A/B artifact mismatch,
+The starter preserves the full explicit fail-closed matrix and the focused
+compact matrix. It also runs paired metadata-authoring negatives in both modes:
+nonexistent or non-handler classes, an A/B artifact mismatch,
 descriptor/stale/qualified-identity mismatches, and empty, whitespace, or
-malformed handler metadata. Every M lane runs in both modes and proves the
-preconsumer stop boundary.
+malformed handler metadata. Each negative proves the preconsumer stop boundary.
 
 ## What the starter proves
 
 The independent external sbt proof compiles the exact imported-short `@identity`
 example above, observes canonical metadata selection and one `IdentityHandler`
 invocation, and compiles the direct-qualified control. Its missing-marker lane
-remains an ordinary E008/E046 build-graph failure. The generated-greeting
-starter then typechecks and runs `new Greeter().generatedGreeting`, which
-returns `Hello, Greeter!`. Together they prove wiring first and generated output
-second on the pinned toolchain.
+remains an ordinary unresolved-import/cyclic-completion build-graph failure.
+The same proof typechecks the documented user-authored `@gen` method call. The
+generated-greeting starter then typechecks and runs
+`new Greeter().generatedGreeting`, which returns `Hello, Greeter!`. Together
+they prove wiring first and generated output second on the pinned toolchain.
 
 It does not prove a marker declared in the same compilation as its annotated
 use, same-module handlers, remotely released coordinates, arbitrary targets,

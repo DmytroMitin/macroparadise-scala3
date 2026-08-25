@@ -820,6 +820,18 @@ object IndependentExternalSbtConsumer {
     val importedIdentityCompiled =
       javap._1 == 0 && javap._2.contains("public com.example.core.Something()")
     require(importedIdentityCompiled, "imported-short identity consumer did not compile unchanged")
+    val documentedGenJavapLog = new File(greenEvidence, "documented-gen-javap.txt")
+    val documentedGenJavap = runProcess(
+      Vector(javaTool("javap"), "-classpath", coreClasses.getAbsolutePath, "com.example.core.GenUser"),
+      layout.multiProjectGreen,
+      Map.empty,
+      documentedGenJavapLog
+    )
+    require(
+      documentedGenJavap._1 == 0 &&
+        documentedGenJavap._2.contains("java.lang.String generatedHello()"),
+      "documented user-authored @gen consumer did not typecheck the generated method"
+    )
     val qualifiedClasses = singleDirectory(new File(layout.multiProjectGreen, "qualified-control"), "classes")
     val qualifiedJavapLog = new File(greenEvidence, "qualified-control-javap.txt")
     val qualifiedJavap = runProcess(
@@ -949,13 +961,28 @@ object IndependentExternalSbtConsumer {
       StandardCopyOption.REPLACE_EXISTING
     )
     Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/marker/gen.scala").toPath,
+      new File(directory, "macro-annotations/src/main/scala/gen.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
       new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/handler/IdentityHandler.scala").toPath,
       new File(directory, "macro-handlers/src/main/scala/IdentityHandler.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
     Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/handler/GenHandler.scala").toPath,
+      new File(directory, "macro-handlers/src/main/scala/GenHandler.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
       new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/imported/IdentityConsumer.scala").toPath,
       new File(directory, "core/src/main/scala/IdentityConsumer.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(layout.sourceCopy, "plugin-api-handler-contract-probe/identity-first-use/imported/GenConsumer.scala").toPath,
+      new File(directory, "core/src/main/scala/GenConsumer.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
     Files.copy(

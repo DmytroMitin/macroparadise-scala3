@@ -21,10 +21,10 @@ version. The installed runner's own version is not the build version.
 
 The root task supplies local packaged production plugin and `pluginApi` paths,
 isolates the child sbt state under the repository `target/` directory, and runs
-both explicit and compact positive prechecks. It preserves the P1-P7 explicit
-fail-closed matrix and the focused C1-C6 compact matrix. M1-M9 then run paired
-explicit/compact metadata-authoring failures and compare their category and
-core diagnostic fields.
+both explicit and compact positive prechecks. It preserves the full explicit
+fail-closed matrix and the focused compact matrix. Paired explicit/compact
+metadata-authoring failures then compare their category and core diagnostic
+fields.
 
 The projects are intentionally separate:
 

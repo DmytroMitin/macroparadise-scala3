@@ -88,11 +88,12 @@ precheck.
 
 ## Same-module boundary
 
-A different-file clean-build prototype uses compiler-unit suspension to compile
-a handler before resuming annotated consumers. It does not establish general
-same-module support because the build tool does not know that handler
-implementation changes must invalidate generated consumers. The supported
-experimental architecture therefore keeps handlers precompiled.
+A bounded different-file design probe established a coherent lifecycle using
+explicit handler-source mapping, packaged content identity, compiler-unit
+suspension, and resumed consumers. The design covers clean and incremental
+CLI/Zinc/BSP execution in principle, but it is not implemented. It does not
+cover same-file handlers, dependency cycles, or live IntelliJ behavior. The
+supported experimental architecture therefore keeps handlers precompiled.
 
 See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md). The separate

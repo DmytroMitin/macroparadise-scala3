@@ -88,6 +88,10 @@ object PublicDocumentationPolicy {
       "(?i)\\b(?:private ", "handoff|readiness ", "ledger|migration ", "evidence)\\b"
     ).r.findFirstIn(text).nonEmpty)
       findings += Finding("PRIVATE_PROCESS_ARTIFACT", path, "references a private process artifact")
+    if ("""\b([PCM])[0-9]+\s*[-–]\s*\1[0-9]+\b""".r.findFirstIn(text).nonEmpty)
+      findings += Finding("PRIVATE_LANE_NOTATION", path, "contains private implementation-lane shorthand")
+    if ("""\bE[0-9]{3}\b""".r.findFirstIn(text).nonEmpty)
+      findings += Finding("PRIVATE_DIAGNOSTIC_ID", path, "contains a private diagnostic fixture identifier")
     PrivateControllerDocuments.toVector.sorted.foreach { name =>
       if (lower.contains(name))
         findings += Finding("PRIVATE_CONTROLLER_DOCUMENT", path, s"references private controller document `$name`")

@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 13
+  val CaseCount = 15
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -32,6 +32,8 @@ object PublicDocumentationPolicySpec {
       "PRIVATE_CONTROLLER_DOCUMENT"
     )
     assertFinding("README.md", "Consult the private readiness " + "ledger.\n", "PRIVATE_PROCESS_ARTIFACT")
+    assertFinding("README.md", "Implementation follows lanes " + "P1-P7 and C1-C6.\n", "PRIVATE_LANE_NOTATION")
+    assertFinding("README.md", "A missing generated member reports " + "E046.\n", "PRIVATE_DIAGNOSTIC_ID")
     assertFinding("README.md", "See [missing](docs/MISSING.md).\n", "BROKEN_RELATIVE_LINK")
 
     val missing = fixture()

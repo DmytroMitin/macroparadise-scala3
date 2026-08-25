@@ -12,24 +12,61 @@ immutable `0.1.0` release supports exact Scala `3.8.4` and is available
 from Maven Central. Unreleased `main` is now qualified separately for exact
 Scala `3.3.8` and `3.8.4` at development version `0.1.1-SNAPSHOT`.
 
-## A small example
+## A small user-authored example
 
-The built-in `@gen` fixture demonstrates the mechanism:
+A user can define an annotation marker, its precompiled handler, and an
+annotated consumer. The marker carries only the handler identity:
 
 ```scala
-import paradise3.gen
+package com.example.`macro`.annotations
 
-@gen
-class User(val name: String)
+import paradise3.api.expander
+import scala.annotation.StaticAnnotation
 
-val greeting = new User("Ada").generatedHello
-val copy = User.generatedFactory("Grace")
-val metadata = new UserMeta
+@expander("com.example.macro.handlers.GenHandler")
+final class gen extends StaticAnnotation
 ```
 
-Before ordinary typing, the plugin rewrites the annotated class, creates or
-merges its companion, and adds the sibling `UserMeta`. The generated members
-are then typechecked like ordinary source definitions.
+The handler uses the public experimental helper API:
+
+```scala
+package com.example.`macro`.handlers
+
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+import paradise3.api.helpers.ExpansionHelpers
+
+final class GenHandler extends ParadiseAnnotationExpander:
+  override def annotationName: String =
+    "com.example.macro.annotations.gen"
+
+  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionHelpers.addStringMethodToClass(
+      input,
+      methodName = "generatedHello",
+      value = s"hello ${input.className}"
+    )
+```
+
+After the marker and handler have been compiled, the consumer imports and uses
+its own annotation:
+
+```scala
+package com.example.core
+
+import com.example.`macro`.annotations.gen
+
+@gen
+class GenUser
+
+val greeting: String = new GenUser().generatedHello
+```
+
+Before ordinary typing, Macro-Paradise loads `GenHandler`, adds
+`generatedHello`, and lets the compiler typecheck the call like ordinary source.
+The repository mechanically compiles this exact example in the independent
+marker/handler/consumer verification task. The repository's built-in `@gen`
+remains an internal fixture; it is not an installed user annotation.
 
 This fixture is intentionally narrow. It is evidence for the compiler
 mechanism, not a general-purpose macro-annotation API.
@@ -60,6 +97,10 @@ Changing the Scala version is not the fix. Select JDK 25 in both locations,
 then refresh or reimport the sbt project. An unsupported importer JVM is
 rejected during meta-build settings load, before the ordinary `project/*.scala`
 helpers compile.
+
+For packaged external-handler projects, delegate build and run actions to sbt.
+The sbt-imported workflow is qualified; IntelliJ's native JPS compiler path is
+not currently part of the supported boundary.
 
 Run the complete product gate from the repository root:
 
@@ -197,9 +238,11 @@ positive evidence remains bounded to the combinations in the test suite.
 - Annotation matching is syntactic. One unambiguous, source-preceding,
   package-level explicit import is supported; alias, wildcard, local/nested,
   given, export, symbol, and general semantic resolution are not implemented.
-- General same-module handler support is deferred. A clean-build prototype
-  exists, but handler-only changes do not reliably invalidate consumers through
-  Zinc under the current design.
+- General same-module handler support is deferred. A bounded different-file
+  design probe established a feasible explicit source-mapping, content-identity,
+  and compiler-unit-suspension lifecycle for clean and incremental CLI/Zinc/BSP
+  builds. It is not implemented, does not cover same-file handlers or dependency
+  cycles, and does not qualify live IntelliJ behavior.
 - The project does not provide arbitrary target shapes, arbitrary definition
   construction, arbitrary composition, typed tree construction, or a stable
   public API.
@@ -211,6 +254,16 @@ positive evidence remains bounded to the combinations in the test suite.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.
+
+## Related projects
+
+- [Quasiquotes for Scala 3](https://github.com/DmytroMitin/quasiquotes-scala3)
+  explores a compiler-neutral Scalameta authoring model and exact-compiler
+  lowering adapters. It is independent, optional research rather than a
+  Macro-Paradise product dependency.
+- [AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is an
+  independent downstream consumer. Its user-authored `@apply` demonstrates a
+  richer integration of Macro-Paradise placement with Quasiquotes construction.
 
 ## Documentation
 

@@ -11,6 +11,14 @@ The build uses compiler-internal APIs and a pre-typer research phase. JDK 25 is
 enforced at sbt load, and each Scala lane is pinned exactly. Binary-crossed or
 nearby compiler versions are not substitutes.
 
+## IntelliJ and build import
+
+IntelliJ must import the build with sbt running on JDK 25. Packaged external-
+handler projects should delegate build and run actions to sbt so the exact
+plugin options, handler packaging dependency, and content identity are retained.
+This sbt-imported workflow is the qualified IDE path. Native JPS compilation is
+not currently qualified, and live same-module handler editing is not supported.
+
 ## Plugin and handler compatibility
 
 The plugin, handler API, precompiled handlers, and ordinary consumer compilation

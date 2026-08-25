@@ -97,13 +97,14 @@ pair is implied.
 
 General production same-module support is deferred.
 
-A clean/full compiler run can suspend different-file consumers, compile an
-explicitly related handler source, load its output, and resume the consumers.
-The current design does not give Zinc an implementation-sensitive dependency
-from the handler body to generated consumers. A handler-only edit can therefore
-leave consumers stale. Same-file handlers, dependency cycles, automatic
-discovery, multiple configured relationships, and IDE/BSP invalidation parity
-are not supported.
+A bounded design probe established a feasible lifecycle for explicitly mapped
+different-file handler sources: package the selected source, derive content
+identity for incremental invalidation, suspend dependent compiler units, load
+the compiled handler, and resume consumers. The design is intended to preserve
+clean and incremental CLI/Zinc/BSP behavior, but it is not implemented or
+supported today. Same-file handlers, dependency cycles, automatic discovery,
+multiple configured relationships, and live IntelliJ behavior remain outside
+the established boundary.
 
 Precompiled handlers remain the supported experimental path.
 

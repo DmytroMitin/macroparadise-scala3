@@ -82,9 +82,9 @@ discovery behavior.
 
 The consumer must `.dependsOn(marker)`. The handler JAR supplied through
 `handlerClasspath` does not add the marker to the ordinary compile classpath.
-If the edge is missing, Dotty can report E008 for the unresolved import and E046
-for cyclic completion around the annotation. Treat both as ordinary build-graph
-or type-resolution evidence, not as a Macro-Paradise-generated compiler cycle.
+If the edge is missing, Dotty can report unresolved-import and cyclic-completion
+diagnostics around the annotation. Treat both as ordinary build-graph or
+type-resolution evidence, not as a Macro-Paradise-generated compiler cycle.
 
 ### Target rejected before invocation
 
@@ -108,10 +108,12 @@ generated tree shape, names in scope, and exact target assumptions.
 
 ### Same-module stale output
 
-General incremental same-module support is not implemented. A clean build can
-exercise the research prototype, but it is not an automatic correctness story
-for handler-only edits. Use the precompiled-handler starter for supported
-experimental evaluation.
+General incremental same-module support is not implemented. A bounded design
+exists for explicit different-file source mapping, content-sensitive build
+identity, compiler-unit suspension, and resumed consumers in CLI/Zinc/BSP
+builds, but no user-facing implementation or live IntelliJ qualification
+exists. Same-file handlers and cycles remain outside that design. Use the
+precompiled-handler starter for supported experimental evaluation.
 
 ### Precompiled-handler stale output
 

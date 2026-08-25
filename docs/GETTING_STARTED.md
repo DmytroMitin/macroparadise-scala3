@@ -35,6 +35,9 @@ Scala version to compensate. The repository's bootstrap check rejects that JVM
 before compiling the ordinary meta-build helpers and tells you to select JDK
 25.
 
+Delegate packaged external-handler build and run actions to sbt. The
+sbt-imported workflow is qualified; IntelliJ's native JPS compiler path is not.
+
 ## Run the product gate
 
 From the repository root:
@@ -92,32 +95,6 @@ An ordinary `plugin-api` library dependency is needed only for compiling a
 user-owned marker or handler, and ordinary source dependencies do not become a
 parent of the compiler plugin classloader.
 
-The built-in `@gen` below remains a repository fixture, not the promised
-external annotation API. A user-authored annotation uses a precompiled marker
-and `ParadiseAnnotationExpander` handler as described in
-[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md).
-
-## Try the built-in source fixture
-
-The built-in `@gen` annotation demonstrates class, companion, and sibling
-generation:
-
-```scala
-import paradise3.gen
-
-@gen
-class User(val name: String)
-
-val user = new User("Ada")
-assert(user.generatedHello == "hello Ada")
-assert(User.generatedFactory("Grace").name == "Grace")
-val metadata: UserMeta = new UserMeta
-```
-
-The exact admitted shape is one concrete top-level, non-case, non-generic
-class with one non-contextual primary-constructor clause containing one bare or
-immutable `val name: String`, no default, and an accessible constructor.
-
 ## Try a user-defined external handler
 
 Pin the external build tool in `project/build.properties`:
@@ -167,7 +144,40 @@ Successful unchanged-class compilation proves marker discovery, metadata
 binding, canonicalization, handler loading, and one handler invocation. It does
 not depend on generated-member helpers or more involved tree construction.
 
-### Continue with generated output
+### Continue with your own `@gen`
+
+The [README example](../README.md#a-small-user-authored-example) defines a
+user-owned `@gen` marker and `GenHandler`. Its consumer typechecks an ordinary
+call to the generated method:
+
+```scala
+import com.example.`macro`.annotations.gen
+
+@gen
+class GenUser
+
+val greeting: String = new GenUser().generatedHello
+```
+
+The same independent external-build task compiles that literal marker, handler,
+and consumer alongside the minimal `@identity` path:
+
+```sh
+sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
+```
+
+This is the first generated-output step. The repository's built-in `@gen` is
+only an internal compiler fixture and is not an installed annotation API.
+
+### See a real downstream `@apply`
+
+[AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is an
+independent downstream project whose user-authored `@apply` combines
+Macro-Paradise placement with Quasiquotes construction. It is the next step
+after the minimal `@identity` wiring proof and the user-owned `@gen` output
+example; it is not a dependency of this product build.
+
+### Optional: run the more extensive starter
 
 Run the fixture-independent `generateGreeting` starter:
 
@@ -198,7 +208,8 @@ The plugin canonicalizes only the bounded explicit-import form before typer. It
 does not implement wildcard, alias, local/nested, given, export, shadowing-
 dependent, package-object, or general semantic name resolution. Omitting the
 marker project dependency is an ordinary sbt classpath error and can surface as
-Dotty E008 plus E046 diagnostics; it is not a Macro-Paradise identity failure.
+unresolved-import and cyclic-completion compiler diagnostics; it is not a
+Macro-Paradise identity failure.
 
 Read [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the marker,
 handler, classpath, output, and diagnostic contracts.
