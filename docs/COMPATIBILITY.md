@@ -19,6 +19,14 @@ plugin options, handler packaging dependency, and content identity are retained.
 This sbt-imported workflow is the qualified IDE path. Native JPS compilation is
 not currently qualified, and live same-module handler editing is not supported.
 
+The separate source-built, unreleased sbt integration is also qualified through
+real persistent sbt BSP sessions for exact Scala `3.3.8` and `3.8.4`, sbt
+1.12.15, and JDK 25. One process is retained across no-op compilation,
+handler-only, handler-dependency-only, marker-metadata-only, and consumer-only
+edits, followed by stale-handler failure and repaired compilation without
+`clean`. This BSP qualification does not extend to native JPS, same-module
+handler authoring, or a remotely published sbt integration coordinate.
+
 ## Plugin and handler compatibility
 
 The source-built sbt integration itself runs in the sbt 1.x / Scala 2.12

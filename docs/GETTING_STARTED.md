@@ -148,6 +148,14 @@ three-project topology, requires the marker `.dependsOn` edge explicitly, and
 derives invalidation identity from the complete ordered handler expansion
 classpath. The manual graph remains a supported escape hatch.
 
+For this source-built, unreleased integration, real persistent sbt BSP
+compilation and run requests are qualified on exact Scala `3.3.8` and `3.8.4`
+with sbt 1.12.15 and JDK 25. The retained-process qualification includes
+content-sensitive handler, handler-dependency, and marker invalidation plus
+stale-handler failure and repair without `clean` or server restart. This does
+not make the integration a remotely published sbt plugin, does not support a
+same-module live handler, and does not qualify IntelliJ native JPS compilation.
+
 Successful unchanged-class compilation proves marker discovery, metadata
 binding, canonicalization, handler loading, and one handler invocation. It does
 not depend on generated-member helpers or more involved tree construction.

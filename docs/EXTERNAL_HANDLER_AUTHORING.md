@@ -412,7 +412,12 @@ keeps published handlers in a hidden configuration, expands their complete
 ordered dependency classpath, and installs the compiler options. Its static
 local-project helper returns settings only: the consumer still declares
 `.dependsOn(marker)`. The module is source-built and unreleased, and persistent
-BSP and IntelliJ qualification remain future work. Manual wiring above remains
+BSP compilation and run requests are qualified for the exact Scala 3.3.8 and
+3.8.4 lanes with sbt 1.12.15 on JDK 25. That qualification covers one retained
+BSP process through no-op, handler-only, handler-dependency-only,
+marker-metadata-only, consumer-only, stale-handler failure, and repaired
+compilation without `clean` or restart. It does not qualify IntelliJ native JPS
+compilation or live same-module handler authoring. Manual wiring above remains
 supported.
 
 If a handler has external runtime dependencies, supply the handler JAR and
