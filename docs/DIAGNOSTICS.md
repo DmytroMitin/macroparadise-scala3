@@ -119,9 +119,10 @@ precompiled-handler starter for supported experimental evaluation.
 
 If the handler JAR is rebuilt at the same path but generated behavior does not
 change, verify that the consumer `scalacOptions` include the build-only
-`externalArtifactIdentity` derived from both the packaged marker and handler.
-The `packageBin` dependency provides ordering, not a content-sensitive Zinc
-input. A no-op build should retain the identity; changing handler bytes or
+`externalArtifactIdentity` derived from every explicit marker artifact and the
+complete ordered effective handler expansion classpath. The `packageBin`
+dependency provides ordering, not a content-sensitive Zinc input. A no-op build
+should retain the identity; changing handler bytes, a handler dependency, or
 marker binding metadata should change it and recompile the consumer without
 `clean`.
 

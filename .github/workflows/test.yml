@@ -37,6 +37,11 @@ jobs:
         run: |
           sbt -Dmacroparadise.exactScalaVersion=${{ matrix.opposite-scala-version }} -batch '++${{ matrix.opposite-scala-version }}!' plugin/packageBin
 
+      - name: Verify source-built sbt integration
+        working-directory: sbt-integration
+        run: |
+          sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
+
       - name: Verify public-product build boundary (Scala ${{ matrix.scala-version }})
         run: |
           java -version

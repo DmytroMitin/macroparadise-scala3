@@ -111,8 +111,9 @@ sbt -batch verifyPublicProductBoundary
 The gate runs nonempty plugin and consumer suites, packages the plugin and
 experimental handler contract, checks the normalized API surface, exercises
 independent consumers, verifies the external-handler starter, and confirms
-that only the two selected user artifacts are locally publishable while remote
-publishing remains fail closed.
+that only the compiler plugin and handler API are top-level product artifacts
+for `publishLocal`. The separate source-built sbt module also validates its
+local/test packaging while every remote publication path remains fail closed.
 
 For an additional product-only isolation proof, run the same canonical gate in
 a disposable source copy with fresh dependency and build caches:
@@ -172,12 +173,21 @@ full-cross `macroparadise-scala3-plugin-api` coordinate described in
 plugin-only users do not add implementation or repository test artifacts.
 
 The supported external-handler flow has three precompiled stages: marker,
-handler, then annotated consumer. The plugin loader sees the self-contained
+handler, then annotated consumer. An opt-in, source-built
+[`sbt-integration`](sbt-integration/README.md) module now automates the exact
+plugin selection, hidden handler resolution, complete handler-classpath
+identity, and compiler options for this precompiled topology. Its static local
+project helper deliberately does not infer the marker dependency: the consumer
+must still declare `.dependsOn(marker)`. Manual settings remain supported.
+
+The plugin loader sees the self-contained
 plugin JAR; the ordinary source classpath sees the API and precompiled marker;
 the handler is selected through
 `-P:macroparadise:handlerClasspath=<handler-jar>`. A second build-only option
-contains a SHA-256 identity derived from the packaged marker and handler so
-Zinc invalidates consumers when either changes at a stable path. The running
+contains a SHA-256 identity derived from every explicit marker artifact and the
+complete ordered effective handler expansion classpath, including handler
+dependencies, so Zinc invalidates consumers when any role input changes at a
+stable path. The running
 application does not need the compiler plugin or handler JAR merely because
 they were used at compile time. Same-compilation marker metadata is not
 currently claimed.
@@ -248,7 +258,8 @@ positive evidence remains bounded to the combinations in the test suite.
   public API.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
-- Local publication is enabled only for the exact-cross plugin and handler API.
+- Top-level local publication is enabled only for the exact-cross plugin and
+  handler API; the unreleased sbt module has separate local/test packaging.
   Released `0.1.0` has no implied release cadence or production support
   commitment.
 

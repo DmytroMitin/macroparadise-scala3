@@ -57,9 +57,10 @@ the zero-expansion precheck, consumer compilation, and `Hello, Greeter!` runtime
 use in that order. If the precheck fails, consumer compilation does not start.
 
 The consumer options use `ExternalArtifactIdentity` to derive one SHA-256 token
-from the packaged marker and handler bytes. That build-only token changes Zinc's
-compiler-option identity after handler-body or marker-metadata edits even though
-the handler JAR path remains stable; the plugin itself does not interpret it.
+from every labelled marker artifact and the complete ordered labelled handler
+expansion classpath. That build-only token changes Zinc's compiler-option
+identity after handler-body, handler-dependency, or marker-metadata edits even
+though the JAR paths remain stable; the plugin itself does not interpret it.
 
 To inspect the packaged precheck inputs and artifact roles without running it,
 use the production plugin and its exact runtime classpath:

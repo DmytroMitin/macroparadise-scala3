@@ -216,6 +216,8 @@ verifyPublicProductBoundary := Def
     verifyIndependentPrecompiledHandlerPackagedConsumer,
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
+    verifySbtPrecompiledIntegrationModule,
+    verifySbtPrecompiledIntegrationExternalMatrix,
     verifyPublicProductPublicationPolicy
   )
   .value
@@ -277,6 +279,12 @@ lazy val verifyExternalHandlerAuthoringStarter =
 
 lazy val verifyIndependentExternalSbtConsumerFromLocalRepository =
   taskKey[Unit]("Verify independent external sbt producer and consumer resolution from a task-owned local repository")
+
+lazy val verifySbtPrecompiledIntegrationExternalMatrix =
+  taskKey[Unit]("Verify the sbt integration dependency-only invalidation matrix")
+
+lazy val verifySbtPrecompiledIntegrationModule =
+  taskKey[Unit]("Verify the source-built sbt integration module in its sbt 1.x / Scala 2.12 universe")
 
 
 
@@ -795,6 +803,34 @@ verifyIndependentExternalSbtConsumerFromLocalRepository := {
   streams.value.log.info(
     s"independent external sbt consumer from task-owned local repository verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
   )
+}
+
+verifySbtPrecompiledIntegrationExternalMatrix := {
+  SbtPrecompiledIntegrationExternalMatrixSpec.run()
+  val result = SbtPrecompiledIntegrationExternalMatrix.verify(
+    baseDirectory.value,
+    (pluginApi / Compile / packageBin).value,
+    (plugin / Compile / packageBin).value,
+    (pluginApi / makePom).value,
+    (plugin / makePom).value,
+    target.value / "sbt-precompiled-integration-external-matrix",
+    SbtPrecompiledIntegrationExternalMatrix.Config(
+      scalaVersion.value,
+      sbtVersion.value,
+      version.value
+    )
+  )
+  streams.value.log.info(
+    s"sbt precompiled integration external matrix verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
+  )
+}
+
+verifySbtPrecompiledIntegrationModule := {
+  val module = baseDirectory.value / "sbt-integration"
+  val command = Seq("sbt", "-batch", "verifyIntegrationPolicy", "test", "scripted", "packageSrc", "packageDoc")
+  val exit = scala.sys.process.Process(command, module).!
+  require(exit == 0, s"sbt integration module verification failed with exit $exit")
+  streams.value.log.info("sbt integration module verified: sbt1.x/scala2.12 unit+scripted+source+doc artifacts")
 }
 
 

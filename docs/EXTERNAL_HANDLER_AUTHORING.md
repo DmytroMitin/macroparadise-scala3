@@ -46,10 +46,19 @@ lazy val core = project
     Compile / scalacOptions ++= {
       val markerJar = (macroAnnotations / Compile / packageBin).value
       val handlerJar = (macroHandlers / Compile / packageBin).value
-      val buildIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
+      val handlerClasses = (macroHandlers / Compile / classDirectory).value.getCanonicalFile
+      val handlerClasspath = handlerJar +:
+        (macroHandlers / Runtime / dependencyClasspath).value.files
+          .filterNot(_.getCanonicalFile == handlerClasses)
+      val buildIdentity = ExternalArtifactIdentity.combined(
+        Seq("marker" -> markerJar),
+        handlerClasspath.zipWithIndex.map { case (file, index) =>
+          f"handler-$index%04d" -> file
+        }
+      )
       Seq(
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:handlerClasspath=${handlerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
         s"-P:macroparadise:externalArtifactIdentity=sha256:$buildIdentity"
       )
     }
@@ -58,8 +67,9 @@ lazy val core = project
 
 `ExternalArtifactIdentity` is the small SHA-256 helper in the checked-in
 starter's [`project` directory](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala).
-It hashes the packaged marker and handler bytes, then hashes the two labelled
-digests into one lowercase value.
+It hashes every labelled marker-role artifact and the complete ordered labelled
+handler expansion classpath, then hashes that deterministic manifest into one
+lowercase value.
 
 The normal first-use source form is one explicit import followed by the short
 annotation:
@@ -272,10 +282,19 @@ lazy val core = project
     Compile / scalacOptions ++= {
       val markerJar = (macroAnnotations / Compile / packageBin).value
       val handlerJar = (macroHandlers / Compile / packageBin).value
-      val buildIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
+      val handlerClasses = (macroHandlers / Compile / classDirectory).value.getCanonicalFile
+      val handlerClasspath = handlerJar +:
+        (macroHandlers / Runtime / dependencyClasspath).value.files
+          .filterNot(_.getCanonicalFile == handlerClasses)
+      val buildIdentity = ExternalArtifactIdentity.combined(
+        Seq("marker" -> markerJar),
+        handlerClasspath.zipWithIndex.map { case (file, index) =>
+          f"handler-$index%04d" -> file
+        }
+      )
       Seq(
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:handlerClasspath=${handlerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
         s"-P:macroparadise:externalArtifactIdentity=sha256:$buildIdentity"
       )
     }
@@ -360,10 +379,11 @@ types parent first. A handler compiled against the separate `plugin-api` JAR
 therefore implements the plugin-owned runtime identity without a shaded alias
 or a second compiler universe.
 
-## Current manual wiring and future sbt integration
+## Manual wiring and the source-built sbt integration
 
-The supported default remains an explicit handler path plus the packaged
-marker/handler content identity in the sbt setting above.
+The manual escape hatch remains an explicit handler path plus identity derived
+from all explicit marker artifacts and the complete ordered effective handler
+expansion classpath in the sbt setting above.
 
 - Automatically searching the ordinary source classpath would make handler
   provenance depend on source/runtime dependency resolution and could admit
@@ -377,24 +397,23 @@ and makes the selected artifact visible in `scalacOptions`. The direct
 `handler/packageBin` task dependency repackages the handler before consumer
 options are evaluated, but a stable path alone is not content-sensitive to
 Zinc. The `externalArtifactIdentity` option changes when either packaged marker
-metadata or handler implementation bytes change, so Zinc recompiles the
-unchanged consumer without `clean`.
+metadata, handler implementation bytes, or handler dependency bytes change, so
+Zinc recompiles the unchanged consumer without `clean`.
 
 `externalArtifactIdentity` is intentionally a build-only token. The plugin does
 not interpret or validate its value; the exact option string participates in
 Zinc compiler-option identity. Compute it from the current packaged marker and
-handler bytes rather than assigning a constant, timestamp, path, or manually
+handler classpath bytes rather than assigning a constant, timestamp, path, or manually
 managed version. It is not an artifact-integrity or security check.
 
-A future generic sbt integration plugin is on the roadmap. Its job would be to
-derive the exact full-cross plugin and API coordinates, package a selected
-marker/handler project, calculate content identity, and install the compiler
-options consistently for CLI, BSP, and sbt-delegated IntelliJ builds. The
-design must preserve explicit settings as an inspectable override and escape
-hatch. No plugin coordinate, key name, or release is promised yet; the manual
-wiring above remains the current supported experimental path. A downstream
-project may layer its own build ergonomics without making that integration a
-Macro-Paradise product dependency.
+The opt-in [`sbt-integration` module](../sbt-integration/README.md) now automates
+this precompiled topology. It derives exact full-cross plugin and API modules,
+keeps published handlers in a hidden configuration, expands their complete
+ordered dependency classpath, and installs the compiler options. Its static
+local-project helper returns settings only: the consumer still declares
+`.dependsOn(marker)`. The module is source-built and unreleased, and persistent
+BSP and IntelliJ qualification remain future work. Manual wiring above remains
+supported.
 
 If a handler has external runtime dependencies, supply the handler JAR and
 those required dependency JARs as a platform path list. Do not add them to

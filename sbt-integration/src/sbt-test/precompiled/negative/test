@@ -1,0 +1,23 @@
+> macroParadiseValidate
+> set macroParadiseCompilerProductVersion := "1.2.3-controlled"
+> macroParadiseValidate
+> show macroParadiseCompilerPluginModule
+> reload
+> set scalaVersion := "3.4.0"
+-> macroParadiseValidate
+> set scalaVersion := "3.8.4"
+> set libraryDependencies += compilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "9.9.9").cross(CrossVersion.full))
+-> macroParadiseValidate
+> set libraryDependencies := libraryDependencies.value.filterNot(_.revision == "9.9.9")
+> set libraryDependencies += ("com.github.dmytromitin" % "macroparadise-scala3-plugin_3.8.4" % "9.9.9")
+-> macroParadiseValidate
+> set libraryDependencies := libraryDependencies.value.filterNot(_.revision == "9.9.9")
+> renamedCompilerPlugin
+> set macroParadiseHandlerClasspath := Seq(macroParadiseLabelled("handler", target.value / "handler.jar"), macroParadiseLabelled("renamed-plugin", renamedCompilerPlugin.value))
+-> macroParadiseValidate
+> reload
+> set macroParadiseExternalArtifactIdentity := "constant"
+-> macroParadiseValidate
+> reload
+> set macroParadiseHandlerClasspath := Seq.empty
+-> macroParadiseValidate

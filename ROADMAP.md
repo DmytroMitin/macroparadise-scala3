@@ -54,24 +54,24 @@ precompiled handlers remain the supported experimental baseline.
 
 ## Generic sbt integration
 
-Plan a separately reviewed sbt integration plugin that can turn the current
-manual three-project wiring into an explicit, reusable build contract. A
-credible design must:
+The first source-built, opt-in precompiled-handler slice is implemented. It:
 
 - select exact full-cross Macro-Paradise plugin and API coordinates;
-- identify and package marker and handler projects before consumer compilation;
-- derive content identity from the packaged marker and handler rather than from
-  stable paths or timestamps;
+- identifies and packages explicit marker and handler projects before consumer
+  compilation while keeping `.dependsOn(marker)` explicit;
+- derives content identity from all explicit marker-role artifacts and the
+  complete ordered effective handler expansion classpath;
 - install the handler classpath and build-only identity compiler options;
-- behave consistently in CLI, BSP, and sbt-delegated IntelliJ builds;
+- is qualified in clean and incremental CLI/Zinc builds on both exact Scala
+  lines; persistent BSP and sbt-delegated IntelliJ qualification remain open;
 - retain inspectable manual settings as overrides and an escape hatch;
 - leave room for the bounded same-module source-identity lifecycle only after
   the precompiled-handler form is proven.
 
-No coordinate, setting key, implementation, or release is promised yet. The
-current manual wiring remains authoritative. A downstream project may provide
-application-specific conveniences; the generic layer should belong here, while
-compiler/plugin behavior remains in the product API rather than in sbt.
+The module remains source-built and unreleased; no remote sbt-plugin coordinate
+is promised. Manual wiring remains an inspectable escape hatch. A downstream
+project may provide application-specific conveniences; compiler/plugin behavior
+remains in the product API rather than in sbt.
 
 ## Optional quasiquotes research
 

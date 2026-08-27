@@ -27,6 +27,7 @@ object PublicProductBoundarySpec {
       assert(PublicProductBoundary.roleOf(".gitignore").id == "BUILD_RUNTIME")
       assert(PublicProductBoundary.roleOf("project/jdk25-bootstrap.sbt").id == "BUILD_RUNTIME")
       assert(PublicProductBoundary.roleOf("plugin/src/test/scala/ProductSpec.scala").id == "PRODUCT_CODE")
+      assert(PublicProductBoundary.roleOf("sbt-integration/src/main/scala/example/Plugin.scala").id == "PRODUCT_CODE")
       assert(PublicProductBoundary.roleOf("README.md").id == "PUBLIC_DOCUMENTATION")
       assert(PublicProductBoundary.roleOf("README.md").candidateEligible)
       assert(PublicProductBoundary.roleOf("CONTRIBUTING.md").candidateEligible)

@@ -69,8 +69,10 @@ ThisBuild / scalaVersion := "3.8.4"
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
 ```
 
-From a clone, publish only the two unreleased user artifacts for one selected
-exact line to the machine-local sbt/Ivy repository:
+From a clone, publish the two unreleased compiler-facing user artifacts for one
+selected exact line to the machine-local sbt/Ivy repository. The separate sbt
+integration module is source-built and uses its own local/test packaging; it is
+not part of these commands:
 
 ```sh
 sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
@@ -140,6 +142,12 @@ mechanically compiles both source forms with:
 sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 ```
 
+For an opt-in source-built integration, see the
+[`sbt-integration` module](../sbt-integration/README.md). It preserves the
+three-project topology, requires the marker `.dependsOn` edge explicitly, and
+derives invalidation identity from the complete ordered handler expansion
+classpath. The manual graph remains a supported escape hatch.
+
 Successful unchanged-class compilation proves marker discovery, metadata
 binding, canonicalization, handler loading, and one handler invocation. It does
 not depend on generated-member helpers or more involved tree construction.
@@ -198,9 +206,11 @@ classpath receives the API and precompiled marker, while the precompiled
 handler is selected through `-P:macroparadise:handlerClasspath=...`. Compiler
 plugin and handler artifacts are compilation tools, not automatic runtime
 application dependencies. The consumer options also include a build-only
-`externalArtifactIdentity` SHA-256 derived from the packaged marker and handler;
-that content identity is required for reliable handler-only and marker-metadata
-incremental invalidation while their artifact paths stay stable. This standard
+`externalArtifactIdentity` SHA-256 derived from the packaged marker artifacts
+and complete ordered effective handler expansion classpath; that content
+identity is required for reliable handler-dependency-only, handler-only, and
+marker-metadata incremental invalidation while their artifact paths stay
+stable. This standard
 multi-project sbt shape is suitable for CLI use and BSP import; no IDE metadata
 is required.
 

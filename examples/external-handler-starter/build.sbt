@@ -26,6 +26,9 @@ lazy val precheckPositive = taskKey[Unit]("Run the packaged declaration and bind
 lazy val verifyNegativeMatrix = taskKey[Unit]("Verify P1-P7 stop before consumer compilation")
 lazy val verifyStarter = taskKey[Unit]("Verify precheck-gated ordinary typed starter consumption")
 lazy val markConsumerCompileStart = taskKey[Unit]("Record that the real consumer compile began")
+lazy val verifyArtifactIdentityModel = taskKey[Unit]("Verify complete-classpath artifact identity behavior")
+
+verifyArtifactIdentityModel := ExternalArtifactIdentitySpec.run(target.value)
 
 val PluginProperty = "macroparadise.starter.plugin"
 val PluginApiProperty = "macroparadise.starter.pluginApi"
@@ -212,11 +215,17 @@ lazy val consumer: Project = project.in(file("consumer"))
       val plugin = requiredArtifact(PluginProperty)
       val markerJar = (marker / Compile / packageBin).value
       val handlerJar = (handler / Compile / packageBin).value
-      val externalArtifactIdentity = ExternalArtifactIdentity.combined(markerJar, handlerJar)
+      val handlerClasses = (handler / Compile / classDirectory).value.getCanonicalFile
+      val handlerClasspath = handlerJar +:
+        (handler / Runtime / dependencyClasspath).value.files.filterNot(_.getCanonicalFile == handlerClasses)
+      val externalArtifactIdentity = ExternalArtifactIdentity.combined(
+        Seq("marker" -> markerJar),
+        handlerClasspath.zipWithIndex.map { case (file, index) => f"handler-$index%04d" -> file }
+      )
       Seq(
         s"-Xplugin:${plugin.getAbsolutePath}",
         "-Xplugin-require:macroparadise",
-        s"-P:macroparadise:handlerClasspath=${handlerJar.getAbsolutePath}",
+        s"-P:macroparadise:handlerClasspath=${handlerClasspath.map(_.getAbsolutePath).mkString(File.pathSeparator)}",
         s"-P:macroparadise:externalArtifactIdentity=sha256:$externalArtifactIdentity"
       )
     },

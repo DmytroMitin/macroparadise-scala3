@@ -21,6 +21,10 @@ not currently qualified, and live same-module handler editing is not supported.
 
 ## Plugin and handler compatibility
 
+The source-built sbt integration itself runs in the sbt 1.x / Scala 2.12
+universe and does not depend on the Dotty runtime. It selects the product
+artifacts for the consumer's exact Scala line with `CrossVersion.full`.
+
 The plugin, handler API, precompiled handlers, and ordinary consumer compilation
 must share one exact compiler universe. Handler class loading is parent first
 for compiler, Scala runtime, and handler API identities. A second compiler copy
@@ -54,6 +58,8 @@ exact Scala `3.3.8` and `3.8.4`. Only `macroparadise-scala3-plugin` and
 `macroparadise-scala3-plugin-api` set `publish / skip := false`, both with
 `CrossVersion.full`; every aggregate, fixture, test, consumer, example, and
 spike remains skipped. `publishLocal` is supported for those two artifacts.
+The `sbt-integration` module is an additional source-built, unreleased surface;
+it has no configured remote publication destination or credentials.
 
 No remote publication destination or credentials are configured for ordinary
 development/CI, and this requalification does not publish `0.1.1-SNAPSHOT`.

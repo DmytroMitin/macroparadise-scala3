@@ -54,6 +54,7 @@ object PublicProductBoundary {
     "same-module-handler-cycle-spike",
     "same-module-handler-same-file-spike",
     "same-module-handler-spike",
+    "sbt-integration",
     "scripts"
   )
 
@@ -83,6 +84,8 @@ object PublicProductBoundary {
     "project/PublicDocumentationPolicySpec.scala",
     "project/PublicProductBoundary.scala",
     "project/PublicProductBoundarySpec.scala",
+    "project/SbtPrecompiledIntegrationExternalMatrix.scala",
+    "project/SbtPrecompiledIntegrationExternalMatrixSpec.scala",
     "project/build.properties",
     "project/experimental-plugin-api-surface-baseline.txt"
   )

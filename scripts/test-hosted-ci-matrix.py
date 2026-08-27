@@ -119,6 +119,10 @@ class HostedCiMatrixTest(unittest.TestCase):
             f"sbt -Dmacroparadise.exactScalaVersion={selected} -batch '++{selected}!' verifyPublicProductBoundary",
             commands,
         )
+        self.assertIn(
+            "sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc",
+            commands,
+        )
         build = (ROOT / "build.sbt").read_text(encoding="utf-8")
         self.assertIn('"test-hosted-ci-matrix.py"', build)
 
