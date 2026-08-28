@@ -117,6 +117,15 @@ final case class ExpansionInput(
   def annotatedClassView(using Context): Either[ExpansionDiagnostic, AnnotatedClassView] =
     AnnotatedClassView.decode(annotatedClass)
 
+  /** Decode the bounded read-only syntactic direct-body and method view.
+    *
+    * This additive convenience preserves the raw `annotatedClass` escape hatch
+    * and applies no typing or handler-specific admission policy. Malformed and
+    * hostile direct inputs produce a controlled diagnostic.
+    */
+  def annotatedClassBodyView(using Context): Either[ExpansionDiagnostic, AnnotatedClassBodyView] =
+    AnnotatedClassBodyView.decode(annotatedClass)
+
 /** Explicit result of an external handler expansion attempt.
   *
   * Returning an `ExpansionOutcome` keeps expected handler behavior out of

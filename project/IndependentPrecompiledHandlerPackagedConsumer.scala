@@ -20,9 +20,12 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val ExpectedProjectVersion = ExactBuildIdentity.DevelopmentVersion
   val IndependentArtifactBasename =
     s"independent-marker-handler_3-$ExpectedProjectVersion.jar"
+  val BodyViewIndependentArtifactBasename =
+    s"independent-body-view-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
+  val ExpectedBodyViewRuntimeOutput = "empty,combine\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -34,6 +37,12 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobe/IndependentHandler.tasty",
     "contractprobe/IndependentMarker.class",
     "contractprobe/IndependentMarker.tasty"
+  )
+  val expectedBodyViewCompiledEntries = Set(
+    "contractprobebody/IndependentBodyViewHandler.class",
+    "contractprobebody/IndependentBodyViewHandler.tasty",
+    "contractprobebody/IndependentBodyViewMarker.class",
+    "contractprobebody/IndependentBodyViewMarker.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -92,6 +101,24 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       s"exit=$exitCode outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount invocationCount=$invocationCount generatedMethodPresent=$generatedMethodPresent"
   }
 
+  final case class BodyViewEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      invocationCount: Int,
+      runtimeExit: Int,
+      runtimeOutput: String,
+      generatedCompanionMethodPresent: Boolean
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} exit=$exitCode " +
+        s"outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"invocationCount=$invocationCount runtimeExit=$runtimeExit " +
+        s"runtimeOutput=${runtimeOutput.trim} generatedCompanionMethodPresent=$generatedCompanionMethodPresent"
+  }
+
   final case class NegativeEvidence(id: String, exitCode: Int, diagnostic: String, outputFiles: Int) {
     def render: String = s"$id(exit=$exitCode diagnostic=$diagnostic outputFiles=$outputFiles)"
   }
@@ -112,6 +139,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       compile: CompileEvidence,
       metadata: MetadataEvidence,
       positive: PositiveEvidence,
+      bodyView: BodyViewEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -123,7 +151,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     def render: String =
       s"classification=$ReadyClassification metadataClassification=$MetadataClassification contractClassification=$ContractClassification " +
         s"api={${apiArtifact.render}} plugin={${pluginArtifact.render}} independent={${independentArtifact.render}} " +
-        s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} " +
+        s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -144,6 +172,21 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     recreateDirectory(evidenceDirectory.toPath)
     require(independentSource.isFile, s"missing independent source: $independentSource")
     require(consumerSource.isFile, s"missing consumer source: $consumerSource")
+    val bodyViewConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-body-view/IndependentBodyViewConsumer.scala"
+    )
+    val bodyViewHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/body-view/IndependentBodyViewMarkerAndHandler.scala"
+    )
+    val bodyViewNegativeSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-body-view-negative/UnsupportedBodyViewConsumer.scala"
+    )
+    require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
+    require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
+    require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
@@ -163,10 +206,29 @@ object IndependentPrecompiledHandlerPackagedConsumer {
 
     val firstJar = new File(evidenceDirectory, s"independent-artifact/render-one/$IndependentArtifactBasename")
     val secondJar = new File(evidenceDirectory, s"independent-artifact/render-two/$IndependentArtifactBasename")
-    renderThinArtifact(firstOutput, firstJar)
-    renderThinArtifact(firstOutput, secondJar)
+    renderThinArtifact(firstOutput, firstJar, expectedCompiledEntries, "contractprobe/")
+    renderThinArtifact(firstOutput, secondJar, expectedCompiledEntries, "contractprobe/")
     require(java.util.Arrays.equals(Files.readAllBytes(firstJar.toPath), Files.readAllBytes(secondJar.toPath)), "thin artifact renders are not byte-identical")
-    val independentIdentity = thinArtifactIdentity(firstJar)
+    val independentIdentity = thinArtifactIdentity(firstJar, expectedCompiledEntries, "contractprobe/")
+
+    val bodyFirstOutput = new File(evidenceDirectory, "body-view-handler-compile/first-classes")
+    val bodySecondOutput = new File(evidenceDirectory, "body-view-handler-compile/second-classes")
+    recreateDirectory(bodyFirstOutput.toPath)
+    recreateDirectory(bodySecondOutput.toPath)
+    val bodyFirstExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, bodyViewHandlerSource, bodyFirstOutput, new File(evidenceDirectory, "body-view-handler-compile/first.log"))
+    val bodySecondExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, bodyViewHandlerSource, bodySecondOutput, new File(evidenceDirectory, "body-view-handler-compile/second.log"))
+    require(bodyFirstExit == 0 && bodySecondExit == 0, s"independent body-view handler compile exits were $bodyFirstExit and $bodySecondExit")
+    val bodyFirstFiles = regularRelativeFiles(bodyFirstOutput)
+    val bodySecondFiles = regularRelativeFiles(bodySecondOutput)
+    require(bodyFirstFiles.toSet == expectedBodyViewCompiledEntries, s"unexpected body-view handler output: ${bodyFirstFiles.mkString(", ")}")
+    require(bodySecondFiles == bodyFirstFiles, s"body-view handler output inventory drifted: ${bodySecondFiles.mkString(", ")}")
+    val bodyCompileEvidence = CompileEvidence(bodyFirstExit, bodySecondExit, bodyFirstFiles, inventoriesEqual = true)
+    val bodyFirstJar = new File(evidenceDirectory, s"body-view-handler-artifact/render-one/$BodyViewIndependentArtifactBasename")
+    val bodySecondJar = new File(evidenceDirectory, s"body-view-handler-artifact/render-two/$BodyViewIndependentArtifactBasename")
+    renderThinArtifact(bodyFirstOutput, bodyFirstJar, expectedBodyViewCompiledEntries, "contractprobebody/")
+    renderThinArtifact(bodyFirstOutput, bodySecondJar, expectedBodyViewCompiledEntries, "contractprobebody/")
+    require(java.util.Arrays.equals(Files.readAllBytes(bodyFirstJar.toPath), Files.readAllBytes(bodySecondJar.toPath)), "body-view thin artifact renders are not byte-identical")
+    val bodyIndependentIdentity = thinArtifactIdentity(bodyFirstJar, expectedBodyViewCompiledEntries, "contractprobebody/")
 
     val apiIdentity = artifactIdentity(apiArtifact)
     val pluginIdentity = artifactIdentity(pluginArtifact)
@@ -174,9 +236,28 @@ object IndependentPrecompiledHandlerPackagedConsumer {
 
     val positive = compilePositive(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory)
     val runtime = runRuntime(repositoryRoot, compilerJars, apiArtifact, positiveOutput(evidenceDirectory), evidenceDirectory)
+    val bodyView = compileBodyViewPositive(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      bodyIndependentIdentity,
+      bodyCompileEvidence,
+      bodyViewConsumerSource,
+      evidenceDirectory
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
-      compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory)
+      compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
+      compileUnsupportedBodyView(
+        repositoryRoot,
+        compilerJars,
+        apiArtifact,
+        pluginArtifact,
+        bodyIndependentIdentity.path,
+        bodyViewNegativeSource,
+        evidenceDirectory
+      )
     )
     val classloader = verifyClassloaderMismatch(apiArtifact, independentIdentity.path, compilerJars)
 
@@ -187,6 +268,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       compileEvidence,
       metadata,
       positive,
+      bodyView,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -261,6 +343,112 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     require(javap._1 == 0 && javap._2.contains("java.lang.String independentHandlerName()"), s"generated method missing after typer: ${javap._2}")
     PositiveEvidence(exit, outputs, selectionCount, invocationLines.size, generatedMethodPresent = true)
+  }
+
+  private def compileBodyViewPositive(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: ArtifactIdentity,
+      handlerCompile: CompileEvidence,
+      source: File,
+      evidenceDirectory: File
+  ): BodyViewEvidence = {
+    val output = bodyViewPositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "body-view-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "body-view-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact.path),
+      Some(independentArtifact.path),
+      source,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact.path, requireHandler = true)
+    val (exit, _) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "body-view-positive/compile.log"))
+    require(exit == 0, s"independent body-view consumer compile failed with exit $exit")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobeconsumer/IndependentMonoid.class",
+      "contractprobeconsumer/IndependentMonoid.tasty",
+      "contractprobeconsumer/IndependentMonoid$.class",
+      "contractprobeconsumer/IndependentBodyViewConsumer.class",
+      "contractprobeconsumer/IndependentBodyViewConsumer$.class",
+      "contractprobeconsumer/IndependentBodyViewConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"body-view consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobeconsumer/")), s"body-view output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val selectionCount = metadataLines.count(line => line.contains("contractprobebody.IndependentBodyViewMarker") && line.contains("Found(contractprobebody.IndependentBodyViewHandler)"))
+    require(selectionCount == 1, s"expected one body-view metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobebody.IndependentBodyViewHandler"))
+    require(invocationLines.size == 1, s"expected one body-view handler invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val javap = runProcess(
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentMonoid$"),
+      repositoryRoot,
+      new File(evidenceDirectory, "body-view-positive/javap.log")
+    )
+    require(javap._1 == 0 && javap._2.contains("java.lang.String independentBodyView()"), s"generated body-view companion method missing after typer: ${javap._2}")
+    val runtime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      output,
+      "contractprobeconsumer.IndependentBodyViewConsumer",
+      ExpectedBodyViewRuntimeOutput,
+      new File(evidenceDirectory, "body-view-positive/runtime.log")
+    )
+    BodyViewEvidence(
+      independentArtifact,
+      handlerCompile,
+      exit,
+      outputs,
+      selectionCount,
+      invocationLines.size,
+      runtime._1,
+      runtime._2,
+      generatedCompanionMethodPresent = true
+    )
+  }
+
+  private def compileUnsupportedBodyView(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): NegativeEvidence = {
+    val output = new File(evidenceDirectory, "body-view-negative/classes")
+    recreateDirectory(output.toPath)
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector.empty
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "body-view-negative/compile.log"))
+    val diagnostic = "unsupported direct body shape for IndependentBodyViewMarker"
+    require(exit != 0, "unsupported body-view lane unexpectedly compiled")
+    require(log.contains(diagnostic), s"unsupported body-view lane lacked controlled diagnostic: $log")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"unsupported body-view lane exposed an uncontrolled failure: $log")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"unsupported body-view lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence("unsupported-direct-body-type", exit, diagnostic, outputs.size)
   }
 
   private def compileMissingHandler(
@@ -351,6 +539,26 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       consumerOutput: File,
       evidenceDirectory: File
   ): (Int, String) = {
+    runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      consumerOutput,
+      "contractprobeconsumer.IndependentPackagedConsumer",
+      ExpectedRuntimeOutput,
+      new File(evidenceDirectory, "runtime/run.log")
+    )
+  }
+
+  private def runMain(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      consumerOutput: File,
+      mainClass: String,
+      expectedOutput: String,
+      logFile: File
+  ): (Int, String) = {
     val runtimeJars = compilerJars.filter(file =>
       file.getName.startsWith("scala3-library_3-") || file.getName.startsWith("scala-library-")
     )
@@ -358,11 +566,11 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(runtimeJars.exists(_.getName.startsWith("scala-library-")), "runtime classpath lacks scala-library")
     val command = Vector(
       javaTool("java"), "-cp", classpath(Vector(consumerOutput, apiArtifact) ++ runtimeJars),
-      "contractprobeconsumer.IndependentPackagedConsumer"
+      mainClass
     )
-    val (exit, output) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "runtime/run.log"))
+    val (exit, output) = runProcess(command, repositoryRoot, logFile)
     require(exit == 0, s"runtime exited $exit: $output")
-    require(output == ExpectedRuntimeOutput, s"runtime output was `${output.replace("\n", "\\n")}`")
+    require(output == expectedOutput, s"runtime output was `${output.replace("\n", "\\n")}`")
     (exit, output)
   }
 
@@ -443,13 +651,18 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     }
   }
 
-  private def renderThinArtifact(classes: File, destination: File): Unit = {
+  private def renderThinArtifact(
+      classes: File,
+      destination: File,
+      expectedCompiled: Set[String],
+      packageDirectory: String
+  ): Unit = {
     val files = regularRelativeFiles(classes)
-    require(files.toSet == expectedCompiledEntries, s"cannot package unexpected independent output: ${files.mkString(", ")}")
+    require(files.toSet == expectedCompiled, s"cannot package unexpected independent output: ${files.mkString(", ")}")
     val entries = Map(
       "META-INF/" -> Array.emptyByteArray,
       "META-INF/MANIFEST.MF" -> deterministicManifest.getBytes(StandardCharsets.UTF_8),
-      "contractprobe/" -> Array.emptyByteArray
+      packageDirectory -> Array.emptyByteArray
     ) ++ files.map(name => name -> Files.readAllBytes(new File(classes, name).toPath)).toMap
     Files.createDirectories(destination.toPath.getParent)
     val output = new ZipOutputStream(Files.newOutputStream(destination.toPath))
@@ -468,9 +681,13 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     } finally output.close()
   }
 
-  private def thinArtifactIdentity(file: File): ArtifactIdentity = {
+  private def thinArtifactIdentity(
+      file: File,
+      expectedCompiled: Set[String],
+      packageDirectory: String
+  ): ArtifactIdentity = {
     val entries = jarEntries(file)
-    val expected = (expectedCompiledEntries ++ Set("META-INF/", "META-INF/MANIFEST.MF", "contractprobe/")).toVector.sorted
+    val expected = (expectedCompiled ++ Set("META-INF/", "META-INF/MANIFEST.MF", packageDirectory)).toVector.sorted
     require(entries == expected, s"thin artifact inventory/order changed: ${entries.mkString(", ")}")
     require(entries.forall(entry => !entry.startsWith("paradise3/") && !entry.startsWith("dotty/") && !entry.startsWith("scala/") && !entry.startsWith("macroparadise/")), "thin artifact packages a forbidden universe")
     ArtifactIdentity(file, file.length(), entries.size, entries.count(_.endsWith(".class")), entries.count(_.endsWith(".tasty")), sha256(file))
@@ -517,6 +734,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   }
 
   private def positiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "positive/classes")
+  private def bodyViewPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "body-view-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)

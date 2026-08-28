@@ -43,6 +43,14 @@ binary descriptors may change between compiler builds. The experimental
 handler API therefore makes no cross-version binary or source compatibility
 promise.
 
+Unreleased `0.1.1-SNAPSHOT` also exposes a bounded syntactic pre-typer
+read-only direct-body view. Its tiny type algebra recognizes only unqualified
+references to enclosing class type parameters and reports other forms as
+unsupported; it does not type trees or perform symbol/owner lookup,
+inheritance, alias expansion, or overload analysis. The raw
+`ExpansionInput.annotatedClass` tree remains the advanced exact-line escape
+hatch. Released `0.1.0` does not include this API.
+
 ## Marker metadata compatibility
 
 Current markers use a runtime-retained classfile annotation to name the handler.

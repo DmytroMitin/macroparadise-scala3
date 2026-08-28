@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 22
+  val CaseCount = 23
 
   def run(): Unit = {
     var completed = 0
@@ -28,7 +28,7 @@ object ExperimentalPluginApiSurfaceSpec {
       "artifact-role=experimental"
     )
 
-    check("released 3.8.4 surface remains byte-for-byte unchanged") {
+    check("reviewed 3.8.4 surface remains byte-for-byte unchanged") {
       assert(
         ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
           header,
@@ -65,6 +65,29 @@ object ExperimentalPluginApiSurfaceSpec {
         ) == Vector(
           "scala-compiler=3.3.8",
           enumRecord.replace(
+            " implements scala.reflect.Enum",
+            " implements scala.Product,scala.reflect.Enum"
+          )
+        )
+      )
+    }
+    check("3.3.8 normalizes the bounded body-view enum encodings") {
+      val enumRecords = Vector(
+        "AnnotatedClassBodyView$DirectMemberKind",
+        "AnnotatedClassBodyView$DirectMethodStatus",
+        "AnnotatedClassBodyView$DirectTypeShape",
+        "AnnotatedClassBodyView$DirectVisibility"
+      ).map { name =>
+        s"CLASS|paradise3/api/$name.class|HANDLER_CONTRACT|public abstract class paradise3.api.$name implements scala.reflect.Enum"
+      }
+      val actual = ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+        "scala-compiler=3.8.4" +: enumRecords,
+        "3.3.8"
+      )
+      assert(actual.head == "scala-compiler=3.3.8")
+      assert(
+        actual.tail == enumRecords.map(
+          _.replace(
             " implements scala.reflect.Enum",
             " implements scala.Product,scala.reflect.Enum"
           )

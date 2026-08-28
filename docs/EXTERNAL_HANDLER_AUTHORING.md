@@ -179,10 +179,27 @@ sbt -batch verifyExternalHandlerAuthoringStarter
 
 ## API boundary
 
-`ExpansionInput` exposes compiler-sensitive untyped trees and an optional
-decoded class view. `ExpansionHelpers.withAnnotatedClassView` provides a small
-fail-closed adapter for the common class shape. Helper methods can add one
-bounded method to a class or companion or create one sibling class.
+`ExpansionInput` exposes compiler-sensitive untyped trees and bounded decoded
+views. `annotatedClassView` covers the top-level class and primary constructor;
+the unreleased `0.1.1-SNAPSHOT` `annotatedClassBodyView` covers ordered direct
+members and normalized direct-method structure. The latter is a syntactic,
+pre-typer, read-only view: it distinguishes absent, empty, ordinary, and
+contextual parameter clauses; retains parameter order, defaults, visibility,
+annotations, positions, and abstract/concrete status; and classifies vals,
+vars, type members, nested definitions, and other direct members.
+
+`AnnotatedClassBodyView.DirectTypeShape` deliberately recognizes only an
+unqualified reference to an enclosing class type parameter. Applied,
+qualified, function, method-local, inferred, and other unsupported type forms
+remain explicit `Unsupported` values for controlled consumer rejection. The
+decoder performs no typing, symbol or owner lookup, inheritance, alias
+expansion, subtype checking, or semantic overload analysis. Released `0.1.0`
+does not contain this body-view API.
+
+`ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
+for the common class shape. Helper methods can add one bounded method to a class
+or companion or create one sibling class. Advanced exact-compiler handlers may
+still use `ExpansionInput.annotatedClass` as the separate raw-tree escape hatch.
 
 Successful handlers may return structured output with explicit primary,
 companion, and additional-definition roles. The ordered raw-tree outcome
@@ -190,8 +207,8 @@ remains available for unusual shapes, but it is validated and does not bypass
 plugin-owned conflicts, composition rules, or rollback.
 
 The contract is exact-compiler experimental API. It does not promise typed
-trees, stable owners, semantic names, cross-version binary compatibility, or
-general definition builders.
+trees, stable owners, semantic names, a general compiler-independent AST,
+cross-version binary compatibility, or general definition builders.
 
 ### Placing an already-created companion method
 
