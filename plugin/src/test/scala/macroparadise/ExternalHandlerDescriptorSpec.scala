@@ -55,6 +55,23 @@ class ExternalHandlerDescriptorSpec extends munit.FunSuite:
     assertEquals(handler.compositionReads, 1)
   }
 
+  test("two-upper-bounded trait profile is captured exactly once") {
+    val handler = InstrumentedHandler(
+      profileValues = List(ExpansionTargetProfile.TwoUpperBoundedGenericTrait),
+      companionValues = List(true)
+    )
+
+    val loaded = captured(handler)
+
+    assertEquals(
+      loaded.descriptor.targetProfile,
+      ExpansionTargetProfile.TwoUpperBoundedGenericTrait
+    )
+    assertEquals(loaded.descriptor.consumesExistingCompanion, true)
+    assertEquals(handler.profileReads, 1)
+    assertEquals(handler.companionReads, 1)
+  }
+
   test("alternating accessors cannot change an immutable descriptor") {
     val handler = InstrumentedHandler(
       annotationValues = List("firstMarker", "secondMarker"),

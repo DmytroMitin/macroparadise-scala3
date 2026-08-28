@@ -34,6 +34,13 @@ no context bound, and no constructor/value parameters. It exists for a narrow
 contextual companion-method experiment; it is not general trait or generic
 support.
 
+Unreleased `0.1.1-SNAPSHOT` adds a separate
+`TwoUpperBoundedGenericTrait` profile. It admits only an ordinary top-level,
+non-case, non-sealed trait with exactly two invariant ordinary single
+upper-bounded type parameters, no lower/alias/context bounds, and no
+constructor/value parameters. The profile is purely structural: it does not
+inspect direct body features or implement downstream annotation semantics.
+
 The plugin remains the authority for every syntactic admission rule and
 diagnostic. Annotation names and handler class names do not grant broader
 admission.
@@ -115,7 +122,8 @@ Precompiled handlers remain the supported experimental path.
 - typed or symbol-aware handler construction;
 - general owner or position repair;
 - arbitrary local/nested/object/enum targets;
-- general constructor, method, companion, or sibling synthesis;
+- general constructor, method, type, companion, or sibling synthesis;
+- arbitrary `MemberDef` placement or semantic companion namespace resolution;
 - semantic import/name resolution;
 - automatic remote dependency or handler discovery;
 - public artifact coordinates, tags, or releases;

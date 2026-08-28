@@ -15,13 +15,15 @@ enum ExpansionCompositionPolicy:
   *
   * The value selects one plugin-owned admission profile. It does not expose or
   * delegate the profile's syntactic rules to the handler, and it is deliberately
-  * closed to the two envelopes proven by the repository.
+  * closed to the envelopes proven by the repository.
   */
 enum ExpansionTargetProfile:
   /** Preserve the historical non-case, non-generic top-level class envelope. */
   case CommonClassOnly
   /** Request the restricted one-invariant-unbounded-parameter top-level trait envelope. */
   case RestrictedGenericTraitApply
+  /** Request exactly two invariant ordinary upper-bounded parameters on an ordinary top-level trait. */
+  case TwoUpperBoundedGenericTrait
 
 /** Experimental handler-loading spike contract.
   *

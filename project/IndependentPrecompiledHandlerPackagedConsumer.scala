@@ -22,10 +22,13 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-marker-handler_3-$ExpectedProjectVersion.jar"
   val BodyViewIndependentArtifactBasename =
     s"independent-body-view-marker-handler_3-$ExpectedProjectVersion.jar"
+  val TypePlacementIndependentArtifactBasename =
+    s"independent-type-placement-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
   val ExpectedBodyViewRuntimeOutput = "empty,combine\n"
+  val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -43,6 +46,16 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobebody/IndependentBodyViewHandler.tasty",
     "contractprobebody/IndependentBodyViewMarker.class",
     "contractprobebody/IndependentBodyViewMarker.tasty"
+  )
+  val expectedTypePlacementCompiledEntries = Set(
+    "contractprobetype/IndependentTypePlacementHandler.class",
+    "contractprobetype/IndependentTypePlacementHandler.tasty",
+    "contractprobetype/IndependentTypePlacementMarker.class",
+    "contractprobetype/IndependentTypePlacementMarker.tasty",
+    "contractprobetype/IndependentTypePlacementRejectHandler.class",
+    "contractprobetype/IndependentTypePlacementRejectHandler.tasty",
+    "contractprobetype/IndependentTypePlacementRejectMarker.class",
+    "contractprobetype/IndependentTypePlacementRejectMarker.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -119,6 +132,33 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         s"runtimeOutput=${runtimeOutput.trim} generatedCompanionMethodPresent=$generatedCompanionMethodPresent"
   }
 
+  final case class TypePlacementPositiveEvidence(
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      invocationCount: Int,
+      existingCompanionMemberPresent: Boolean,
+      generatedAliasesTypechecked: Boolean
+  ) {
+    def render: String =
+      s"exit=$exitCode outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"invocationCount=$invocationCount existingCompanionMemberPresent=$existingCompanionMemberPresent " +
+        s"generatedAliasesTypechecked=$generatedAliasesTypechecked"
+  }
+
+  final case class TypePlacementEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      positive: TypePlacementPositiveEvidence,
+      runtimeExit: Int,
+      runtimeOutput: String,
+      rejection: NegativeEvidence
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} positive={${positive.render}} " +
+        s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
+  }
+
   final case class NegativeEvidence(id: String, exitCode: Int, diagnostic: String, outputFiles: Int) {
     def render: String = s"$id(exit=$exitCode diagnostic=$diagnostic outputFiles=$outputFiles)"
   }
@@ -140,6 +180,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       metadata: MetadataEvidence,
       positive: PositiveEvidence,
       bodyView: BodyViewEvidence,
+      typePlacement: TypePlacementEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -152,6 +193,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       s"classification=$ReadyClassification metadataClassification=$MetadataClassification contractClassification=$ContractClassification " +
         s"api={${apiArtifact.render}} plugin={${pluginArtifact.render}} independent={${independentArtifact.render}} " +
         s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
+        s"typePlacement={${typePlacement.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -184,9 +226,24 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-body-view-negative/UnsupportedBodyViewConsumer.scala"
     )
+    val typePlacementHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/type-placement/IndependentTypePlacementMarkerAndHandler.scala"
+    )
+    val typePlacementConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-type-placement/IndependentTypePlacementConsumer.scala"
+    )
+    val typePlacementRejectSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-type-placement-reject/IndependentTypePlacementRejectConsumer.scala"
+    )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
+    require(typePlacementHandlerSource.isFile, s"missing type-placement handler source: $typePlacementHandlerSource")
+    require(typePlacementConsumerSource.isFile, s"missing type-placement consumer source: $typePlacementConsumerSource")
+    require(typePlacementRejectSource.isFile, s"missing type-placement reject source: $typePlacementRejectSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
@@ -230,6 +287,25 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(java.util.Arrays.equals(Files.readAllBytes(bodyFirstJar.toPath), Files.readAllBytes(bodySecondJar.toPath)), "body-view thin artifact renders are not byte-identical")
     val bodyIndependentIdentity = thinArtifactIdentity(bodyFirstJar, expectedBodyViewCompiledEntries, "contractprobebody/")
 
+    val typeFirstOutput = new File(evidenceDirectory, "type-placement-handler-compile/first-classes")
+    val typeSecondOutput = new File(evidenceDirectory, "type-placement-handler-compile/second-classes")
+    recreateDirectory(typeFirstOutput.toPath)
+    recreateDirectory(typeSecondOutput.toPath)
+    val typeFirstExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, typePlacementHandlerSource, typeFirstOutput, new File(evidenceDirectory, "type-placement-handler-compile/first.log"))
+    val typeSecondExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, typePlacementHandlerSource, typeSecondOutput, new File(evidenceDirectory, "type-placement-handler-compile/second.log"))
+    require(typeFirstExit == 0 && typeSecondExit == 0, s"independent type-placement handler compile exits were $typeFirstExit and $typeSecondExit")
+    val typeFirstFiles = regularRelativeFiles(typeFirstOutput)
+    val typeSecondFiles = regularRelativeFiles(typeSecondOutput)
+    require(typeFirstFiles.toSet == expectedTypePlacementCompiledEntries, s"unexpected type-placement handler output: ${typeFirstFiles.mkString(", ")}")
+    require(typeSecondFiles == typeFirstFiles, s"type-placement handler output inventory drifted: ${typeSecondFiles.mkString(", ")}")
+    val typeCompileEvidence = CompileEvidence(typeFirstExit, typeSecondExit, typeFirstFiles, inventoriesEqual = true)
+    val typeFirstJar = new File(evidenceDirectory, s"type-placement-handler-artifact/render-one/$TypePlacementIndependentArtifactBasename")
+    val typeSecondJar = new File(evidenceDirectory, s"type-placement-handler-artifact/render-two/$TypePlacementIndependentArtifactBasename")
+    renderThinArtifact(typeFirstOutput, typeFirstJar, expectedTypePlacementCompiledEntries, "contractprobetype/")
+    renderThinArtifact(typeFirstOutput, typeSecondJar, expectedTypePlacementCompiledEntries, "contractprobetype/")
+    require(java.util.Arrays.equals(Files.readAllBytes(typeFirstJar.toPath), Files.readAllBytes(typeSecondJar.toPath)), "type-placement thin artifact renders are not byte-identical")
+    val typeIndependentIdentity = thinArtifactIdentity(typeFirstJar, expectedTypePlacementCompiledEntries, "contractprobetype/")
+
     val apiIdentity = artifactIdentity(apiArtifact)
     val pluginIdentity = artifactIdentity(pluginArtifact)
     val metadata = verifyMetadataAndIdentity(apiArtifact, independentIdentity.path, compilerJars)
@@ -246,6 +322,41 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       bodyViewConsumerSource,
       evidenceDirectory
     )
+    val typePlacementPositive = compileTypePlacementPositive(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      typeIndependentIdentity.path,
+      typePlacementConsumerSource,
+      evidenceDirectory
+    )
+    val typePlacementRuntime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      typePlacementPositiveOutput(evidenceDirectory),
+      "contractprobetypeconsumer.IndependentTypePlacementConsumer",
+      ExpectedTypePlacementRuntimeOutput,
+      new File(evidenceDirectory, "type-placement-positive/runtime.log")
+    )
+    val typePlacementReject = compileTypePlacementReject(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      typeIndependentIdentity.path,
+      typePlacementRejectSource,
+      evidenceDirectory
+    )
+    val typePlacement = TypePlacementEvidence(
+      typeIndependentIdentity,
+      typeCompileEvidence,
+      typePlacementPositive,
+      typePlacementRuntime._1,
+      typePlacementRuntime._2,
+      typePlacementReject
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
@@ -257,7 +368,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         bodyIndependentIdentity.path,
         bodyViewNegativeSource,
         evidenceDirectory
-      )
+      ),
+      typePlacementReject
     )
     val classloader = verifyClassloaderMismatch(apiArtifact, independentIdentity.path, compilerJars)
 
@@ -269,6 +381,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       metadata,
       positive,
       bodyView,
+      typePlacement,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -417,6 +530,111 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       runtime._2,
       generatedCompanionMethodPresent = true
     )
+  }
+
+  private def compileTypePlacementPositive(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): TypePlacementPositiveEvidence = {
+    val output = typePlacementPositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "type-placement-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "type-placement-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "type-placement-positive/compile.log"))
+    require(exit == 0, s"independent type-placement consumer compile failed with exit $exit: $log")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobetypeconsumer/MissingCompanionAdd.class",
+      "contractprobetypeconsumer/MissingCompanionAdd$.class",
+      "contractprobetypeconsumer/MissingCompanionAdd.tasty",
+      "contractprobetypeconsumer/ExistingCompanionAdd.class",
+      "contractprobetypeconsumer/ExistingCompanionAdd$.class",
+      "contractprobetypeconsumer/ExistingCompanionAdd.tasty",
+      "contractprobetypeconsumer/PreserveConflictAdd.class",
+      "contractprobetypeconsumer/PreserveConflictAdd$.class",
+      "contractprobetypeconsumer/PreserveConflictAdd.tasty",
+      "contractprobetypeconsumer/IndependentTypePlacementConsumer.class",
+      "contractprobetypeconsumer/IndependentTypePlacementConsumer$.class",
+      "contractprobetypeconsumer/IndependentTypePlacementConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"type-placement consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobetypeconsumer/")), s"type-placement output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val selectionCount = metadataLines.count(line =>
+      line.contains("contractprobetype.IndependentTypePlacementMarker") &&
+        line.contains("Found(contractprobetype.IndependentTypePlacementHandler)")
+    )
+    require(selectionCount == 1, s"expected one cached type-placement metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobetype.IndependentTypePlacementHandler"))
+    require(invocationLines.size == 3, s"expected three type-placement handler invocations, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val javap = runProcess(
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobetypeconsumer.ExistingCompanionAdd$"),
+      repositoryRoot,
+      new File(evidenceDirectory, "type-placement-positive/javap.log")
+    )
+    require(javap._1 == 0 && javap._2.contains("int existingValue()"), s"existing companion member missing after type placement: ${javap._2}")
+    TypePlacementPositiveEvidence(
+      exit,
+      outputs,
+      selectionCount,
+      invocationLines.size,
+      existingCompanionMemberPresent = true,
+      generatedAliasesTypechecked = true
+    )
+  }
+
+  private def compileTypePlacementReject(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): NegativeEvidence = {
+    val output = new File(evidenceDirectory, "type-placement-reject/classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(evidenceDirectory, "type-placement-reject/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "type-placement-reject/compile.log"))
+    val diagnostic = "generated companion type `Aux` conflicts with existing direct companion type member `Aux` for `RejectConflictAdd`"
+    require(exit != 0, "type-placement reject lane unexpectedly compiled")
+    require(log.contains(diagnostic), s"type-placement reject lane lacked controlled diagnostic: $log")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"type-placement reject lane exposed an uncontrolled failure: $log")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobetype.IndependentTypePlacementRejectHandler"))
+    require(invocationLines.size == 1, s"expected one rejecting type-placement invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"type-placement reject lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence("direct-type-conflict-reject", exit, diagnostic, outputs.size)
   }
 
   private def compileUnsupportedBodyView(
@@ -735,6 +953,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
 
   private def positiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "positive/classes")
   private def bodyViewPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "body-view-positive/classes")
+  private def typePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "type-placement-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)

@@ -51,6 +51,14 @@ inheritance, alias expansion, or overload analysis. The raw
 `ExpansionInput.annotatedClass` tree remains the advanced exact-line escape
 hatch. Released `0.1.0` does not include this API.
 
+The same unreleased line includes exact-compiler-sensitive placement of one
+already-created companion `untpd.TypeDef` plus a structural
+`TwoUpperBoundedGenericTrait` admission profile. Placement conflict checks are
+limited to direct raw `TypeDef` names in the type namespace; Macro-Paradise
+does not construct or interpret alias/refinement syntax and does not expose an
+arbitrary `MemberDef` placement API. Released `0.1.0` does not include these
+surfaces.
+
 ## Marker metadata compatibility
 
 Current markers use a runtime-retained classfile annotation to name the handler.

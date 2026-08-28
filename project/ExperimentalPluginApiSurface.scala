@@ -18,8 +18,8 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "04396ae7e065b7b09dfe3a0c70e88a47a1c316484f47ddafaa622b1369ba5b9d",
-    "3.8.4" -> "2b452333994c5b9cb83e5d6a99bae45650bc7e12fdc5297e0398cc50906cfc82"
+    "3.3.8" -> "19b5c8300b592dbc2f3c3b700903d78cb850e20c7c9a7df08e265e9a4e5c5330",
+    "3.8.4" -> "d422067c83c8471931a7f8f85aaaa5b355be9428dc60934246560fe5145b5e63"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -738,7 +738,8 @@ object ExperimentalPluginApiSurface {
         "paradise3/api/ExpansionCompositionPolicy.class",
         "paradise3/api/ExpansionOutcome.class",
         "paradise3/api/ExpansionTargetProfile.class",
-        "paradise3/api/helpers/CompanionMethodConflictPolicy.class"
+        "paradise3/api/helpers/CompanionMethodConflictPolicy.class",
+        "paradise3/api/helpers/CompanionTypeConflictPolicy.class"
       )
       released384Surface.map {
         case line if line.startsWith("scala-compiler=") =>

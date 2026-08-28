@@ -718,7 +718,7 @@ private object ParadiseTreeRewrite:
   private final case class MatchingAnnotation(annotation: Tree, expander: AnnotationExpander)
 
   private enum TargetAdmissionProfile:
-    case CommonClassOnly, RestrictedGenericTraitApply
+    case CommonClassOnly, RestrictedGenericTraitApply, TwoUpperBoundedGenericTrait
 
   private enum CompositionPolicy:
     case StandaloneOnly, SourceOrdered
@@ -1042,6 +1042,8 @@ private object ParadiseTreeRewrite:
           TargetAdmissionProfile.CommonClassOnly
         case ExternalExpansionTargetProfile.RestrictedGenericTraitApply =>
           TargetAdmissionProfile.RestrictedGenericTraitApply
+        case ExternalExpansionTargetProfile.TwoUpperBoundedGenericTrait =>
+          TargetAdmissionProfile.TwoUpperBoundedGenericTrait
     override val compositionPolicy: CompositionPolicy =
       descriptor.compositionPolicy match
         case ExternalExpansionCompositionPolicy.StandaloneOnly =>
@@ -1774,6 +1776,9 @@ private object ParadiseTreeRewrite:
         case expander :: Nil
             if expander.targetAdmissionProfile == TargetAdmissionProfile.RestrictedGenericTraitApply =>
           "the restricted top-level generic trait envelope"
+        case expander :: Nil
+            if expander.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait =>
+          "the two-upper-bounded-parameter top-level trait envelope"
         case _ => "top-level classes"
     reportDiagnostic(
       ExpansionDiagnostic(
@@ -1809,7 +1814,7 @@ private object ParadiseTreeRewrite:
     val isRestrictedTrait =
       typeDef.isClassDef && mods.is(Trait) && !mods.is(Enum) &&
         matching.nonEmpty && matching.forall(
-          _.targetAdmissionProfile == TargetAdmissionProfile.RestrictedGenericTraitApply
+          _.targetAdmissionProfile != TargetAdmissionProfile.CommonClassOnly
         )
     isOrdinaryClass || isRestrictedTrait
 
@@ -1827,6 +1832,10 @@ private object ParadiseTreeRewrite:
               _.targetAdmissionProfile == TargetAdmissionProfile.RestrictedGenericTraitApply
             )
           then AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(view, labels)
+          else if matching.nonEmpty && matching.forall(
+              _.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait
+            )
+          then AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(view, labels)
           else AnnotatedClassAdmission.commonRejection(view, labels)
         profileRejection
           .orElse:

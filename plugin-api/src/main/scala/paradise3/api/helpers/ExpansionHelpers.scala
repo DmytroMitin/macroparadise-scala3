@@ -206,39 +206,85 @@ object ExpansionHelpers:
       generatedMethod: untpd.DefDef,
       conflictPolicy: CompanionMethodConflictPolicy
   )(using Context): ExpansionOutcome =
+    placeMemberInCompanion(
+      input,
+      generatedMethod,
+      companionHasDirectMemberNamed(_, generatedMethod.name),
+      preserveExisting = conflictPolicy == CompanionMethodConflictPolicy.PreserveExisting,
+      ExpansionDiagnostic(
+        s"generated companion method `${generatedMethod.name}` conflicts with existing direct companion member `${generatedMethod.name}` for `${input.className}`",
+        mostSpecificCurrentAnnotationPosition(input)
+      )
+    )
+
+  /** Place an already-created raw type definition in the annotated class's companion.
+    *
+    * The caller owns construction and lowering of `generatedType`; this helper
+    * inserts that exact `TypeDef` without rebuilding, parsing, re-lowering, or
+    * interpreting its syntax. A direct conflict is deliberately limited to a
+    * raw direct companion `TypeDef` with the same `TypeName`. This includes raw
+    * type aliases/members and nested class or trait definitions, while direct
+    * term-only definitions with the same decoded spelling remain outside the
+    * type namespace. Nested/non-direct definitions and semantic name resolution
+    * are outside this contract.
+    *
+    * `PreserveExisting` returns successful structured output with the exact
+    * existing companion unchanged. `Reject` returns one type-specific diagnostic
+    * and the original annotated class fallback without a partial companion.
+    * Successful output removes only `input.currentAnnotation` when present and
+    * otherwise retains the established direct-caller clear-all fallback.
+    *
+    * This compiler-version-sensitive experimental helper accepts only
+    * `untpd.TypeDef`; it is not arbitrary `MemberDef` placement.
+    */
+  def addTypeToCompanion(
+      input: ExpansionInput,
+      generatedType: untpd.TypeDef,
+      conflictPolicy: CompanionTypeConflictPolicy
+  )(using Context): ExpansionOutcome =
+    placeMemberInCompanion(
+      input,
+      generatedType,
+      companionHasDirectTypeNamed(_, generatedType.name),
+      preserveExisting = conflictPolicy == CompanionTypeConflictPolicy.PreserveExisting,
+      ExpansionDiagnostic(
+        s"generated companion type `${generatedType.name}` conflicts with existing direct companion type member `${generatedType.name}` for `${input.className}`",
+        mostSpecificCurrentAnnotationPosition(input)
+      )
+    )
+
+  private def placeMemberInCompanion(
+      input: ExpansionInput,
+      generatedMember: MemberDef,
+      hasDirectConflict: ModuleDef => Boolean,
+      preserveExisting: Boolean,
+      conflictDiagnostic: => ExpansionDiagnostic
+  )(using Context): ExpansionOutcome =
     input.annotatedClass.rhs match
       case _: Template =>
         input.existingCompanion match
-          case Some(existingCompanion)
-              if companionHasDirectMemberNamed(existingCompanion, generatedMethod.name) =>
-            conflictPolicy match
-              case CompanionMethodConflictPolicy.PreserveExisting =>
-                structured(
-                  stripCurrentAnnotation(input),
-                  companion = Some(existingCompanion)
-                )
-              case CompanionMethodConflictPolicy.Reject =>
-                rejected(
-                  ExpansionDiagnostic(
-                    s"generated companion method `${generatedMethod.name}` conflicts with existing direct companion member `${generatedMethod.name}` for `${input.className}`",
-                    mostSpecificCurrentAnnotationPosition(input)
-                  ),
-                  input.annotatedClass
-                )
+          case Some(existingCompanion) if hasDirectConflict(existingCompanion) =>
+            if preserveExisting then
+              structured(
+                stripCurrentAnnotation(input),
+                companion = Some(existingCompanion)
+              )
+            else
+              rejected(conflictDiagnostic, input.annotatedClass)
           case Some(existingCompanion) =>
             structured(
               stripCurrentAnnotation(input),
               companion = Some(
-                mergeMethodIntoCompanion(existingCompanion, generatedMethod)
+                mergeMemberIntoCompanion(existingCompanion, generatedMember)
               )
             )
           case None =>
             structured(
               stripCurrentAnnotation(input),
               companion = Some(
-                makeCompanionWithMethod(
+                makeCompanionWithMember(
                   input.annotatedClass.name,
-                  generatedMethod,
+                  generatedMember,
                   input.annotatedClass.source
                 )
               )
@@ -341,9 +387,9 @@ object ExpansionHelpers:
       .filter(_.span.exists)
       .getOrElse(input.annotatedClass.sourcePos)
 
-  private def makeCompanionWithMethod(
+  private def makeCompanionWithMember(
       className: TypeName,
-      generatedMethod: DefDef,
+      generatedMember: MemberDef,
       source: dotty.tools.dotc.util.SourceFile
   )(using Context): ModuleDef =
     given dotty.tools.dotc.util.SourceFile = source
@@ -352,11 +398,11 @@ object ExpansionHelpers:
     // This mirrors the internal built-in companion generation shape: an untyped
     // companion with no explicit parents is enough for current top-level test
     // fixtures, and typer supplies the ordinary object parents.
-    ModuleDef(className.toTermName, makeTemplate(source, List(generatedMethod)))
+    ModuleDef(className.toTermName, makeTemplate(source, List(generatedMember)))
 
-  private def mergeMethodIntoCompanion(
+  private def mergeMemberIntoCompanion(
       existingCompanion: ModuleDef,
-      generatedMethod: DefDef
+      generatedMember: MemberDef
   )(using Context): ModuleDef =
     val existingTemplate = existingCompanion.impl
     val existingBody = existingTemplate.body(using summon[Context])
@@ -367,7 +413,7 @@ object ExpansionHelpers:
         existingTemplate.parentsOrDerived(using summon[Context]),
         existingTemplate.derived,
         existingTemplate.self,
-        existingBody :+ generatedMethod
+        existingBody :+ generatedMember
       )
 
     untpd.cpy.ModuleDef(existingCompanion)(existingCompanion.name, mergedTemplate)
@@ -378,6 +424,14 @@ object ExpansionHelpers:
   )(using Context): Boolean =
     existingCompanion.impl.body(using summon[Context]).exists:
       case member: MemberDef => member.name == methodName
+      case _ => false
+
+  private def companionHasDirectTypeNamed(
+      existingCompanion: ModuleDef,
+      generatedTypeName: TypeName
+  )(using Context): Boolean =
+    existingCompanion.impl.body(using summon[Context]).exists:
+      case member: TypeDef => member.name == generatedTypeName
       case _ => false
 
   private def makeSiblingWithStringMethod(

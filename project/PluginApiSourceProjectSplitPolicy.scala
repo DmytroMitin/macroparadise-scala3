@@ -75,7 +75,7 @@ object PluginApiSourceProjectSplitPolicy {
 
     val contractSources = sources(repositoryRoot, "plugin-api")
     val markerSources = sources(repositoryRoot, "plugin-test-markers")
-    require(contractSources.size == 7, s"expected seven contract sources, found ${contractSources.size}")
+    require(contractSources.size == 8, s"expected eight contract sources, found ${contractSources.size}")
     require(markerSources.size == 20, s"expected twenty marker sources, found ${markerSources.size}")
     require(
       contractSources.forall(_.replace(File.separatorChar, '/').contains("/paradise3/api/")),

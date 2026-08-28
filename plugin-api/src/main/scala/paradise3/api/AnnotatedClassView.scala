@@ -113,20 +113,50 @@ object AnnotatedClassView:
       pos: SrcPos,
       variance: Variance = Variance.Invariant,
       isOrdinaryUnbounded: Boolean = true,
-      hasContextBounds: Boolean = false
+      hasContextBounds: Boolean = false,
+      isOrdinaryUpperBounded: Boolean = false
   ):
     /** Retained exact-build constructor shape for legacy structured-view handlers. */
     def this(name: String, pos: SrcPos) =
-      this(name, pos, Variance.Invariant, true, false)
+      this(name, pos, Variance.Invariant, true, false, false)
+
+    /** Retained exact-build constructor shape for existing normalized-view handlers. */
+    def this(
+        name: String,
+        pos: SrcPos,
+        variance: Variance,
+        isOrdinaryUnbounded: Boolean,
+        hasContextBounds: Boolean
+    ) = this(name, pos, variance, isOrdinaryUnbounded, hasContextBounds, false)
 
     /** Retained exact-build copy shape for legacy structured-view handlers. */
     def copy(name: String, pos: SrcPos): TypeParameter =
-      TypeParameter(name, pos, variance, isOrdinaryUnbounded, hasContextBounds)
+      TypeParameter(name, pos, variance, isOrdinaryUnbounded, hasContextBounds, isOrdinaryUpperBounded)
+
+    /** Retained exact-build copy shape for existing normalized-view handlers. */
+    def copy(
+        name: String,
+        pos: SrcPos,
+        variance: Variance,
+        isOrdinaryUnbounded: Boolean,
+        hasContextBounds: Boolean
+    ): TypeParameter =
+      TypeParameter(name, pos, variance, isOrdinaryUnbounded, hasContextBounds, isOrdinaryUpperBounded)
 
   object TypeParameter:
     /** Retained exact-build factory shape for legacy structured-view handlers. */
     def apply(name: String, pos: SrcPos): TypeParameter =
       new TypeParameter(name, pos)
+
+    /** Retained exact-build factory shape for existing normalized-view handlers. */
+    def apply(
+        name: String,
+        pos: SrcPos,
+        variance: Variance,
+        isOrdinaryUnbounded: Boolean,
+        hasContextBounds: Boolean
+    ): TypeParameter =
+      new TypeParameter(name, pos, variance, isOrdinaryUnbounded, hasContextBounds)
 
     override def toString: String = "TypeParameter"
 
@@ -264,24 +294,30 @@ object AnnotatedClassView:
           if mods.is(Covariant) then Variance.Covariant
           else if mods.is(Contravariant) then Variance.Contravariant
           else Variance.Invariant
-        val (isOrdinaryUnbounded, hasContextBounds) =
+        val (isOrdinaryUnbounded, hasContextBounds, isOrdinaryUpperBounded) =
           Option(value.rhs) match
             case Some(bounds: TypeBoundsTree) =>
-              (bounds.lo.isEmpty && bounds.hi.isEmpty && bounds.alias.isEmpty, false)
+              (
+                bounds.lo.isEmpty && bounds.hi.isEmpty && bounds.alias.isEmpty,
+                false,
+                bounds.lo.isEmpty && !bounds.hi.isEmpty && bounds.alias.isEmpty
+              )
             case Some(contextBounds: ContextBounds) =>
               val bounds = contextBounds.bounds
               (
                 bounds.lo.isEmpty && bounds.hi.isEmpty && bounds.alias.isEmpty && contextBounds.cxBounds.isEmpty,
-                contextBounds.cxBounds.nonEmpty
+                contextBounds.cxBounds.nonEmpty,
+                bounds.lo.isEmpty && !bounds.hi.isEmpty && bounds.alias.isEmpty && contextBounds.cxBounds.isEmpty
               )
-            case _ => (false, false)
+            case _ => (false, false, false)
         Right(
           TypeParameter(
             Option(value.name).map(_.toString).getOrElse("<unknown>"),
             safePos(value, fallback),
             variance,
             isOrdinaryUnbounded,
-            hasContextBounds
+            hasContextBounds,
+            isOrdinaryUpperBounded
           )
         )
       case None => Left(failure("could not decode annotated class view: null raw type parameter", fallback))

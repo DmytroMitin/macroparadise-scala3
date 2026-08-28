@@ -261,6 +261,54 @@ class AnnotatedClassAdmissionSpec extends munit.FunSuite:
       )
   }
 
+  test("two-upper-bounded generic trait profile admits canonical shape and ignores body policy") {
+    val canonical = shape(
+      """trait Add[N <: Nat, M <: Nat]:
+        |  type Out <: Nat
+        |""".stripMargin
+    )
+    val bodyVariation = shape(
+      """trait BodyVariation[N <: Nat, M <: Nat]:
+        |  val featureOwnedByHandler: Int = 1
+        |""".stripMargin
+    )
+
+    assert(canonical.typeParameters.forall(_.isOrdinaryUpperBounded))
+    assertEquals(
+      AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(canonical, "@externalTwoBoundedTrait"),
+      None
+    )
+    assertEquals(
+      AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(bodyVariation, "@externalTwoBoundedTrait"),
+      None
+    )
+  }
+
+  test("two-upper-bounded generic trait profile rejects each unsupported structural dimension") {
+    val ordinary = shape("trait Ordinary[N <: Nat, M <: Nat]")
+    val caseLike = ordinary.copy(modifiers = ordinary.modifiers.copy(isCase = true))
+    val rejected = List(
+      shape("trait One[N <: Nat]"),
+      shape("trait Three[N <: Nat, M <: Nat, K <: Nat]"),
+      shape("trait Unbounded[N, M <: Nat]"),
+      shape("trait LowerBounded[N >: Null <: Nat, M <: Nat]"),
+      shape("trait Covariant[+N <: Nat, M <: Nat]"),
+      shape("trait Contextual[N <: Nat: Ordering, M <: Nat]"),
+      shape("trait Constructor[N <: Nat, M <: Nat](val value: N)"),
+      shape("class NotATrait[N <: Nat, M <: Nat]"),
+      shape("sealed trait Sealed[N <: Nat, M <: Nat]"),
+      caseLike
+    )
+
+    rejected.foreach: candidate =>
+      assert(
+        AnnotatedClassAdmission
+          .twoUpperBoundedGenericTraitRejection(candidate, "@externalTwoBoundedTrait")
+          .nonEmpty,
+        s"expected two-upper-bounded trait rejection for ${candidate.className}: $candidate"
+      )
+  }
+
   test("admission diagnostics select the most precise defensible raw positions") {
     val wrongName = shape("class WrongName(other: String)")
     val wrongNameParameter = onlyParameter(wrongName)

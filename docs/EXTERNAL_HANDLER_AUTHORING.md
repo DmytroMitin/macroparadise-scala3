@@ -198,8 +198,9 @@ does not contain this body-view API.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
 for the common class shape. Helper methods can add one bounded method to a class
-or companion or create one sibling class. Advanced exact-compiler handlers may
-still use `ExpansionInput.annotatedClass` as the separate raw-tree escape hatch.
+or companion, place one already-created type definition in a companion, or
+create one sibling class. Advanced exact-compiler handlers may still use
+`ExpansionInput.annotatedClass` as the separate raw-tree escape hatch.
 
 Successful handlers may return structured output with explicit primary,
 companion, and additional-definition roles. The ordered raw-tree outcome
@@ -240,6 +241,39 @@ resolution, replace existing definitions, or accept arbitrary `MemberDef`
 values. It remains compiler-version-sensitive experimental API and must be
 compiled against the matching exact full-cross plugin API artifact. The
 immutable released `0.1.0` coordinate does not contain this helper.
+
+### Placing an already-created companion type
+
+Unreleased `0.1.1-SNAPSHOT` development sources also include
+`ExpansionHelpers.addTypeToCompanion`. It accepts exactly one already-created
+raw `untpd.TypeDef`; the handler or an authoring layer owns construction and
+exact lowering of the complete alias, abstract type member, nested class, or
+nested trait definition:
+
+```scala
+import paradise3.api.helpers.{CompanionTypeConflictPolicy, ExpansionHelpers}
+
+ExpansionHelpers.addTypeToCompanion(
+  input,
+  generatedType,
+  CompanionTypeConflictPolicy.PreserveExisting
+)
+```
+
+The helper owns only current-annotation cleanup and same-name companion
+creation/merge. It appends the exact supplied tree without parsing, rebuilding,
+re-lowering, interpreting, or repairing it. Conflict detection is direct,
+syntactic, and type-namespace bounded: a direct raw `TypeDef` with the same
+`TypeName` conflicts, covering aliases/type members and nested classes/traits.
+A direct term-only `DefDef`, `ValDef`, or `ModuleDef` with the same decoded
+spelling does not conflict, and nested/non-direct members are not searched.
+
+`CompanionTypeConflictPolicy.PreserveExisting` returns the exact existing
+companion unchanged; `Reject` returns the original annotated primary and no
+partial companion. There is no public arbitrary-`MemberDef` placement API, no
+semantic companion or name resolution, and no alias/refinement semantics in
+Macro-Paradise. The raw-tree escape hatch remains available. Released `0.1.0`
+does not contain this helper, policy, or the two-upper-bounded trait profile.
 
 ## Local coordinate for marker and handler authors
 

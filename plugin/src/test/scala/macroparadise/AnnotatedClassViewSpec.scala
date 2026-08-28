@@ -125,14 +125,30 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
     assertEquals(covariant.typeParameters.head.variance, AnnotatedClassView.Variance.Covariant)
     assertEquals(contravariant.typeParameters.head.variance, AnnotatedClassView.Variance.Contravariant)
     assert(!bounded.typeParameters.head.isOrdinaryUnbounded)
+    assert(bounded.typeParameters.head.isOrdinaryUpperBounded)
     assert(contextual.typeParameters.head.hasContextBounds)
     assert(!contextual.typeParameters.head.isOrdinaryUnbounded)
+    assert(!contextual.typeParameters.head.isOrdinaryUpperBounded)
   }
 
   test("legacy structured-view and type-parameter apply and copy shapes remain source-callable") {
     val decoded = view("class Compatibility[A]")
     val parameter = AnnotatedClassView.TypeParameter("A", decoded.typeParameters.head.pos)
     val copiedParameter = parameter.copy("B", parameter.pos)
+    val fullLegacyParameter = AnnotatedClassView.TypeParameter(
+      "C",
+      parameter.pos,
+      AnnotatedClassView.Variance.Invariant,
+      false,
+      false
+    )
+    val fullLegacyCopy = fullLegacyParameter.copy(
+      "D",
+      fullLegacyParameter.pos,
+      fullLegacyParameter.variance,
+      fullLegacyParameter.isOrdinaryUnbounded,
+      fullLegacyParameter.hasContextBounds
+    )
     val reconstructed = AnnotatedClassView(
       decoded.className,
       List(copiedParameter),
@@ -152,6 +168,8 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
 
     assertEquals(copied.definitionKind, AnnotatedClassView.DefinitionKind.Class)
     assertEquals(copied.typeParameters.map(_.name), List("B"))
+    assertEquals(fullLegacyCopy.name, "D")
+    assert(!fullLegacyCopy.isOrdinaryUpperBounded)
   }
 
   test("null direct API construction produces a controlled view diagnostic") {

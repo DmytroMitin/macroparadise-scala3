@@ -95,6 +95,54 @@ private[macroparadise] object AnnotatedClassAdmission:
         )
       else None
 
+  def twoUpperBoundedGenericTraitRejection(
+      view: AnnotatedClassView,
+      annotationLabel: String
+  ): Option[Rejection] =
+    val requirement =
+      "requires one top-level non-sealed ordinary trait with exactly two invariant, ordinary upper-bounded type parameters and no constructor/value parameters"
+
+    if view.definitionKind != DefinitionKind.Trait then
+      Some(Rejection(s"$annotationLabel $requirement; found class `${view.className}`", view.classPos))
+    else if view.modifiers.isCase then
+      Some(Rejection(s"$annotationLabel $requirement; case modifiers are unsupported", view.classPos))
+    else if view.modifiers.isSealed then
+      Some(Rejection(s"$annotationLabel $requirement; sealed trait `${view.className}` is unsupported", view.classPos))
+    else if view.typeParameters.size != 2 then
+      Some(
+        Rejection(
+          s"$annotationLabel $requirement; found ${view.typeParameters.size} type parameters",
+          view.typeParameters.headOption.map(_.pos).getOrElse(view.classPos)
+        )
+      )
+    else
+      view.typeParameters.find(_.variance != Variance.Invariant) match
+        case Some(parameter) =>
+          Some(
+            Rejection(
+              s"$annotationLabel $requirement; type parameter `${parameter.name}` is ${parameter.variance.toString.toLowerCase}",
+              parameter.pos
+            )
+          )
+        case None =>
+          view.typeParameters.find(parameter => !parameter.isOrdinaryUpperBounded || parameter.hasContextBounds) match
+            case Some(parameter) =>
+              Some(
+                Rejection(
+                  s"$annotationLabel $requirement; type parameter `${parameter.name}` is not an ordinary single upper-bounded parameter",
+                  parameter.pos
+                )
+              )
+            case None if view.constructorClauses.exists(_.parameters.nonEmpty) =>
+              val clause = view.constructorClauses.find(_.parameters.nonEmpty).get
+              Some(
+                Rejection(
+                  s"$annotationLabel $requirement; trait constructor/value parameters are unsupported",
+                  clause.pos
+                )
+              )
+            case None => None
+
   def genRejection(view: AnnotatedClassView): Option[Rejection] =
     val requirement =
       "current @gen prototype requires one non-contextual primary-constructor clause containing exactly `name: String` (bare or val, non-var, without a default) on a concrete class with an accessible constructor"

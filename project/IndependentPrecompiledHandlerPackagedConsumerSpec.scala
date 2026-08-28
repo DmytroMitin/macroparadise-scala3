@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 43
+  val CaseCount = 66
 
   def run(repositoryRoot: File): Unit = {
     val independentRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/positive")
@@ -11,16 +11,25 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val bodyViewHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/body-view")
     val bodyViewConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view")
     val bodyViewNegativeRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view-negative")
+    val typePlacementHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/type-placement")
+    val typePlacementConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement")
+    val typePlacementRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement-reject")
     val independentSource = new File(independentRoot, "IndependentMarkerAndHandler.scala")
     val consumerSource = new File(consumerRoot, "IndependentPackagedConsumer.scala")
     val bodyViewHandlerSource = new File(bodyViewHandlerRoot, "IndependentBodyViewMarkerAndHandler.scala")
     val bodyViewConsumerSource = new File(bodyViewConsumerRoot, "IndependentBodyViewConsumer.scala")
     val bodyViewNegativeSource = new File(bodyViewNegativeRoot, "UnsupportedBodyViewConsumer.scala")
+    val typePlacementHandlerSource = new File(typePlacementHandlerRoot, "IndependentTypePlacementMarkerAndHandler.scala")
+    val typePlacementConsumerSource = new File(typePlacementConsumerRoot, "IndependentTypePlacementConsumer.scala")
+    val typePlacementRejectSource = new File(typePlacementRejectRoot, "IndependentTypePlacementRejectConsumer.scala")
     val independent = read(independentSource)
     val consumer = read(consumerSource)
     val bodyViewHandler = read(bodyViewHandlerSource)
     val bodyViewConsumer = read(bodyViewConsumerSource)
     val bodyViewNegative = read(bodyViewNegativeSource)
+    val typePlacementHandler = read(typePlacementHandlerSource)
+    val typePlacementConsumer = read(typePlacementConsumerSource)
+    val typePlacementReject = read(typePlacementRejectSource)
     var completed = 0
 
     def check(condition: Boolean, message: String): Unit = {
@@ -33,6 +42,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(scalaSources(bodyViewHandlerRoot) == Vector(bodyViewHandlerSource.getCanonicalFile), "body-view handler source inventory changed")
     check(scalaSources(bodyViewConsumerRoot) == Vector(bodyViewConsumerSource.getCanonicalFile), "body-view consumer source inventory changed")
     check(scalaSources(bodyViewNegativeRoot) == Vector(bodyViewNegativeSource.getCanonicalFile), "body-view negative source inventory changed")
+    check(scalaSources(typePlacementHandlerRoot) == Vector(typePlacementHandlerSource.getCanonicalFile), "type-placement handler source inventory changed")
+    check(scalaSources(typePlacementConsumerRoot) == Vector(typePlacementConsumerSource.getCanonicalFile), "type-placement consumer source inventory changed")
+    check(scalaSources(typePlacementRejectRoot) == Vector(typePlacementRejectSource.getCanonicalFile), "type-placement reject source inventory changed")
     check(independent.contains("package contractprobe"), "independent package changed")
     check(independent.contains("final class IndependentMarker"), "independent marker class changed")
     check(independent.contains("final class IndependentHandler extends ParadiseAnnotationExpander"), "independent handler parent changed")
@@ -69,6 +81,25 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(bodyViewNegative.contains("def empty: A"), "body-view negative does not retain the valid no-clause method")
     check(bodyViewNegative.contains("def combine(a: List[A], a1: A): A"), "body-view negative does not isolate the applied parameter type")
     check(bodyViewNegative.contains("List[A]"), "body-view negative lacks an unsupported applied type")
+    check(typePlacementHandler.contains("package contractprobetype"), "type-placement handler package changed")
+    check(typePlacementHandler.contains("ExpansionTargetProfile.TwoUpperBoundedGenericTrait"), "type-placement handler does not request two-bounded-trait admission")
+    check(typePlacementHandler.contains("override val consumesExistingCompanion: Boolean = true"), "type-placement handler does not lease existing companions")
+    check(typePlacementHandler.contains("untpd.TypeDef("), "type-placement fixture does not create an already-lowered TypeDef")
+    check(typePlacementHandler.contains("untpd.LambdaTypeTree("), "type-placement fixture lacks a representative generic alias")
+    check(typePlacementHandler.contains("untpd.RefinedTypeTree("), "type-placement fixture lacks a representative refinement")
+    check(typePlacementHandler.contains("ExpansionHelpers.addTypeToCompanion("), "type-placement helper is not used")
+    check(typePlacementHandler.contains("CompanionTypeConflictPolicy.PreserveExisting"), "type-placement preserve policy is not exercised")
+    check(typePlacementHandler.contains("CompanionTypeConflictPolicy.Reject"), "type-placement reject policy is not exercised")
+    check(!typePlacementHandler.contains("macroparadise."), "type-placement source imports plugin implementation")
+    check(!typePlacementHandler.contains("quasiquotes"), "type-placement source depends on Quasiquotes")
+    check(typePlacementConsumer.contains("trait MissingCompanionAdd[N <: Nat, M <: Nat]"), "type-placement consumer lacks missing-companion proof")
+    check(typePlacementConsumer.contains("object ExistingCompanionAdd"), "type-placement consumer lacks existing-companion proof")
+    check(typePlacementConsumer.contains("type Aux"), "type-placement consumer lacks preserve-conflict proof")
+    check(typePlacementConsumer.contains("MissingCompanionAdd.Aux"), "type-placement consumer does not typecheck the generated alias")
+    check(typePlacementConsumer.contains("ExistingCompanionAdd.existingValue"), "type-placement consumer does not retain existing companion content")
+    check(!typePlacementConsumer.contains("paradise3."), "type-placement consumer imports repository API")
+    check(typePlacementReject.contains("@IndependentTypePlacementRejectMarker"), "type-placement reject consumer lacks reject annotation")
+    check(typePlacementReject.contains("type Aux"), "type-placement reject consumer lacks direct type conflict")
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries == Set(
         "contractprobe/IndependentHandler.class",
@@ -81,6 +112,10 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(
       IndependentPrecompiledHandlerPackagedConsumer.forbiddenClasspathFragments.contains("plugin-test-markers"),
       "repository marker classpath exclusion changed"
+    )
+    check(
+      IndependentPrecompiledHandlerPackagedConsumer.expectedTypePlacementCompiledEntries.size == 8,
+      "type-placement compiled-entry allowlist changed"
     )
     require(completed == CaseCount, s"focused model spec ran $completed/$CaseCount cases")
   }
