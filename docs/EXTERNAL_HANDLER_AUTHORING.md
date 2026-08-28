@@ -198,8 +198,8 @@ does not contain this body-view API.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
 for the common class shape. Helper methods can add one bounded method to a class
-or companion, place one already-created type definition in a companion, or
-create one sibling class. Advanced exact-compiler handlers may still use
+or companion, place one already-created type definition or module in a
+companion, or create one sibling class. Advanced exact-compiler handlers may still use
 `ExpansionInput.annotatedClass` as the separate raw-tree escape hatch.
 
 Successful handlers may return structured output with explicit primary,
@@ -274,6 +274,38 @@ partial companion. There is no public arbitrary-`MemberDef` placement API, no
 semantic companion or name resolution, and no alias/refinement semantics in
 Macro-Paradise. The raw-tree escape hatch remains available. Released `0.1.0`
 does not contain this helper, policy, or the two-upper-bounded trait profile.
+
+### Placing an already-created companion module
+
+Unreleased `0.1.1-SNAPSHOT` development sources also include the bounded
+`ExpansionHelpers.addModuleToCompanion` helper. It accepts exactly one
+already-created raw `untpd.ModuleDef`; the handler or authoring layer owns the
+module's complete construction and lowering:
+
+```scala
+import paradise3.api.helpers.{CompanionModuleConflictPolicy, ExpansionHelpers}
+
+ExpansionHelpers.addModuleToCompanion(
+  input,
+  generatedModule,
+  CompanionModuleConflictPolicy.PreserveExisting
+)
+```
+
+The helper owns only current-annotation cleanup and same-name companion
+creation/merge. It appends the exact supplied module without inspecting,
+rebuilding, validating, or interpreting its body. Placement is syntactic and
+pre-typer. Direct `ModuleDef`, `DefDef`, and `ValDef` members with the same raw
+`TermName` conflict; a same-spelling direct `TypeDef` is in the type namespace,
+and nested/non-direct members are not searched.
+
+`CompanionModuleConflictPolicy.PreserveExisting` returns the exact existing
+companion unchanged; `Reject` returns the original annotated primary and no
+partial companion. Macro-Paradise does not construct extension methods, search
+semantic companions or inherited members, or expose arbitrary `MemberDef`
+placement. Released `0.1.0` does not contain this helper or policy; it is only
+an unreleased source-built `0.1.1-SNAPSHOT` API on the matching exact Scala
+line.
 
 ## Local coordinate for marker and handler authors
 

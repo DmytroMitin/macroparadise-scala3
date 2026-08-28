@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 66
+  val CaseCount = 91
 
   def run(repositoryRoot: File): Unit = {
     val independentRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/positive")
@@ -14,6 +14,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val typePlacementHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/type-placement")
     val typePlacementConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement")
     val typePlacementRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement-reject")
+    val modulePlacementHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/module-placement")
+    val modulePlacementConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-module-placement")
+    val modulePlacementRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-module-placement-reject")
     val independentSource = new File(independentRoot, "IndependentMarkerAndHandler.scala")
     val consumerSource = new File(consumerRoot, "IndependentPackagedConsumer.scala")
     val bodyViewHandlerSource = new File(bodyViewHandlerRoot, "IndependentBodyViewMarkerAndHandler.scala")
@@ -22,6 +25,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val typePlacementHandlerSource = new File(typePlacementHandlerRoot, "IndependentTypePlacementMarkerAndHandler.scala")
     val typePlacementConsumerSource = new File(typePlacementConsumerRoot, "IndependentTypePlacementConsumer.scala")
     val typePlacementRejectSource = new File(typePlacementRejectRoot, "IndependentTypePlacementRejectConsumer.scala")
+    val modulePlacementHandlerSource = new File(modulePlacementHandlerRoot, "IndependentModulePlacementMarkerAndHandler.scala")
+    val modulePlacementConsumerSource = new File(modulePlacementConsumerRoot, "IndependentModulePlacementConsumer.scala")
+    val modulePlacementRejectSource = new File(modulePlacementRejectRoot, "IndependentModulePlacementRejectConsumer.scala")
     val independent = read(independentSource)
     val consumer = read(consumerSource)
     val bodyViewHandler = read(bodyViewHandlerSource)
@@ -30,6 +36,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val typePlacementHandler = read(typePlacementHandlerSource)
     val typePlacementConsumer = read(typePlacementConsumerSource)
     val typePlacementReject = read(typePlacementRejectSource)
+    val modulePlacementHandler = read(modulePlacementHandlerSource)
+    val modulePlacementConsumer = read(modulePlacementConsumerSource)
+    val modulePlacementReject = read(modulePlacementRejectSource)
     var completed = 0
 
     def check(condition: Boolean, message: String): Unit = {
@@ -45,6 +54,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(scalaSources(typePlacementHandlerRoot) == Vector(typePlacementHandlerSource.getCanonicalFile), "type-placement handler source inventory changed")
     check(scalaSources(typePlacementConsumerRoot) == Vector(typePlacementConsumerSource.getCanonicalFile), "type-placement consumer source inventory changed")
     check(scalaSources(typePlacementRejectRoot) == Vector(typePlacementRejectSource.getCanonicalFile), "type-placement reject source inventory changed")
+    check(scalaSources(modulePlacementHandlerRoot) == Vector(modulePlacementHandlerSource.getCanonicalFile), "module-placement handler source inventory changed")
+    check(scalaSources(modulePlacementConsumerRoot) == Vector(modulePlacementConsumerSource.getCanonicalFile), "module-placement consumer source inventory changed")
+    check(scalaSources(modulePlacementRejectRoot) == Vector(modulePlacementRejectSource.getCanonicalFile), "module-placement reject source inventory changed")
     check(independent.contains("package contractprobe"), "independent package changed")
     check(independent.contains("final class IndependentMarker"), "independent marker class changed")
     check(independent.contains("final class IndependentHandler extends ParadiseAnnotationExpander"), "independent handler parent changed")
@@ -100,6 +112,27 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(!typePlacementConsumer.contains("paradise3."), "type-placement consumer imports repository API")
     check(typePlacementReject.contains("@IndependentTypePlacementRejectMarker"), "type-placement reject consumer lacks reject annotation")
     check(typePlacementReject.contains("type Aux"), "type-placement reject consumer lacks direct type conflict")
+    check(modulePlacementHandler.contains("package contractprobemodule"), "module-placement handler package changed")
+    check(modulePlacementHandler.contains("final class IndependentModulePlacementMarker"), "module-placement marker class changed")
+    check(modulePlacementHandler.contains("final class IndependentModulePlacementHandler extends ParadiseAnnotationExpander"), "module-placement handler parent changed")
+    check(modulePlacementHandler.contains("@expander(\"contractprobemodule.IndependentModulePlacementHandler\")"), "module-placement marker metadata changed")
+    check(modulePlacementHandler.contains("override val consumesExistingCompanion: Boolean = true"), "module-placement handler does not lease existing companions")
+    check(modulePlacementHandler.contains("untpd.ModuleDef("), "module-placement fixture does not create an already-lowered ModuleDef")
+    check(modulePlacementHandler.contains("termName(\"syntax\")"), "module-placement fixture does not create the syntax term name")
+    check(modulePlacementHandler.contains("untpd.ValDef("), "module-placement fixture lacks a non-empty opaque module body")
+    check(modulePlacementHandler.contains("ExpansionHelpers.addModuleToCompanion("), "module-placement helper is not used")
+    check(modulePlacementHandler.contains("CompanionModuleConflictPolicy.PreserveExisting"), "module-placement preserve policy is not exercised")
+    check(modulePlacementHandler.contains("CompanionModuleConflictPolicy.Reject"), "module-placement reject policy is not exercised")
+    check(!modulePlacementHandler.contains("macroparadise."), "module-placement source imports plugin implementation")
+    check(!modulePlacementHandler.contains("quasiquotes"), "module-placement source depends on Quasiquotes")
+    check(modulePlacementConsumer.contains("trait MissingModuleAdd[N <: Nat, M <: Nat]"), "module-placement consumer lacks missing-companion proof")
+    check(modulePlacementConsumer.contains("object ExistingModuleAdd"), "module-placement consumer lacks existing-companion proof")
+    check(modulePlacementConsumer.contains("val syntax: String = \"preserved\""), "module-placement consumer lacks direct term-conflict preservation")
+    check(modulePlacementConsumer.contains("MissingModuleAdd.syntax.marker"), "module-placement consumer does not observe the generated nested module")
+    check(modulePlacementConsumer.contains("ExistingModuleAdd.existingValue"), "module-placement consumer does not retain existing companion content")
+    check(!modulePlacementConsumer.contains("paradise3."), "module-placement consumer imports repository API")
+    check(modulePlacementReject.contains("@IndependentModulePlacementRejectMarker"), "module-placement reject consumer lacks reject annotation")
+    check(modulePlacementReject.contains("def syntax: String"), "module-placement reject consumer lacks a direct term conflict")
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries == Set(
         "contractprobe/IndependentHandler.class",
@@ -116,6 +149,10 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedTypePlacementCompiledEntries.size == 8,
       "type-placement compiled-entry allowlist changed"
+    )
+    check(
+      IndependentPrecompiledHandlerPackagedConsumer.expectedModulePlacementCompiledEntries.size == 8,
+      "module-placement compiled-entry allowlist changed"
     )
     require(completed == CaseCount, s"focused model spec ran $completed/$CaseCount cases")
   }

@@ -87,6 +87,9 @@ CLASS|paradise3/api/expander.class|METADATA_CARRIER|public interface paradise3.a
 CLASS|paradise3/api/helpers/CompanionMethodConflictPolicy$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionMethodConflictPolicy$$anon$1 extends paradise3.api.helpers.CompanionMethodConflictPolicy implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/helpers/CompanionMethodConflictPolicy$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionMethodConflictPolicy$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/helpers/CompanionMethodConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.CompanionMethodConflictPolicy implements scala.reflect.Enum
+CLASS|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionModuleConflictPolicy$$anon$1 extends paradise3.api.helpers.CompanionModuleConflictPolicy implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionModuleConflictPolicy$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/helpers/CompanionModuleConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.CompanionModuleConflictPolicy implements scala.reflect.Enum
 CLASS|paradise3/api/helpers/CompanionTypeConflictPolicy$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionTypeConflictPolicy$$anon$1 extends paradise3.api.helpers.CompanionTypeConflictPolicy implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/helpers/CompanionTypeConflictPolicy$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.CompanionTypeConflictPolicy$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/helpers/CompanionTypeConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.CompanionTypeConflictPolicy implements scala.reflect.Enum
@@ -1313,6 +1316,34 @@ MEMBER|paradise3/api/helpers/CompanionMethodConflictPolicy.class|METHOD|productI
 MEMBER|paradise3/api/helpers/CompanionMethodConflictPolicy.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/helpers/CompanionMethodConflictPolicy.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/helpers/CompanionMethodConflictPolicy;
 MEMBER|paradise3/api/helpers/CompanionMethodConflictPolicy.class|METHOD|values|0|public|static|()[Lparadise3/api/helpers/CompanionMethodConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$$anon$1.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/CompanionModuleConflictPolicy$;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|FIELD|PreserveExisting|0|public|static,final|Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|FIELD|Reject|0|public|static,final|Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/helpers/CompanionModuleConflictPolicy;)I
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|METHOD|values|0|public|-|()[Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/helpers/CompanionModuleConflictPolicy;
+MEMBER|paradise3/api/helpers/CompanionModuleConflictPolicy.class|METHOD|values|0|public|static|()[Lparadise3/api/helpers/CompanionModuleConflictPolicy;
 MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
 MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
 MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -1343,6 +1374,7 @@ MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy.class|METHOD|valueOf|0|
 MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy.class|METHOD|values|0|public|static|()[Lparadise3/api/helpers/CompanionTypeConflictPolicy;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/ExpansionHelpers$;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$DefDef;Lparadise3/api/helpers/CompanionMethodConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addModuleToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/untpd$ModuleDef;Lparadise3/api/helpers/CompanionModuleConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodSiblingClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
@@ -1357,6 +1389,7 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|structured|0|public|
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|withAnnotatedClassView|0|public|-|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$DefDef;Lparadise3/api/helpers/CompanionMethodConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addModuleToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/untpd$ModuleDef;Lparadise3/api/helpers/CompanionModuleConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodSiblingClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
@@ -1387,6 +1420,7 @@ RESOURCE|paradise3/api/ExpansionTargetProfile.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ParadiseAnnotationExpander.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/StructuredExpansionOutput.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionMethodConflictPolicy.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/helpers/CompanionModuleConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionTypeConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/ExpansionHelpers.tasty|SCALA_TASTY
 RESOURCE|paradise3/companionInvocationLinkageError.tasty|SCALA_TASTY
@@ -1431,4 +1465,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=d422067c83c8471931a7f8f85aaaa5b355be9428dc60934246560fe5145b5e63
+normalized-sha256=c79fdc5a97aadcc30e48c2e2acd829a4f1c98aad979eec64f752975c73a5e5a3

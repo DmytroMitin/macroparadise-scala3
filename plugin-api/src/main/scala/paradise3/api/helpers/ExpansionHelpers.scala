@@ -253,6 +253,44 @@ object ExpansionHelpers:
       )
     )
 
+  /** Place an already-created raw module in the annotated class's companion.
+    *
+    * The caller owns complete construction and lowering of `generatedModule`;
+    * this helper inserts that exact `ModuleDef` without rebuilding, parsing,
+    * inspecting, validating, or interpreting its body. Placement is syntactic
+    * and pre-typer. A conflict is deliberately limited to a direct raw
+    * companion `MemberDef` with the same `TermName`, including a `ModuleDef`,
+    * `DefDef`, or `ValDef`. A direct same-spelling `TypeDef` remains in the type
+    * namespace, while nested/non-direct definitions and semantic resolution are
+    * outside this contract.
+    *
+    * `PreserveExisting` returns successful structured output with the exact
+    * existing companion unchanged. `Reject` returns one module-specific
+    * diagnostic and the original annotated class fallback without a partial
+    * companion. Successful output removes only `input.currentAnnotation` when
+    * present and otherwise retains the established direct-caller clear-all
+    * fallback.
+    *
+    * This compiler-version-sensitive experimental helper accepts only
+    * `untpd.ModuleDef`; it is not arbitrary `MemberDef` placement or a module
+    * authoring facade.
+    */
+  def addModuleToCompanion(
+      input: ExpansionInput,
+      generatedModule: untpd.ModuleDef,
+      conflictPolicy: CompanionModuleConflictPolicy
+  )(using Context): ExpansionOutcome =
+    placeMemberInCompanion(
+      input,
+      generatedModule,
+      companionHasDirectMemberNamed(_, generatedModule.name),
+      preserveExisting = conflictPolicy == CompanionModuleConflictPolicy.PreserveExisting,
+      ExpansionDiagnostic(
+        s"generated companion module `${generatedModule.name}` conflicts with existing direct companion term member `${generatedModule.name}` for `${input.className}`",
+        mostSpecificCurrentAnnotationPosition(input)
+      )
+    )
+
   private def placeMemberInCompanion(
       input: ExpansionInput,
       generatedMember: MemberDef,

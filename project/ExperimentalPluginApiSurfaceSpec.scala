@@ -57,6 +57,7 @@ object ExperimentalPluginApiSurfaceSpec {
     }
     check("3.3.8 normalizes both companion conflict policy enum encodings") {
       val enumRecords = Vector(
+        "CompanionModuleConflictPolicy",
         "CompanionMethodConflictPolicy",
         "CompanionTypeConflictPolicy"
       ).map { name =>

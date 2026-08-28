@@ -24,11 +24,14 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-body-view-marker-handler_3-$ExpectedProjectVersion.jar"
   val TypePlacementIndependentArtifactBasename =
     s"independent-type-placement-marker-handler_3-$ExpectedProjectVersion.jar"
+  val ModulePlacementIndependentArtifactBasename =
+    s"independent-module-placement-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
   val ExpectedBodyViewRuntimeOutput = "empty,combine\n"
   val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
+  val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -56,6 +59,16 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobetype/IndependentTypePlacementRejectHandler.tasty",
     "contractprobetype/IndependentTypePlacementRejectMarker.class",
     "contractprobetype/IndependentTypePlacementRejectMarker.tasty"
+  )
+  val expectedModulePlacementCompiledEntries = Set(
+    "contractprobemodule/IndependentModulePlacementHandler.class",
+    "contractprobemodule/IndependentModulePlacementHandler.tasty",
+    "contractprobemodule/IndependentModulePlacementMarker.class",
+    "contractprobemodule/IndependentModulePlacementMarker.tasty",
+    "contractprobemodule/IndependentModulePlacementRejectHandler.class",
+    "contractprobemodule/IndependentModulePlacementRejectHandler.tasty",
+    "contractprobemodule/IndependentModulePlacementRejectMarker.class",
+    "contractprobemodule/IndependentModulePlacementRejectMarker.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -156,6 +169,33 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   ) {
     def render: String =
       s"artifact={${artifact.render}} compile={${compile.render}} positive={${positive.render}} " +
+      s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
+  }
+
+  final case class ModulePlacementPositiveEvidence(
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      invocationCount: Int,
+      existingCompanionMemberPresent: Boolean,
+      generatedModulesTypechecked: Boolean
+  ) {
+    def render: String =
+      s"exit=$exitCode outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"invocationCount=$invocationCount existingCompanionMemberPresent=$existingCompanionMemberPresent " +
+        s"generatedModulesTypechecked=$generatedModulesTypechecked"
+  }
+
+  final case class ModulePlacementEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      positive: ModulePlacementPositiveEvidence,
+      runtimeExit: Int,
+      runtimeOutput: String,
+      rejection: NegativeEvidence
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} positive={${positive.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
   }
 
@@ -181,6 +221,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       positive: PositiveEvidence,
       bodyView: BodyViewEvidence,
       typePlacement: TypePlacementEvidence,
+      modulePlacement: ModulePlacementEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -193,7 +234,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       s"classification=$ReadyClassification metadataClassification=$MetadataClassification contractClassification=$ContractClassification " +
         s"api={${apiArtifact.render}} plugin={${pluginArtifact.render}} independent={${independentArtifact.render}} " +
         s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
-        s"typePlacement={${typePlacement.render}} " +
+        s"typePlacement={${typePlacement.render}} modulePlacement={${modulePlacement.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -238,12 +279,27 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-type-placement-reject/IndependentTypePlacementRejectConsumer.scala"
     )
+    val modulePlacementHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/module-placement/IndependentModulePlacementMarkerAndHandler.scala"
+    )
+    val modulePlacementConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-module-placement/IndependentModulePlacementConsumer.scala"
+    )
+    val modulePlacementRejectSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-module-placement-reject/IndependentModulePlacementRejectConsumer.scala"
+    )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
     require(typePlacementHandlerSource.isFile, s"missing type-placement handler source: $typePlacementHandlerSource")
     require(typePlacementConsumerSource.isFile, s"missing type-placement consumer source: $typePlacementConsumerSource")
     require(typePlacementRejectSource.isFile, s"missing type-placement reject source: $typePlacementRejectSource")
+    require(modulePlacementHandlerSource.isFile, s"missing module-placement handler source: $modulePlacementHandlerSource")
+    require(modulePlacementConsumerSource.isFile, s"missing module-placement consumer source: $modulePlacementConsumerSource")
+    require(modulePlacementRejectSource.isFile, s"missing module-placement reject source: $modulePlacementRejectSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
@@ -306,6 +362,25 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(java.util.Arrays.equals(Files.readAllBytes(typeFirstJar.toPath), Files.readAllBytes(typeSecondJar.toPath)), "type-placement thin artifact renders are not byte-identical")
     val typeIndependentIdentity = thinArtifactIdentity(typeFirstJar, expectedTypePlacementCompiledEntries, "contractprobetype/")
 
+    val moduleFirstOutput = new File(evidenceDirectory, "module-placement-handler-compile/first-classes")
+    val moduleSecondOutput = new File(evidenceDirectory, "module-placement-handler-compile/second-classes")
+    recreateDirectory(moduleFirstOutput.toPath)
+    recreateDirectory(moduleSecondOutput.toPath)
+    val moduleFirstExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, modulePlacementHandlerSource, moduleFirstOutput, new File(evidenceDirectory, "module-placement-handler-compile/first.log"))
+    val moduleSecondExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, modulePlacementHandlerSource, moduleSecondOutput, new File(evidenceDirectory, "module-placement-handler-compile/second.log"))
+    require(moduleFirstExit == 0 && moduleSecondExit == 0, s"independent module-placement handler compile exits were $moduleFirstExit and $moduleSecondExit")
+    val moduleFirstFiles = regularRelativeFiles(moduleFirstOutput)
+    val moduleSecondFiles = regularRelativeFiles(moduleSecondOutput)
+    require(moduleFirstFiles.toSet == expectedModulePlacementCompiledEntries, s"unexpected module-placement handler output: ${moduleFirstFiles.mkString(", ")}")
+    require(moduleSecondFiles == moduleFirstFiles, s"module-placement handler output inventory drifted: ${moduleSecondFiles.mkString(", ")}")
+    val moduleCompileEvidence = CompileEvidence(moduleFirstExit, moduleSecondExit, moduleFirstFiles, inventoriesEqual = true)
+    val moduleFirstJar = new File(evidenceDirectory, s"module-placement-handler-artifact/render-one/$ModulePlacementIndependentArtifactBasename")
+    val moduleSecondJar = new File(evidenceDirectory, s"module-placement-handler-artifact/render-two/$ModulePlacementIndependentArtifactBasename")
+    renderThinArtifact(moduleFirstOutput, moduleFirstJar, expectedModulePlacementCompiledEntries, "contractprobemodule/")
+    renderThinArtifact(moduleFirstOutput, moduleSecondJar, expectedModulePlacementCompiledEntries, "contractprobemodule/")
+    require(java.util.Arrays.equals(Files.readAllBytes(moduleFirstJar.toPath), Files.readAllBytes(moduleSecondJar.toPath)), "module-placement thin artifact renders are not byte-identical")
+    val moduleIndependentIdentity = thinArtifactIdentity(moduleFirstJar, expectedModulePlacementCompiledEntries, "contractprobemodule/")
+
     val apiIdentity = artifactIdentity(apiArtifact)
     val pluginIdentity = artifactIdentity(pluginArtifact)
     val metadata = verifyMetadataAndIdentity(apiArtifact, independentIdentity.path, compilerJars)
@@ -357,6 +432,41 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       typePlacementRuntime._2,
       typePlacementReject
     )
+    val modulePlacementPositive = compileModulePlacementPositive(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      moduleIndependentIdentity.path,
+      modulePlacementConsumerSource,
+      evidenceDirectory
+    )
+    val modulePlacementRuntime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      modulePlacementPositiveOutput(evidenceDirectory),
+      "contractprobemoduleconsumer.IndependentModulePlacementConsumer",
+      ExpectedModulePlacementRuntimeOutput,
+      new File(evidenceDirectory, "module-placement-positive/runtime.log")
+    )
+    val modulePlacementReject = compileModulePlacementReject(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      moduleIndependentIdentity.path,
+      modulePlacementRejectSource,
+      evidenceDirectory
+    )
+    val modulePlacement = ModulePlacementEvidence(
+      moduleIndependentIdentity,
+      moduleCompileEvidence,
+      modulePlacementPositive,
+      modulePlacementRuntime._1,
+      modulePlacementRuntime._2,
+      modulePlacementReject
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
@@ -369,7 +479,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         bodyViewNegativeSource,
         evidenceDirectory
       ),
-      typePlacementReject
+      typePlacementReject,
+      modulePlacementReject
     )
     val classloader = verifyClassloaderMismatch(apiArtifact, independentIdentity.path, compilerJars)
 
@@ -382,6 +493,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       positive,
       bodyView,
       typePlacement,
+      modulePlacement,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -635,6 +747,111 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val outputs = regularRelativeFiles(output)
     require(outputs.isEmpty, s"type-placement reject lane emitted partial output: ${outputs.mkString(", ")}")
     NegativeEvidence("direct-type-conflict-reject", exit, diagnostic, outputs.size)
+  }
+
+  private def compileModulePlacementPositive(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): ModulePlacementPositiveEvidence = {
+    val output = modulePlacementPositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "module-placement-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "module-placement-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "module-placement-positive/compile.log"))
+    require(exit == 0, s"independent module-placement consumer compile failed with exit $exit: $log")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobemoduleconsumer/MissingModuleAdd.class",
+      "contractprobemoduleconsumer/MissingModuleAdd$.class",
+      "contractprobemoduleconsumer/MissingModuleAdd.tasty",
+      "contractprobemoduleconsumer/ExistingModuleAdd.class",
+      "contractprobemoduleconsumer/ExistingModuleAdd$.class",
+      "contractprobemoduleconsumer/ExistingModuleAdd.tasty",
+      "contractprobemoduleconsumer/PreserveModuleConflict.class",
+      "contractprobemoduleconsumer/PreserveModuleConflict$.class",
+      "contractprobemoduleconsumer/PreserveModuleConflict.tasty",
+      "contractprobemoduleconsumer/IndependentModulePlacementConsumer.class",
+      "contractprobemoduleconsumer/IndependentModulePlacementConsumer$.class",
+      "contractprobemoduleconsumer/IndependentModulePlacementConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"module-placement consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobemoduleconsumer/")), s"module-placement output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val selectionCount = metadataLines.count(line =>
+      line.contains("contractprobemodule.IndependentModulePlacementMarker") &&
+        line.contains("Found(contractprobemodule.IndependentModulePlacementHandler)")
+    )
+    require(selectionCount == 1, s"expected one cached module-placement metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobemodule.IndependentModulePlacementHandler"))
+    require(invocationLines.size == 3, s"expected three module-placement handler invocations, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val javap = runProcess(
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobemoduleconsumer.ExistingModuleAdd$"),
+      repositoryRoot,
+      new File(evidenceDirectory, "module-placement-positive/javap.log")
+    )
+    require(javap._1 == 0 && javap._2.contains("int existingValue()"), s"existing companion member missing after module placement: ${javap._2}")
+    ModulePlacementPositiveEvidence(
+      exit,
+      outputs,
+      selectionCount,
+      invocationLines.size,
+      existingCompanionMemberPresent = true,
+      generatedModulesTypechecked = true
+    )
+  }
+
+  private def compileModulePlacementReject(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): NegativeEvidence = {
+    val output = new File(evidenceDirectory, "module-placement-reject/classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(evidenceDirectory, "module-placement-reject/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "module-placement-reject/compile.log"))
+    val diagnostic = "generated companion module `syntax` conflicts with existing direct companion term member `syntax` for `RejectModuleConflict`"
+    require(exit != 0, "module-placement reject lane unexpectedly compiled")
+    require(log.contains(diagnostic), s"module-placement reject lane lacked controlled diagnostic: $log")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"module-placement reject lane exposed an uncontrolled failure: $log")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobemodule.IndependentModulePlacementRejectHandler"))
+    require(invocationLines.size == 1, s"expected one rejecting module-placement invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"module-placement reject lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence("direct-module-term-conflict-reject", exit, diagnostic, outputs.size)
   }
 
   private def compileUnsupportedBodyView(
@@ -954,6 +1171,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   private def positiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "positive/classes")
   private def bodyViewPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "body-view-positive/classes")
   private def typePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "type-placement-positive/classes")
+  private def modulePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "module-placement-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)
