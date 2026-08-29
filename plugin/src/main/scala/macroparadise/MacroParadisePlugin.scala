@@ -718,7 +718,8 @@ private object ParadiseTreeRewrite:
   private final case class MatchingAnnotation(annotation: Tree, expander: AnnotationExpander)
 
   private enum TargetAdmissionProfile:
-    case CommonClassOnly, RestrictedGenericTraitApply, TwoUpperBoundedGenericTrait
+    case CommonClassOnly, RestrictedGenericTraitApply, TwoUpperBoundedGenericTrait,
+      PlainZeroParameterTrait
 
   private enum CompositionPolicy:
     case StandaloneOnly, SourceOrdered
@@ -1044,6 +1045,8 @@ private object ParadiseTreeRewrite:
           TargetAdmissionProfile.RestrictedGenericTraitApply
         case ExternalExpansionTargetProfile.TwoUpperBoundedGenericTrait =>
           TargetAdmissionProfile.TwoUpperBoundedGenericTrait
+        case ExternalExpansionTargetProfile.PlainZeroParameterTrait =>
+          TargetAdmissionProfile.PlainZeroParameterTrait
     override val compositionPolicy: CompositionPolicy =
       descriptor.compositionPolicy match
         case ExternalExpansionCompositionPolicy.StandaloneOnly =>
@@ -1779,6 +1782,9 @@ private object ParadiseTreeRewrite:
         case expander :: Nil
             if expander.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait =>
           "the two-upper-bounded-parameter top-level trait envelope"
+        case expander :: Nil
+            if expander.targetAdmissionProfile == TargetAdmissionProfile.PlainZeroParameterTrait =>
+          "the plain zero-parameter top-level trait envelope"
         case _ => "top-level classes"
     reportDiagnostic(
       ExpansionDiagnostic(
@@ -1833,9 +1839,13 @@ private object ParadiseTreeRewrite:
             )
           then AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(view, labels)
           else if matching.nonEmpty && matching.forall(
-              _.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait
-            )
+            _.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait
+          )
           then AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(view, labels)
+          else if matching.nonEmpty && matching.forall(
+            _.targetAdmissionProfile == TargetAdmissionProfile.PlainZeroParameterTrait
+          )
+          then AnnotatedClassAdmission.plainZeroParameterTraitRejection(view, labels)
           else AnnotatedClassAdmission.commonRejection(view, labels)
         profileRejection
           .orElse:

@@ -95,6 +95,11 @@ CLASS|paradise3/api/helpers/CompanionTypeConflictPolicy$.class|HANDLER_CONTRACT|
 CLASS|paradise3/api/helpers/CompanionTypeConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.CompanionTypeConflictPolicy implements scala.reflect.Enum
 CLASS|paradise3/api/helpers/ExpansionHelpers$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$ implements java.io.Serializable
 CLASS|paradise3/api/helpers/ExpansionHelpers.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers
+CLASS|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.SelfAliasOrigin$$anon$1 extends paradise3.api.helpers.SelfAliasOrigin implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/helpers/SelfAliasOrigin$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.SelfAliasOrigin$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/helpers/SelfAliasOrigin.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.SelfAliasOrigin implements scala.reflect.Enum
+CLASS|paradise3/api/helpers/TraitSelfPreparation$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.TraitSelfPreparation$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/helpers/TraitSelfPreparation.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.TraitSelfPreparation implements scala.Product,java.io.Serializable
 CLASS|paradise3/companionInvocationLinkageError.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationLinkageError extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/companionInvocationNotApplicable.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationNotApplicable extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/companionInvocationNullOutcome.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.companionInvocationNullOutcome extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
@@ -1232,6 +1237,7 @@ MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|productPrefix|0
 MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|CommonClassOnly|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionTargetProfile$;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|PlainZeroParameterTrait|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|RestrictedGenericTraitApply|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|TwoUpperBoundedGenericTrait|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionTargetProfile;
@@ -1375,6 +1381,7 @@ MEMBER|paradise3/api/helpers/CompanionTypeConflictPolicy.class|METHOD|values|0|p
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/ExpansionHelpers$;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$DefDef;Lparadise3/api/helpers/CompanionMethodConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addModuleToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/untpd$ModuleDef;Lparadise3/api/helpers/CompanionModuleConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addPreparedSelfTypeToTrait|0|public|-|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodSiblingClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToClass|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
@@ -1390,6 +1397,7 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|withAnnotatedClassVi
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$DefDef;Lparadise3/api/helpers/CompanionMethodConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addModuleToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/untpd$ModuleDef;Lparadise3/api/helpers/CompanionModuleConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addPreparedSelfTypeToTrait|0|public|static|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodSiblingClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToClass|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
@@ -1402,6 +1410,65 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured$default$2|
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured$default$3|0|public|static|()Lscala/collection/immutable/List;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|structured|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|withAnnotatedClassView|0|public|static|(Lparadise3/api/ExpansionInput;Lscala/Function1;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$$anon$1.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|FIELD|ExistingNamed|0|public|static,final|Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|FIELD|Generated|0|public|static,final|Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/SelfAliasOrigin$;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/helpers/SelfAliasOrigin;)I
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|METHOD|values|0|public|-|()[Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/SelfAliasOrigin.class|METHOD|values|0|public|static|()[Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/TraitSelfPreparation$;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lparadise3/api/helpers/SelfAliasOrigin;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|METHOD|unapply|0|public|-|(Lparadise3/api/helpers/TraitSelfPreparation;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lparadise3/api/helpers/SelfAliasOrigin;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|_2|0|public|-|()Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|_3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lparadise3/api/helpers/SelfAliasOrigin;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|copy$default$3|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lparadise3/api/helpers/SelfAliasOrigin;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/helpers/TraitSelfPreparation;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|selfAliasName|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|selfAliasOrigin|0|public|-|()Lparadise3/api/helpers/SelfAliasOrigin;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/helpers/TraitSelfPreparation.class|METHOD|unapply|0|public|static|(Lparadise3/api/helpers/TraitSelfPreparation;)Lparadise3/api/helpers/TraitSelfPreparation;
 METADATA|paradise3/api/expander.class|retention=RUNTIME|targets=ANNOTATION_TYPE,TYPE|member=value|descriptor=()Ljava/lang/String;
 POLICY|forbidden-package-identity|plugin-api-thin-ownership-v1
 POLICY|forbidden-prefixes|demo/,dotty/,macroparadise/,quasiquotes/,scala/,scala3/,tasty/
@@ -1423,6 +1490,8 @@ RESOURCE|paradise3/api/helpers/CompanionMethodConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionModuleConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionTypeConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/ExpansionHelpers.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/helpers/SelfAliasOrigin.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/helpers/TraitSelfPreparation.tasty|SCALA_TASTY
 RESOURCE|paradise3/companionInvocationLinkageError.tasty|SCALA_TASTY
 RESOURCE|paradise3/companionInvocationNotApplicable.tasty|SCALA_TASTY
 RESOURCE|paradise3/companionInvocationNullOutcome.tasty|SCALA_TASTY
@@ -1465,4 +1534,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=c79fdc5a97aadcc30e48c2e2acd829a4f1c98aad979eec64f752975c73a5e5a3
+normalized-sha256=d514d7aa772a98e8442bc42a11eb760f6ae978f55df54d46194aacf0daa4938d

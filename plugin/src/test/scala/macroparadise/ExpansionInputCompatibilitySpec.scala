@@ -65,7 +65,9 @@ class ExpansionInputCompatibilitySpec extends munit.FunSuite:
     assertEquals(descriptorSource.split("instance.targetProfile", -1).length - 1, 1)
     assert(source.contains("ExternalExpansionTargetProfile.RestrictedGenericTraitApply"))
     assert(source.contains("ExternalExpansionTargetProfile.TwoUpperBoundedGenericTrait"))
+    assert(source.contains("ExternalExpansionTargetProfile.PlainZeroParameterTrait"))
     assert(source.contains("AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection"))
+    assert(source.contains("AnnotatedClassAdmission.plainZeroParameterTraitRejection"))
     assert(!source.contains("annotationName == \"externalRestrictedTraitApply\""))
 
     val fixture = readHandler("ExternalRestrictedTraitApplyExpander.scala")

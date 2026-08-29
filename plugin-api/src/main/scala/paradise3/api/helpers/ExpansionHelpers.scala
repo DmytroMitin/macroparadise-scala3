@@ -180,6 +180,98 @@ object ExpansionHelpers:
       CompanionMethodConflictPolicy.PreserveExisting
     )
 
+  /** Prepare and atomically install one caller-lowered direct `Self` member on
+    * an ordinary zero-parameter trait.
+    *
+    * Target, raw self-shape, and direct `Self` conflict checks complete before
+    * `lowerGeneratedType` is invoked. The callback receives only the exact
+    * selected alias name, its origin, and a source position; it receives no raw
+    * template/self tree and no retained compiler context. On success this helper
+    * prepends the exact returned `TypeDef`, preserves every original body member
+    * identity/order, installs the selected alias when needed, and removes only
+    * `input.currentAnnotation`.
+    *
+    * This is a bounded compiler-version-sensitive lifecycle helper. It does not
+    * construct or interpret generated bounds, typecheck, resolve symbols, edit a
+    * companion, repair owners, or expose arbitrary primary/template mutation.
+    */
+  def addPreparedSelfTypeToTrait(
+      input: ExpansionInput
+  )(
+      lowerGeneratedType: TraitSelfPreparation => untpd.TypeDef
+  )(using Context): ExpansionOutcome =
+    if input == null || input.annotatedClass == null then
+      throw new IllegalArgumentException(
+        "addPreparedSelfTypeToTrait requires a non-null ExpansionInput and annotated class"
+      )
+    else
+      plainZeroParameterTraitDiagnostic(input) match
+        case Some(diagnostic) =>
+          rejected(diagnostic, input.annotatedClass)
+        case None =>
+          input.annotatedClass.rhs match
+            case template: Template =>
+              directSelfConflict(template) match
+                case Some(conflict) =>
+                  rejected(
+                    ExpansionDiagnostic(
+                      s"trait `${input.className}` already contains direct type member `Self`; bounded self preparation requires deterministic rejection",
+                      usableTreePosition(conflict, mostSpecificCurrentAnnotationPosition(input))
+                    ),
+                    input.annotatedClass
+                  )
+                case None =>
+                  prepareTraitSelf(input, template) match
+                    case Left(diagnostic) =>
+                      rejected(diagnostic, input.annotatedClass)
+                    case Right((preparation, selectedSelf)) =>
+                      if lowerGeneratedType == null then
+                        throw new IllegalArgumentException(
+                          "addPreparedSelfTypeToTrait requires a non-null lowering callback after successful preflight"
+                        )
+                      val generatedType = lowerGeneratedType(preparation)
+                      if generatedType == null then
+                        rejected(
+                          ExpansionDiagnostic(
+                            s"trait `${input.className}` self preparation returned a null generated `Self` TypeDef",
+                            preparation.pos
+                          ),
+                          input.annotatedClass
+                        )
+                      else if generatedType.name != typeName("Self") then
+                        rejected(
+                          ExpansionDiagnostic(
+                            s"trait `${input.className}` self preparation requires generated type name `Self`; found `${generatedType.name}`",
+                            usableTreePosition(generatedType, preparation.pos)
+                          ),
+                          input.annotatedClass
+                        )
+                      else
+                        val originalBody = template.body(using summon[Context])
+                        val rewrittenTemplate =
+                          untpd.cpy.Template(template)(
+                            template.constr,
+                            template.parentsOrDerived(using summon[Context]),
+                            template.derived,
+                            selectedSelf,
+                            generatedType :: originalBody
+                          )
+                        val strippedPrimary = stripCurrentAnnotation(input)
+                        structured(
+                          untpd.cpy.TypeDef(strippedPrimary)(
+                            strippedPrimary.name,
+                            rewrittenTemplate
+                          )
+                        )
+            case _ =>
+              rejected(
+                ExpansionDiagnostic(
+                  s"trait `${input.className}` has an unsupported non-template primary shape for bounded self preparation",
+                  mostSpecificCurrentAnnotationPosition(input)
+                ),
+                input.annotatedClass
+              )
+
   /** Place an already-created raw method in the annotated class's companion.
     *
     * The caller owns construction and lowering of `generatedMethod`; this
@@ -415,6 +507,103 @@ object ExpansionHelpers:
     template.body(using summon[Context]).exists:
       case defDef: DefDef => defDef.name == termName(methodName)
       case _ => false
+
+  private def plainZeroParameterTraitDiagnostic(
+      input: ExpansionInput
+  )(using Context): Option[ExpansionDiagnostic] =
+    input.annotatedClassView match
+      case Left(diagnostic) => Some(diagnostic)
+      case Right(view) =>
+        val requirement =
+          "bounded self preparation requires one ordinary non-case, non-sealed trait with zero type parameters and no constructor/value parameters"
+        val rejection =
+          if view.definitionKind != AnnotatedClassView.DefinitionKind.Trait then
+            Some((s"$requirement; found `${view.definitionKind.toString.toLowerCase} ${view.className}`", view.classPos))
+          else if view.modifiers.isCase then
+            Some((s"$requirement; case trait `${view.className}` is unsupported", view.classPos))
+          else if view.modifiers.isSealed then
+            Some((s"$requirement; sealed trait `${view.className}` is unsupported", view.classPos))
+          else if view.typeParameters.nonEmpty then
+            Some((s"$requirement; found ${view.typeParameters.size} type parameters", view.typeParameters.head.pos))
+          else
+            view.constructorClauses.find(_.parameters.nonEmpty).map: clause =>
+              (s"$requirement; trait constructor/value parameters are unsupported", clause.pos)
+        rejection.map:
+          case (message, pos) => ExpansionDiagnostic(message, pos)
+
+  private def directSelfConflict(template: Template)(using Context): Option[TypeDef] =
+    template.body(using summon[Context])
+      .find: tree =>
+        tree.isInstanceOf[TypeDef] && tree.asInstanceOf[TypeDef].name == typeName("Self")
+      .map(_.asInstanceOf[TypeDef])
+
+  private def prepareTraitSelf(
+      input: ExpansionInput,
+      template: Template
+  )(using Context): Either[ExpansionDiagnostic, (TraitSelfPreparation, ValDef)] =
+    val existingSelf = template.self
+    if existingSelf.eq(EmptyValDef) then
+      val alias = freshSelfAlias(template)
+      val replacementType = TypeTree()
+      val replacement =
+        untpd.ValDef(termName(alias), replacementType, existingSelf.rhs)
+          .withMods(Trees.mods(existingSelf))
+          .withSpan(input.annotatedClass.span)
+          .asInstanceOf[ValDef]
+      Right(
+        TraitSelfPreparation(
+          alias,
+          SelfAliasOrigin.Generated,
+          mostSpecificCurrentAnnotationPosition(input)
+        ) -> replacement
+      )
+    else if usableNamedSelf(existingSelf) then
+      Right(
+        TraitSelfPreparation(
+          existingSelf.name.toString,
+          SelfAliasOrigin.ExistingNamed,
+          usableTreePosition(existingSelf, mostSpecificCurrentAnnotationPosition(input))
+        ) -> existingSelf
+      )
+    else
+      Left(
+        ExpansionDiagnostic(
+          s"trait `${input.className}` has an unsupported or malformed raw self declaration for bounded self preparation",
+          usableTreePosition(existingSelf, mostSpecificCurrentAnnotationPosition(input))
+        )
+      )
+
+  private def usableNamedSelf(self: ValDef)(using Context): Boolean =
+    val decodedName = self.name.toString
+    decodedName.nonEmpty &&
+      decodedName != "_" &&
+      self.tpt != null &&
+      !self.tpt.eq(EmptyTree) &&
+      self.rhs != null &&
+      self.rhs.eq(EmptyTree)
+
+  private def freshSelfAlias(template: Template)(using Context): String =
+    val occupied = template.body(using summon[Context]).iterator.flatMap: tree =>
+      tree match
+        case member: ValDef => Some(member.name.toString)
+        case member: DefDef => Some(member.name.toString)
+        case member: ModuleDef => Some(member.name.toString)
+        case _ => None
+    .toSet
+    Iterator
+      .from(0)
+      .map(index => if index == 0 then "self" else s"self$$$index")
+      .find(candidate => !occupied.contains(candidate))
+      .get
+
+  private def usableTreePosition(
+      tree: untpd.Tree,
+      fallback: => dotty.tools.dotc.util.SrcPos
+  )(using Context): dotty.tools.dotc.util.SrcPos =
+    Option(tree)
+      .map(_.sourcePos)
+      .filter(_.span.exists)
+      .getOrElse(fallback)
 
   private def mostSpecificCurrentAnnotationPosition(
       input: ExpansionInput

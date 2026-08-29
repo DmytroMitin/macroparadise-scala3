@@ -211,6 +211,48 @@ The contract is exact-compiler experimental API. It does not promise typed
 trees, stable owners, semantic names, a general compiler-independent AST,
 cross-version binary compatibility, or general definition builders.
 
+### Preparing one trait self alias and primary `Self` member
+
+Unreleased `0.1.1-SNAPSHOT` development sources include the first-slice
+`ExpansionTargetProfile.PlainZeroParameterTrait` profile and the bounded
+`ExpansionHelpers.addPreparedSelfTypeToTrait` helper. The profile admits only a
+plain, non-case, non-sealed, zero-type-parameter trait with no constructor value
+parameters. The helper selects or preserves a usable self alias before caller
+lowering and passes only its normalized name, origin, and source position to the
+callback:
+
+```scala
+override def targetProfile: ExpansionTargetProfile =
+  ExpansionTargetProfile.PlainZeroParameterTrait
+
+override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+  ExpansionHelpers.addPreparedSelfTypeToTrait(input): preparation =>
+    lowerSelfType(preparation.selfAliasName)
+```
+
+An existing named self is retained as the exact original tree. An anonymous
+self receives the first free direct term name in the deterministic sequence
+`self`, `self$1`, and so on; direct vals, defs, and modules occupy that namespace,
+while same-spelling type members do not. A direct raw type member named `Self`
+rejects before the callback runs.
+
+The callback owns construction and lowering of the complete generated
+`untpd.TypeDef` named exactly `Self`. On success, Macro-Paradise installs the
+prepared self, prepends the exact supplied type tree to the original body,
+preserves every original body tree by identity and order, and removes only the
+current handled annotation. Null or wrongly named output rejects atomically
+with the original primary fallback; callback exceptions propagate without a
+partial edit.
+
+This is not an arbitrary primary or template editor. Macro-Paradise does not
+expose raw self trees through the callback, interpret the generated bounds,
+perform semantic self-type analysis, typing or symbol lookup, or implement an
+annotation library's member semantics. The immutable released `0.1.0` artifact
+does not contain this profile or helper. They remain source-built, unreleased,
+exact-full-cross `0.1.1-SNAPSHOT` API; use the matching Scala line and retain
+the complete manual wiring path described below when the source-built sbt
+integration is unsuitable.
+
 ### Placing an already-created companion method
 
 Unreleased `0.1.1-SNAPSHOT` development sources include the bounded

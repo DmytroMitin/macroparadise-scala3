@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 91
+  val CaseCount = 116
 
   def run(repositoryRoot: File): Unit = {
     val independentRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/positive")
@@ -17,6 +17,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val modulePlacementHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/module-placement")
     val modulePlacementConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-module-placement")
     val modulePlacementRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-module-placement-reject")
+    val selfTraitHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/self-trait")
+    val selfTraitConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-self-trait")
+    val selfTraitRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-self-trait-reject")
     val independentSource = new File(independentRoot, "IndependentMarkerAndHandler.scala")
     val consumerSource = new File(consumerRoot, "IndependentPackagedConsumer.scala")
     val bodyViewHandlerSource = new File(bodyViewHandlerRoot, "IndependentBodyViewMarkerAndHandler.scala")
@@ -28,6 +31,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val modulePlacementHandlerSource = new File(modulePlacementHandlerRoot, "IndependentModulePlacementMarkerAndHandler.scala")
     val modulePlacementConsumerSource = new File(modulePlacementConsumerRoot, "IndependentModulePlacementConsumer.scala")
     val modulePlacementRejectSource = new File(modulePlacementRejectRoot, "IndependentModulePlacementRejectConsumer.scala")
+    val selfTraitHandlerSource = new File(selfTraitHandlerRoot, "IndependentSelfTraitMarkerAndHandler.scala")
+    val selfTraitConsumerSource = new File(selfTraitConsumerRoot, "IndependentSelfTraitConsumer.scala")
+    val selfTraitRejectSource = new File(selfTraitRejectRoot, "IndependentSelfTraitRejectConsumer.scala")
     val independent = read(independentSource)
     val consumer = read(consumerSource)
     val bodyViewHandler = read(bodyViewHandlerSource)
@@ -39,6 +45,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val modulePlacementHandler = read(modulePlacementHandlerSource)
     val modulePlacementConsumer = read(modulePlacementConsumerSource)
     val modulePlacementReject = read(modulePlacementRejectSource)
+    val selfTraitHandler = read(selfTraitHandlerSource)
+    val selfTraitConsumer = read(selfTraitConsumerSource)
+    val selfTraitReject = read(selfTraitRejectSource)
     var completed = 0
 
     def check(condition: Boolean, message: String): Unit = {
@@ -57,6 +66,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(scalaSources(modulePlacementHandlerRoot) == Vector(modulePlacementHandlerSource.getCanonicalFile), "module-placement handler source inventory changed")
     check(scalaSources(modulePlacementConsumerRoot) == Vector(modulePlacementConsumerSource.getCanonicalFile), "module-placement consumer source inventory changed")
     check(scalaSources(modulePlacementRejectRoot) == Vector(modulePlacementRejectSource.getCanonicalFile), "module-placement reject source inventory changed")
+    check(scalaSources(selfTraitHandlerRoot) == Vector(selfTraitHandlerSource.getCanonicalFile), "self-trait handler source inventory changed")
+    check(scalaSources(selfTraitConsumerRoot) == Vector(selfTraitConsumerSource.getCanonicalFile), "self-trait consumer source inventory changed")
+    check(scalaSources(selfTraitRejectRoot) == Vector(selfTraitRejectSource.getCanonicalFile), "self-trait reject source inventory changed")
     check(independent.contains("package contractprobe"), "independent package changed")
     check(independent.contains("final class IndependentMarker"), "independent marker class changed")
     check(independent.contains("final class IndependentHandler extends ParadiseAnnotationExpander"), "independent handler parent changed")
@@ -133,6 +145,27 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(!modulePlacementConsumer.contains("paradise3."), "module-placement consumer imports repository API")
     check(modulePlacementReject.contains("@IndependentModulePlacementRejectMarker"), "module-placement reject consumer lacks reject annotation")
     check(modulePlacementReject.contains("def syntax: String"), "module-placement reject consumer lacks a direct term conflict")
+    check(selfTraitHandler.contains("package contractprobeself"), "self-trait handler package changed")
+    check(selfTraitHandler.contains("final class IndependentSelfTraitMarker"), "self-trait marker class changed")
+    check(selfTraitHandler.contains("ExpansionTargetProfile.PlainZeroParameterTrait"), "self-trait handler does not request the plain zero-parameter profile")
+    check(selfTraitHandler.contains("ExpansionHelpers.addPreparedSelfTypeToTrait(input)"), "self-trait helper is not used")
+    check(selfTraitHandler.contains("untpd.SingletonTypeTree("), "self-trait generated member does not depend on the prepared alias")
+    check(selfTraitHandler.contains("direct Self preflight invoked lowering callback"), "self-trait reject control cannot detect callback-before-preflight ordering")
+    check(!selfTraitHandler.contains("macroparadise."), "self-trait source imports plugin implementation")
+    check(!selfTraitHandler.contains("quasiquotes"), "self-trait source depends on Quasiquotes")
+    check(selfTraitConsumer.contains("trait AnonymousNat"), "self-trait consumer lacks an anonymous-self positive")
+    check(selfTraitConsumer.contains("trait ExistingNamedNat"), "self-trait consumer lacks an existing-named-self positive")
+    check(selfTraitConsumer.contains("trait CollisionNat"), "self-trait consumer lacks a collision positive")
+    check(selfTraitConsumer.contains("type Existing = String"), "self-trait consumer does not preserve an original body member")
+    check(selfTraitConsumer.contains("val self: String"), "self-trait consumer lacks the first direct term collision")
+    check(selfTraitConsumer.contains("def self$1: String"), "self-trait consumer lacks stable suffix sequencing")
+    check(selfTraitConsumer.contains(".Self ="), "self-trait consumer does not typecheck the generated member")
+    check(!selfTraitConsumer.contains("paradise3."), "self-trait consumer imports repository API")
+    check(selfTraitReject.contains("@IndependentSelfTraitMarker"), "self-trait reject consumer lacks the ordinary marker")
+    check(selfTraitReject.contains("type Self = String"), "self-trait reject consumer lacks a direct Self conflict")
+    check(selfTraitReject.contains("class RejectSelfClass"), "self-trait reject consumer lacks a class structural negative")
+    check(selfTraitReject.contains("object RejectSelfObject"), "self-trait reject consumer lacks an object structural negative")
+    check(selfTraitReject.contains("enum RejectSelfEnum"), "self-trait reject consumer lacks an enum structural negative")
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries == Set(
         "contractprobe/IndependentHandler.class",
@@ -153,6 +186,10 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedModulePlacementCompiledEntries.size == 8,
       "module-placement compiled-entry allowlist changed"
+    )
+    check(
+      IndependentPrecompiledHandlerPackagedConsumer.expectedSelfTraitCompiledEntries.size == 4,
+      "self-trait compiled-entry allowlist changed"
     )
     require(completed == CaseCount, s"focused model spec ran $completed/$CaseCount cases")
   }

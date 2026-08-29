@@ -309,6 +309,38 @@ class AnnotatedClassAdmissionSpec extends munit.FunSuite:
       )
   }
 
+  test("plain zero-parameter trait profile is body-neutral and admits only its structural envelope") {
+    val canonical = shape(
+      """trait Nat:
+        |  type Existing = String
+        |""".stripMargin
+    )
+    assertEquals(
+      AnnotatedClassAdmission.plainZeroParameterTraitRejection(
+        canonical,
+        "@externalPlainZeroParameterTrait"
+      ),
+      None
+    )
+
+    val ordinary = shape("trait Ordinary")
+    val caseLike = ordinary.copy(modifiers = ordinary.modifiers.copy(isCase = true))
+    val rejected = List(
+      shape("class NotATrait"),
+      shape("sealed trait SealedNat"),
+      shape("trait GenericNat[A]"),
+      shape("trait ConstructorNat(val value: Int)"),
+      caseLike
+    )
+    rejected.foreach: candidate =>
+      assert(
+        AnnotatedClassAdmission
+          .plainZeroParameterTraitRejection(candidate, "@externalPlainZeroParameterTrait")
+          .nonEmpty,
+        s"expected plain zero-parameter trait rejection for ${candidate.className}: $candidate"
+      )
+  }
+
   test("admission diagnostics select the most precise defensible raw positions") {
     val wrongName = shape("class WrongName(other: String)")
     val wrongNameParameter = onlyParameter(wrongName)

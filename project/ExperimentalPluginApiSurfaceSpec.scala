@@ -55,11 +55,12 @@ object ExperimentalPluginApiSurfaceSpec {
         )
       )
     }
-    check("3.3.8 normalizes both companion conflict policy enum encodings") {
+    check("3.3.8 normalizes helper enum encodings") {
       val enumRecords = Vector(
         "CompanionModuleConflictPolicy",
         "CompanionMethodConflictPolicy",
-        "CompanionTypeConflictPolicy"
+        "CompanionTypeConflictPolicy",
+        "SelfAliasOrigin"
       ).map { name =>
         s"CLASS|paradise3/api/helpers/$name.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.$name implements scala.reflect.Enum"
       }

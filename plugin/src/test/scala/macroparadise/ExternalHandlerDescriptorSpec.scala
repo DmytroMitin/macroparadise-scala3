@@ -72,6 +72,20 @@ class ExternalHandlerDescriptorSpec extends munit.FunSuite:
     assertEquals(handler.companionReads, 1)
   }
 
+  test("plain zero-parameter trait profile is captured exactly once") {
+    val handler = InstrumentedHandler(
+      profileValues = List(ExpansionTargetProfile.PlainZeroParameterTrait)
+    )
+
+    val loaded = captured(handler)
+
+    assertEquals(
+      loaded.descriptor.targetProfile,
+      ExpansionTargetProfile.PlainZeroParameterTrait
+    )
+    assertEquals(handler.profileReads, 1)
+  }
+
   test("alternating accessors cannot change an immutable descriptor") {
     val handler = InstrumentedHandler(
       annotationValues = List("firstMarker", "secondMarker"),

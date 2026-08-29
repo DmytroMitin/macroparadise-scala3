@@ -26,12 +26,16 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-type-placement-marker-handler_3-$ExpectedProjectVersion.jar"
   val ModulePlacementIndependentArtifactBasename =
     s"independent-module-placement-marker-handler_3-$ExpectedProjectVersion.jar"
+  val SelfTraitIndependentArtifactBasename =
+    s"independent-self-trait-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
   val ExpectedBodyViewRuntimeOutput = "empty,combine\n"
   val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
   val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
+  val ExpectedSelfTraitRuntimeOutput =
+    "anonymous|original\nexisting|original\ncollision|original\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -69,6 +73,12 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobemodule/IndependentModulePlacementRejectHandler.tasty",
     "contractprobemodule/IndependentModulePlacementRejectMarker.class",
     "contractprobemodule/IndependentModulePlacementRejectMarker.tasty"
+  )
+  val expectedSelfTraitCompiledEntries = Set(
+    "contractprobeself/IndependentSelfTraitHandler.class",
+    "contractprobeself/IndependentSelfTraitHandler.tasty",
+    "contractprobeself/IndependentSelfTraitMarker.class",
+    "contractprobeself/IndependentSelfTraitMarker.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -199,6 +209,24 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
   }
 
+  final case class SelfTraitEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      invocationCount: Int,
+      runtimeExit: Int,
+      runtimeOutput: String,
+      rejection: NegativeEvidence
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} exit=$exitCode " +
+        s"outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"invocationCount=$invocationCount runtimeExit=$runtimeExit " +
+        s"runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
+  }
+
   final case class NegativeEvidence(id: String, exitCode: Int, diagnostic: String, outputFiles: Int) {
     def render: String = s"$id(exit=$exitCode diagnostic=$diagnostic outputFiles=$outputFiles)"
   }
@@ -222,6 +250,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       bodyView: BodyViewEvidence,
       typePlacement: TypePlacementEvidence,
       modulePlacement: ModulePlacementEvidence,
+      selfTrait: SelfTraitEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -234,7 +263,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       s"classification=$ReadyClassification metadataClassification=$MetadataClassification contractClassification=$ContractClassification " +
         s"api={${apiArtifact.render}} plugin={${pluginArtifact.render}} independent={${independentArtifact.render}} " +
         s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
-        s"typePlacement={${typePlacement.render}} modulePlacement={${modulePlacement.render}} " +
+        s"typePlacement={${typePlacement.render}} modulePlacement={${modulePlacement.render}} selfTrait={${selfTrait.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -291,6 +320,18 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-module-placement-reject/IndependentModulePlacementRejectConsumer.scala"
     )
+    val selfTraitHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/self-trait/IndependentSelfTraitMarkerAndHandler.scala"
+    )
+    val selfTraitConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-self-trait/IndependentSelfTraitConsumer.scala"
+    )
+    val selfTraitRejectSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-self-trait-reject/IndependentSelfTraitRejectConsumer.scala"
+    )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
@@ -300,6 +341,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(modulePlacementHandlerSource.isFile, s"missing module-placement handler source: $modulePlacementHandlerSource")
     require(modulePlacementConsumerSource.isFile, s"missing module-placement consumer source: $modulePlacementConsumerSource")
     require(modulePlacementRejectSource.isFile, s"missing module-placement reject source: $modulePlacementRejectSource")
+    require(selfTraitHandlerSource.isFile, s"missing self-trait handler source: $selfTraitHandlerSource")
+    require(selfTraitConsumerSource.isFile, s"missing self-trait consumer source: $selfTraitConsumerSource")
+    require(selfTraitRejectSource.isFile, s"missing self-trait reject source: $selfTraitRejectSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
@@ -380,6 +424,25 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     renderThinArtifact(moduleFirstOutput, moduleSecondJar, expectedModulePlacementCompiledEntries, "contractprobemodule/")
     require(java.util.Arrays.equals(Files.readAllBytes(moduleFirstJar.toPath), Files.readAllBytes(moduleSecondJar.toPath)), "module-placement thin artifact renders are not byte-identical")
     val moduleIndependentIdentity = thinArtifactIdentity(moduleFirstJar, expectedModulePlacementCompiledEntries, "contractprobemodule/")
+
+    val selfFirstOutput = new File(evidenceDirectory, "self-trait-handler-compile/first-classes")
+    val selfSecondOutput = new File(evidenceDirectory, "self-trait-handler-compile/second-classes")
+    recreateDirectory(selfFirstOutput.toPath)
+    recreateDirectory(selfSecondOutput.toPath)
+    val selfFirstExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, selfTraitHandlerSource, selfFirstOutput, new File(evidenceDirectory, "self-trait-handler-compile/first.log"))
+    val selfSecondExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, selfTraitHandlerSource, selfSecondOutput, new File(evidenceDirectory, "self-trait-handler-compile/second.log"))
+    require(selfFirstExit == 0 && selfSecondExit == 0, s"independent self-trait handler compile exits were $selfFirstExit and $selfSecondExit")
+    val selfFirstFiles = regularRelativeFiles(selfFirstOutput)
+    val selfSecondFiles = regularRelativeFiles(selfSecondOutput)
+    require(selfFirstFiles.toSet == expectedSelfTraitCompiledEntries, s"unexpected self-trait handler output: ${selfFirstFiles.mkString(", ")}")
+    require(selfSecondFiles == selfFirstFiles, s"self-trait handler output inventory drifted: ${selfSecondFiles.mkString(", ")}")
+    val selfCompileEvidence = CompileEvidence(selfFirstExit, selfSecondExit, selfFirstFiles, inventoriesEqual = true)
+    val selfFirstJar = new File(evidenceDirectory, s"self-trait-handler-artifact/render-one/$SelfTraitIndependentArtifactBasename")
+    val selfSecondJar = new File(evidenceDirectory, s"self-trait-handler-artifact/render-two/$SelfTraitIndependentArtifactBasename")
+    renderThinArtifact(selfFirstOutput, selfFirstJar, expectedSelfTraitCompiledEntries, "contractprobeself/")
+    renderThinArtifact(selfFirstOutput, selfSecondJar, expectedSelfTraitCompiledEntries, "contractprobeself/")
+    require(java.util.Arrays.equals(Files.readAllBytes(selfFirstJar.toPath), Files.readAllBytes(selfSecondJar.toPath)), "self-trait thin artifact renders are not byte-identical")
+    val selfIndependentIdentity = thinArtifactIdentity(selfFirstJar, expectedSelfTraitCompiledEntries, "contractprobeself/")
 
     val apiIdentity = artifactIdentity(apiArtifact)
     val pluginIdentity = artifactIdentity(pluginArtifact)
@@ -467,6 +530,44 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       modulePlacementRuntime._2,
       modulePlacementReject
     )
+    val selfTraitPositive = compileSelfTraitPositive(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      selfIndependentIdentity.path,
+      selfTraitConsumerSource,
+      evidenceDirectory
+    )
+    val selfTraitRuntime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      selfTraitPositiveOutput(evidenceDirectory),
+      "contractprobeselfconsumer.IndependentSelfTraitConsumer",
+      ExpectedSelfTraitRuntimeOutput,
+      new File(evidenceDirectory, "self-trait-positive/runtime.log")
+    )
+    val selfTraitReject = compileSelfTraitReject(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      selfIndependentIdentity.path,
+      selfTraitRejectSource,
+      evidenceDirectory
+    )
+    val selfTrait = SelfTraitEvidence(
+      selfIndependentIdentity,
+      selfCompileEvidence,
+      selfTraitPositive._1,
+      selfTraitPositive._2,
+      selfTraitPositive._3,
+      selfTraitPositive._4,
+      selfTraitRuntime._1,
+      selfTraitRuntime._2,
+      selfTraitReject
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
@@ -480,7 +581,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         evidenceDirectory
       ),
       typePlacementReject,
-      modulePlacementReject
+      modulePlacementReject,
+      selfTraitReject
     )
     val classloader = verifyClassloaderMismatch(apiArtifact, independentIdentity.path, compilerJars)
 
@@ -494,6 +596,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       bodyView,
       typePlacement,
       modulePlacement,
+      selfTrait,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -854,6 +957,106 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     NegativeEvidence("direct-module-term-conflict-reject", exit, diagnostic, outputs.size)
   }
 
+  private def compileSelfTraitPositive(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): (Int, Vector[String], Int, Int) = {
+    val output = selfTraitPositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "self-trait-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "self-trait-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "self-trait-positive/compile.log"))
+    require(exit == 0, s"independent self-trait consumer compile failed with exit $exit: $log")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobeselfconsumer/AnonymousNat.class",
+      "contractprobeselfconsumer/AnonymousNat.tasty",
+      "contractprobeselfconsumer/ExistingNamedNat.class",
+      "contractprobeselfconsumer/ExistingNamedNat.tasty",
+      "contractprobeselfconsumer/CollisionNat.class",
+      "contractprobeselfconsumer/CollisionNat.tasty",
+      "contractprobeselfconsumer/IndependentSelfTraitConsumer.class",
+      "contractprobeselfconsumer/IndependentSelfTraitConsumer$.class",
+      "contractprobeselfconsumer/IndependentSelfTraitConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"self-trait consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobeselfconsumer/")), s"self-trait output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val selectionCount = metadataLines.count(line =>
+      line.contains("contractprobeself.IndependentSelfTraitMarker") &&
+        line.contains("Found(contractprobeself.IndependentSelfTraitHandler)")
+    )
+    require(selectionCount == 1, s"expected one cached self-trait metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobeself.IndependentSelfTraitHandler"))
+    require(invocationLines.size == 3, s"expected three self-trait handler invocations, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    (exit, outputs, selectionCount, invocationLines.size)
+  }
+
+  private def compileSelfTraitReject(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): NegativeEvidence = {
+    val output = new File(evidenceDirectory, "self-trait-reject/classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(evidenceDirectory, "self-trait-reject/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "self-trait-reject/compile.log"))
+    val diagnostic =
+      "trait `RejectSelfNat` already contains direct type member `Self`; bounded self preparation requires deterministic rejection"
+    val classDiagnostic =
+      "@IndependentSelfTraitMarker requires one top-level non-sealed ordinary trait with zero type parameters and no constructor/value parameters; found class `RejectSelfClass`"
+    val objectDiagnostic =
+      "unsupported target `object RejectSelfObject`"
+    val enumDiagnostic =
+      "unsupported target `enum RejectSelfEnum`"
+    require(exit != 0, "self-trait direct-Self reject lane unexpectedly compiled")
+    require(log.contains(diagnostic), s"self-trait reject lane lacked controlled diagnostic: $log")
+    require(log.contains(classDiagnostic), s"self-trait reject lane lacked class structural diagnostic: $log")
+    require(log.contains(objectDiagnostic), s"self-trait reject lane lacked object structural diagnostic: $log")
+    require(log.contains(enumDiagnostic), s"self-trait reject lane lacked enum structural diagnostic: $log")
+    require(!log.contains("direct Self preflight invoked lowering callback"), s"self-trait reject lane invoked lowering before direct-Self preflight: $log")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"self-trait reject lane exposed an uncontrolled failure: $log")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobeself.IndependentSelfTraitHandler"))
+    require(invocationLines.size == 1, s"expected one rejecting self-trait invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"self-trait reject lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence("direct-Self-type-conflict-reject", exit, diagnostic, outputs.size)
+  }
+
   private def compileUnsupportedBodyView(
       repositoryRoot: File,
       compilerJars: Vector[File],
@@ -1172,6 +1375,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   private def bodyViewPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "body-view-positive/classes")
   private def typePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "type-placement-positive/classes")
   private def modulePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "module-placement-positive/classes")
+  private def selfTraitPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "self-trait-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)
