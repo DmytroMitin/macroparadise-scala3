@@ -18,6 +18,30 @@ Pin the build tool in `project/build.properties`:
 sbt.version=1.12.15
 ```
 
+Choose one of two top-level setups:
+
+1. **Use the sbt integration (recommended normal path).** Install the current
+   unreleased plugin from source with `cd sbt-integration && sbt -batch
+   verifyIntegrationPolicy publishLocal`, then add
+   `addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" %
+   "0.1.1-SNAPSHOT")` in `project/plugins.sbt`. Use the same-build
+   `precompiledProjects` helper without producer `publishLocal`, or use the
+   published-module keys when the producers really are resolved modules. The
+   [integration guide](../sbt-integration/README.md) contains the complete,
+   mechanically verified builds for both submodes. The sbt-plugin snapshot is
+   not remotely published today.
+2. **Use the fully manual setup below.** It exposes every compiler input and
+   remains the supported transparent escape hatch. It does not load or depend
+   on `sbt-macroparadise`.
+
+The manual build must copy
+[`ExternalArtifactIdentity.scala`](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala)
+into its own `project/ExternalArtifactIdentity.scala`. This is self-contained
+sbt build-definition source, not a published library. Its compiler option is
+required for the supported incremental contract: a one-shot clean compile may
+work without it, but stable-path handler-body, handler-dependency, or marker
+metadata edits may otherwise leave Zinc or BSP consumers stale.
+
 Use JDK feature version 25 and select exact Scala `3.3.8` or `3.8.4`. The
 plugin, API, marker, handler, and consumer must all use the same selected line;
 a nearby or cross-line artifact is not interchangeable.
@@ -39,7 +63,7 @@ scalac-options are evaluated. This keeps handler implementation classes off the
 ordinary application compile and runtime classpaths:
 
 ```scala
-lazy val core = project
+lazy val core = (project in file("core"))
   .dependsOn(macroAnnotations)
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
@@ -69,7 +93,8 @@ lazy val core = project
 starter's [`project` directory](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala).
 It hashes every labelled marker-role artifact and the complete ordered labelled
 handler expansion classpath, then hashes that deterministic manifest into one
-lowercase value.
+lowercase value. The token exists to change Zinc compiler-option identity; it
+is not a security or artifact-integrity signature.
 
 The normal first-use source form is one explicit import followed by the short
 annotation:
@@ -389,10 +414,10 @@ val macroparadisePlugin =
   (mpOrg % "macroparadise-scala3-plugin" % mpVersion)
     .cross(CrossVersion.full)
 
-lazy val macroAnnotations = project
+lazy val macroAnnotations = (project in file("macro-annotations"))
   .settings(libraryDependencies += mpApi)
 
-lazy val macroHandlers = project
+lazy val macroHandlers = (project in file("macro-handlers"))
   .settings(
     libraryDependencies ++= Seq(
       mpApi,
@@ -400,7 +425,7 @@ lazy val macroHandlers = project
     )
   )
 
-lazy val core = project
+lazy val core = (project in file("core"))
   .dependsOn(macroAnnotations)
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),

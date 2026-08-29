@@ -173,12 +173,22 @@ full-cross `macroparadise-scala3-plugin-api` coordinate described in
 plugin-only users do not add implementation or repository test artifacts.
 
 The supported external-handler flow has three precompiled stages: marker,
-handler, then annotated consumer. An opt-in, source-built
-[`sbt-integration`](sbt-integration/README.md) module now automates the exact
-plugin selection, hidden handler resolution, complete handler-classpath
-identity, and compiler options for this precompiled topology. Its static local
-project helper deliberately does not infer the marker dependency: the consumer
-must still declare `.dependsOn(marker)`. Manual settings remain supported.
+handler, then annotated consumer. Choose one of two top-level setups:
+
+- **sbt integration (recommended normal path):** use same-build local marker
+  and handler projects with no producer `publishLocal`, or use genuinely
+  published marker/handler modules;
+- **fully manual:** keep the ordinary marker dependency and wire the compiler
+  plugin, complete handler expansion classpath, and content identity directly.
+
+The [`sbt-integration`](sbt-integration/README.md) module documents both plugin
+producer modes. It is currently source-built and unreleased: first run
+`sbt -batch publishLocal` inside `sbt-integration/`, then add the snapshot in
+`project/plugins.sbt`. The `addSbtPlugin` line alone is not a remotely available
+installation today. The static local-project helper deliberately does not
+infer the marker dependency; the consumer must still declare
+`.dependsOn(macroAnnotations)`. The complete manual escape hatch is in
+[External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md).
 
 The plugin loader sees the self-contained
 plugin JAR; the ordinary source classpath sees the API and precompiled marker;
@@ -217,7 +227,9 @@ sbt -batch verifyExternalHandlerAuthoringStarter
 The copy/paste identity tutorial is in
 [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md); the executable
 [starter example](examples/external-handler-starter/README.md) is the generated-
-output follow-on.
+output follow-on. The exact hyphenated-directory fixture for manual,
+same-build local-project, and published-module setup is retained under
+[`examples/user-onboarding-three-mode-fixture`](examples/user-onboarding-three-mode-fixture/README.md).
 
 ## Supported experimental boundary
 

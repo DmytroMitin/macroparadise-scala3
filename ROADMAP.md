@@ -68,6 +68,13 @@ The first source-built, opt-in precompiled-handler slice is implemented. It:
 - leave room for the bounded same-module source-identity lifecycle only after
   the precompiled-handler form is proven.
 
+User onboarding permanently retains three qualified setup modes: manual wiring
+with the copied build-definition identity helper, sbt integration with
+same-build local marker/handler projects and no producer `publishLocal`, and sbt
+integration with genuinely published modules. Public examples must use explicit
+project locations when directory names are hyphenated. The integration plugin
+remains source-built until a separate release publishes it remotely.
+
 The module remains source-built and unreleased; no remote sbt-plugin coordinate
 is promised. Manual wiring remains an inspectable escape hatch. A downstream
 project may provide application-specific conveniences; compiler/plugin behavior

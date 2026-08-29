@@ -97,6 +97,45 @@ An ordinary `plugin-api` library dependency is needed only for compiling a
 user-owned marker or handler, and ordinary source dependencies do not become a
 parent of the compiler plugin classloader.
 
+## Choose the external-handler setup
+
+There are two top-level choices:
+
+1. **Use `sbt-macroparadise` (recommended normal path).** For producers in the
+   same multi-project build, use
+   `MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers)`;
+   neither producer needs `publishLocal`. For producers that really are
+   published or deliberately installed in local Ivy, use
+   `macroParadiseMarkerModules` and `macroParadiseHandlerModules`.
+2. **Do not use the sbt integration.** Use the complete manual settings and
+   copy the public `ExternalArtifactIdentity.scala` build helper into your own
+   `project/` directory. The identity option is required for the supported
+   incremental contract.
+
+The integration plugin itself is source-built and unreleased. From this source
+checkout, install it to local Ivy separately:
+
+```sh
+cd sbt-integration
+sbt -batch verifyIntegrationPolicy publishLocal
+```
+
+Then the consumer build can contain:
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1-SNAPSHOT")
+```
+
+That coordinate is not available from a remote repository today. See the
+[source-built integration guide](../sbt-integration/README.md) for complete
+local-project and published-module examples, or
+[External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the complete
+manual graph. All examples use explicit `file("macro-annotations")`,
+`file("macro-handlers")`, and `file("core")` locations; an unqualified
+`lazy val macroAnnotations = project` instead selects a `macroAnnotations/`
+base directory and does not describe the hyphenated layout.
+
 ## Try a user-defined external handler
 
 Pin the external build tool in `project/build.properties`:
@@ -142,11 +181,13 @@ mechanically compiles both source forms with:
 sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 ```
 
-For an opt-in source-built integration, see the
+For the opt-in source-built integration, see the
 [`sbt-integration` module](../sbt-integration/README.md). It preserves the
 three-project topology, requires the marker `.dependsOn` edge explicitly, and
 derives invalidation identity from the complete ordered handler expansion
-classpath. The manual graph remains a supported escape hatch.
+classpath. Its same-build local-project mode packages producers directly and
+does not require producer `publishLocal`. The manual graph remains a supported,
+transparent escape hatch.
 
 For this source-built, unreleased integration, real persistent sbt BSP
 compilation and run requests are qualified on exact Scala `3.3.8` and `3.8.4`

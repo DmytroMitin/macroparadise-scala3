@@ -86,6 +86,9 @@ object PublicProductBoundary {
     "project/PublicProductBoundarySpec.scala",
     "project/SbtPrecompiledIntegrationExternalMatrix.scala",
     "project/SbtPrecompiledIntegrationExternalMatrixSpec.scala",
+    "project/UserOnboardingThreeModeSetup.scala",
+    "project/UserOnboardingThreeModeSetupSpec.scala",
+    "project/UserOnboardingThreeModeVerifier.scala",
     "project/build.properties",
     "project/experimental-plugin-api-surface-baseline.txt"
   )

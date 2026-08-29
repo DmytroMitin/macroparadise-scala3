@@ -62,6 +62,13 @@ expansion classpath. That build-only token changes Zinc's compiler-option
 identity after handler-body, handler-dependency, or marker-metadata edits even
 though the JAR paths remain stable; the plugin itself does not interpret it.
 
+For a manual downstream build, copy the checked-in
+[`project/ExternalArtifactIdentity.scala`](project/ExternalArtifactIdentity.scala)
+source into the downstream build at the same `project/ExternalArtifactIdentity.scala`
+location. It is sbt build-definition source, not a published runtime library.
+The main manual recipe must retain it: omitting the identity may still allow a
+fresh one-shot compile, but does not satisfy the supported incremental contract.
+
 To inspect the packaged precheck inputs and artifact roles without running it,
 use the production plugin and its exact runtime classpath:
 

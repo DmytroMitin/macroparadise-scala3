@@ -217,7 +217,10 @@ verifyPublicProductBoundary := Def
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
     verifySbtPrecompiledIntegrationModule,
-    verifySbtPrecompiledIntegrationExternalMatrix,
+    Def.sequential(
+      verifySbtPrecompiledIntegrationExternalMatrix,
+      verifyUserOnboardingThreeModeSetup
+    ),
     verifyPublicProductPublicationPolicy
   )
   .value
@@ -282,6 +285,9 @@ lazy val verifyIndependentExternalSbtConsumerFromLocalRepository =
 
 lazy val verifySbtPrecompiledIntegrationExternalMatrix =
   taskKey[Unit]("Verify the sbt integration dependency-only invalidation matrix")
+
+lazy val verifyUserOnboardingThreeModeSetup =
+  taskKey[Unit]("Verify the exact manual, local-project, and published-module onboarding fixture")
 
 lazy val verifySbtPrecompiledIntegrationModule =
   taskKey[Unit]("Verify the source-built sbt integration module in its sbt 1.x / Scala 2.12 universe")
@@ -822,6 +828,26 @@ verifySbtPrecompiledIntegrationExternalMatrix := {
   )
   streams.value.log.info(
     s"sbt precompiled integration external matrix verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
+  )
+}
+
+verifyUserOnboardingThreeModeSetup := {
+  UserOnboardingThreeModeSetupSpec.run()
+  val result = UserOnboardingThreeModeVerifier.verify(
+    baseDirectory.value,
+    (pluginApi / Compile / packageBin).value,
+    (plugin / Compile / packageBin).value,
+    (pluginApi / makePom).value,
+    (plugin / makePom).value,
+    target.value / "user-onboarding-three-mode-setup",
+    UserOnboardingThreeModeVerifier.Config(
+      scalaVersion.value,
+      sbtVersion.value,
+      version.value
+    )
+  )
+  streams.value.log.info(
+    s"user onboarding three-mode setup verified: ${result.render} focusedCases=${UserOnboardingThreeModeSetupSpec.CaseCount}/${UserOnboardingThreeModeSetupSpec.CaseCount} evidence=${result.evidenceDirectory.getAbsolutePath}"
   )
 }
 
