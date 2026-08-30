@@ -143,6 +143,33 @@ private[macroparadise] object AnnotatedClassAdmission:
               )
             case None => None
 
+  def restrictedOrTwoUpperBoundedGenericTraitRejection(
+      view: AnnotatedClassView,
+      annotationLabel: String
+  ): Option[Rejection] =
+    val restrictedRejection =
+      restrictedGenericTraitApplyRejection(view, annotationLabel)
+    if restrictedRejection.isEmpty then None
+    else
+      val twoUpperBoundedRejection =
+        twoUpperBoundedGenericTraitRejection(view, annotationLabel)
+      if twoUpperBoundedRejection.isEmpty then None
+      else
+        val requirement =
+          "requires either the one-unbounded-parameter restricted trait shape or the two-upper-bounded-parameter trait shape: both are top-level non-sealed ordinary traits with invariant ordinary type parameters and neither permits constructor/value parameters"
+        val pos =
+          restrictedRejection
+            .map(_.pos)
+            .filter(_.span.exists)
+            .orElse(twoUpperBoundedRejection.map(_.pos).filter(_.span.exists))
+            .getOrElse(view.classPos)
+        Some(
+          Rejection(
+            s"$annotationLabel $requirement; unsupported target `${view.className}` is outside the closed profile",
+            pos
+          )
+        )
+
   def plainZeroParameterTraitRejection(
       view: AnnotatedClassView,
       annotationLabel: String

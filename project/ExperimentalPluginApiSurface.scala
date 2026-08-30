@@ -18,8 +18,8 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "87e33503cabd2ddbd7a635dc361e56553ecb6786e6264183deab03bb051333a4",
-    "3.8.4" -> "e1e345dbf5458f030b25d1c4bd1f6dd840ed14653b2b8f6c7bef58e357ebe4a0"
+    "3.3.8" -> "fe8569c3140639ee36807b8a683038feafd1f9cdaa5bd111decfa61817d67c47",
+    "3.8.4" -> "8caf5f0f05c87043b2cd86c6035afe42a3e7078c544849f0bfc0eab0396258c5"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =

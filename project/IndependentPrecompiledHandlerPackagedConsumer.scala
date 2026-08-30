@@ -28,6 +28,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-module-placement-marker-handler_3-$ExpectedProjectVersion.jar"
   val SelfTraitIndependentArtifactBasename =
     s"independent-self-trait-marker-handler_3-$ExpectedProjectVersion.jar"
+  val ClosedUnionIndependentArtifactBasename =
+    s"independent-closed-target-union-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
@@ -36,6 +38,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
   val ExpectedSelfTraitRuntimeOutput =
     "anonymous|original\nexisting|original\ncollision|original\n"
+  val ExpectedClosedUnionRuntimeOutput = "Show\nAdd\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -79,6 +82,12 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobeself/IndependentSelfTraitHandler.tasty",
     "contractprobeself/IndependentSelfTraitMarker.class",
     "contractprobeself/IndependentSelfTraitMarker.tasty"
+  )
+  val expectedClosedUnionCompiledEntries = Set(
+    "contractprobeunion/IndependentClosedTargetUnionHandler.class",
+    "contractprobeunion/IndependentClosedTargetUnionHandler.tasty",
+    "contractprobeunion/IndependentClosedTargetUnionMarker.class",
+    "contractprobeunion/IndependentClosedTargetUnionMarker.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -227,6 +236,34 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         s"runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
   }
 
+  final case class ClosedUnionNegativeEvidence(
+      exitCode: Int,
+      diagnosticCount: Int,
+      invocationCount: Int,
+      outputFiles: Int
+  ) {
+    def render: String =
+      s"exit=$exitCode diagnosticCount=$diagnosticCount invocationCount=$invocationCount outputFiles=$outputFiles"
+  }
+
+  final case class ClosedUnionEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      invocationCount: Int,
+      runtimeExit: Int,
+      runtimeOutput: String,
+      rejection: ClosedUnionNegativeEvidence
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} exit=$exitCode " +
+        s"outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"invocationCount=$invocationCount runtimeExit=$runtimeExit " +
+        s"runtimeOutput=${runtimeOutput.trim.replace("\n", "|")} rejection={${rejection.render}}"
+  }
+
   final case class NegativeEvidence(id: String, exitCode: Int, diagnostic: String, outputFiles: Int) {
     def render: String = s"$id(exit=$exitCode diagnostic=$diagnostic outputFiles=$outputFiles)"
   }
@@ -251,6 +288,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       typePlacement: TypePlacementEvidence,
       modulePlacement: ModulePlacementEvidence,
       selfTrait: SelfTraitEvidence,
+      closedUnion: ClosedUnionEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -264,6 +302,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         s"api={${apiArtifact.render}} plugin={${pluginArtifact.render}} independent={${independentArtifact.render}} " +
         s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
         s"typePlacement={${typePlacement.render}} modulePlacement={${modulePlacement.render}} selfTrait={${selfTrait.render}} " +
+        s"closedUnion={${closedUnion.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -332,6 +371,18 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-self-trait-reject/IndependentSelfTraitRejectConsumer.scala"
     )
+    val closedUnionHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/closed-target-union/IndependentClosedTargetUnionMarkerAndHandler.scala"
+    )
+    val closedUnionConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-closed-target-union/IndependentClosedTargetUnionConsumer.scala"
+    )
+    val closedUnionRejectSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-closed-target-union-reject/IndependentClosedTargetUnionRejectConsumer.scala"
+    )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
@@ -344,6 +395,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(selfTraitHandlerSource.isFile, s"missing self-trait handler source: $selfTraitHandlerSource")
     require(selfTraitConsumerSource.isFile, s"missing self-trait consumer source: $selfTraitConsumerSource")
     require(selfTraitRejectSource.isFile, s"missing self-trait reject source: $selfTraitRejectSource")
+    require(closedUnionHandlerSource.isFile, s"missing closed-union handler source: $closedUnionHandlerSource")
+    require(closedUnionConsumerSource.isFile, s"missing closed-union consumer source: $closedUnionConsumerSource")
+    require(closedUnionRejectSource.isFile, s"missing closed-union reject source: $closedUnionRejectSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
@@ -443,6 +497,25 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     renderThinArtifact(selfFirstOutput, selfSecondJar, expectedSelfTraitCompiledEntries, "contractprobeself/")
     require(java.util.Arrays.equals(Files.readAllBytes(selfFirstJar.toPath), Files.readAllBytes(selfSecondJar.toPath)), "self-trait thin artifact renders are not byte-identical")
     val selfIndependentIdentity = thinArtifactIdentity(selfFirstJar, expectedSelfTraitCompiledEntries, "contractprobeself/")
+
+    val closedUnionFirstOutput = new File(evidenceDirectory, "closed-union-handler-compile/first-classes")
+    val closedUnionSecondOutput = new File(evidenceDirectory, "closed-union-handler-compile/second-classes")
+    recreateDirectory(closedUnionFirstOutput.toPath)
+    recreateDirectory(closedUnionSecondOutput.toPath)
+    val closedUnionFirstExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, closedUnionHandlerSource, closedUnionFirstOutput, new File(evidenceDirectory, "closed-union-handler-compile/first.log"))
+    val closedUnionSecondExit = compilePlain(repositoryRoot, compilerJars, apiArtifact, closedUnionHandlerSource, closedUnionSecondOutput, new File(evidenceDirectory, "closed-union-handler-compile/second.log"))
+    require(closedUnionFirstExit == 0 && closedUnionSecondExit == 0, s"independent closed-union handler compile exits were $closedUnionFirstExit and $closedUnionSecondExit")
+    val closedUnionFirstFiles = regularRelativeFiles(closedUnionFirstOutput)
+    val closedUnionSecondFiles = regularRelativeFiles(closedUnionSecondOutput)
+    require(closedUnionFirstFiles.toSet == expectedClosedUnionCompiledEntries, s"unexpected closed-union handler output: ${closedUnionFirstFiles.mkString(", ")}")
+    require(closedUnionSecondFiles == closedUnionFirstFiles, s"closed-union handler output inventory drifted: ${closedUnionSecondFiles.mkString(", ")}")
+    val closedUnionCompileEvidence = CompileEvidence(closedUnionFirstExit, closedUnionSecondExit, closedUnionFirstFiles, inventoriesEqual = true)
+    val closedUnionFirstJar = new File(evidenceDirectory, s"closed-union-handler-artifact/render-one/$ClosedUnionIndependentArtifactBasename")
+    val closedUnionSecondJar = new File(evidenceDirectory, s"closed-union-handler-artifact/render-two/$ClosedUnionIndependentArtifactBasename")
+    renderThinArtifact(closedUnionFirstOutput, closedUnionFirstJar, expectedClosedUnionCompiledEntries, "contractprobeunion/")
+    renderThinArtifact(closedUnionFirstOutput, closedUnionSecondJar, expectedClosedUnionCompiledEntries, "contractprobeunion/")
+    require(java.util.Arrays.equals(Files.readAllBytes(closedUnionFirstJar.toPath), Files.readAllBytes(closedUnionSecondJar.toPath)), "closed-union thin artifact renders are not byte-identical")
+    val closedUnionIndependentIdentity = thinArtifactIdentity(closedUnionFirstJar, expectedClosedUnionCompiledEntries, "contractprobeunion/")
 
     val apiIdentity = artifactIdentity(apiArtifact)
     val pluginIdentity = artifactIdentity(pluginArtifact)
@@ -568,6 +641,44 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       selfTraitRuntime._2,
       selfTraitReject
     )
+    val closedUnionPositive = compileClosedUnionPositive(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      closedUnionIndependentIdentity.path,
+      closedUnionConsumerSource,
+      evidenceDirectory
+    )
+    val closedUnionRuntime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      closedUnionPositiveOutput(evidenceDirectory),
+      "contractprobeunionconsumer.IndependentClosedTargetUnionConsumer",
+      ExpectedClosedUnionRuntimeOutput,
+      new File(evidenceDirectory, "closed-union-positive/runtime.log")
+    )
+    val closedUnionReject = compileClosedUnionReject(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      closedUnionIndependentIdentity.path,
+      closedUnionRejectSource,
+      evidenceDirectory
+    )
+    val closedUnion = ClosedUnionEvidence(
+      closedUnionIndependentIdentity,
+      closedUnionCompileEvidence,
+      closedUnionPositive._1,
+      closedUnionPositive._2,
+      closedUnionPositive._3,
+      closedUnionPositive._4,
+      closedUnionRuntime._1,
+      closedUnionRuntime._2,
+      closedUnionReject
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
@@ -597,6 +708,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       typePlacement,
       modulePlacement,
       selfTrait,
+      closedUnion,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -745,6 +857,104 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       runtime._2,
       generatedCompanionMethodPresent = true
     )
+  }
+
+  private def compileClosedUnionPositive(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): (Int, Vector[String], Int, Int) = {
+    val output = closedUnionPositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "closed-union-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "closed-union-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, _) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "closed-union-positive/compile.log"))
+    require(exit == 0, s"independent closed-union consumer compile failed with exit $exit")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobeunionconsumer/Show.class",
+      "contractprobeunionconsumer/Show.tasty",
+      "contractprobeunionconsumer/Show$.class",
+      "contractprobeunionconsumer/Add.class",
+      "contractprobeunionconsumer/Add.tasty",
+      "contractprobeunionconsumer/Add$.class",
+      "contractprobeunionconsumer/IndependentClosedTargetUnionConsumer.class",
+      "contractprobeunionconsumer/IndependentClosedTargetUnionConsumer$.class",
+      "contractprobeunionconsumer/IndependentClosedTargetUnionConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"closed-union consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobeunionconsumer/")), s"closed-union output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val selectionCount = metadataLines.count(line =>
+      line.contains("contractprobeunion.IndependentClosedTargetUnionMarker") &&
+        line.contains("Found(contractprobeunion.IndependentClosedTargetUnionHandler)")
+    )
+    require(selectionCount == 1, s"expected one cached closed-union metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobeunion.IndependentClosedTargetUnionHandler"))
+    require(invocationLines.size == 2, s"expected two closed-union handler invocations, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    Vector("Show$", "Add$").foreach { companion =>
+      val javap = runProcess(
+        Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, s"contractprobeunionconsumer.$companion"),
+        repositoryRoot,
+        new File(evidenceDirectory, s"closed-union-positive/javap-$companion.log")
+      )
+      require(javap._1 == 0 && javap._2.contains("java.lang.String closedTargetUnionInvoked()"), s"generated closed-union companion method missing from $companion: ${javap._2}")
+    }
+    (exit, outputs, selectionCount, invocationLines.size)
+  }
+
+  private def compileClosedUnionReject(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): ClosedUnionNegativeEvidence = {
+    val output = new File(evidenceDirectory, "closed-union-negative/classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(evidenceDirectory, "closed-union-negative/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "closed-union-negative/compile.log"))
+    val diagnostic = "requires either the one-unbounded-parameter restricted trait shape or the two-upper-bounded-parameter trait shape"
+    val diagnosticCount = log.split(java.util.regex.Pattern.quote(diagnostic), -1).length - 1
+    val invocationCount = readLines(invocationTrace).count(_.contains("handler=contractprobeunion.IndependentClosedTargetUnionHandler"))
+    require(exit != 0, "closed-union rejection matrix unexpectedly compiled")
+    require(diagnosticCount == 10, s"closed-union rejection matrix reported $diagnosticCount/10 deterministic diagnostics: $log")
+    require(invocationCount == 0, s"closed-union handler was invoked for rejected targets: ${readLines(invocationTrace).mkString(" | ")}")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"closed-union rejection matrix exposed an uncontrolled failure: $log")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"closed-union rejection matrix emitted partial output: ${outputs.mkString(", ")}")
+    ClosedUnionNegativeEvidence(exit, diagnosticCount, invocationCount, outputs.size)
   }
 
   private def compileTypePlacementPositive(
@@ -1376,6 +1586,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   private def typePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "type-placement-positive/classes")
   private def modulePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "module-placement-positive/classes")
   private def selfTraitPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "self-trait-positive/classes")
+  private def closedUnionPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "closed-union-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)

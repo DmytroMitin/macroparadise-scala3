@@ -1569,6 +1569,7 @@ MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|CommonClassOnly|0|publi
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionTargetProfile$;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|PlainZeroParameterTrait|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|RestrictedGenericTraitApply|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|RestrictedOrTwoUpperBoundedGenericTrait|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|FIELD|TwoUpperBoundedGenericTrait|0|public|static,final|Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
@@ -1865,4 +1866,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=e1e345dbf5458f030b25d1c4bd1f6dd840ed14653b2b8f6c7bef58e357ebe4a0
+normalized-sha256=8caf5f0f05c87043b2cd86c6035afe42a3e7078c544849f0bfc0eab0396258c5

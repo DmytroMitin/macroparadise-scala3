@@ -67,6 +67,14 @@ does not construct or interpret alias/refinement syntax and does not expose an
 arbitrary `MemberDef` placement API. Released `0.1.0` does not include these
 surfaces.
 
+It also includes the additive
+`RestrictedOrTwoUpperBoundedGenericTrait` target-profile enum case. That case
+is exactly the closed union of the two pre-existing syntactic trait profiles;
+it does not change the `targetProfile: ExpansionTargetProfile` method or add a
+general composition representation. Adding the enum case intentionally moves
+the exact-line experimental API/TASTy surface. Released `0.1.0` does not
+contain it.
+
 ## Marker metadata compatibility
 
 Current markers use a runtime-retained classfile annotation to name the handler.

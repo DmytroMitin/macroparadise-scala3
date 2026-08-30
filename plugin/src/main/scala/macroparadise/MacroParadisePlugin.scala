@@ -719,7 +719,7 @@ private object ParadiseTreeRewrite:
 
   private enum TargetAdmissionProfile:
     case CommonClassOnly, RestrictedGenericTraitApply, TwoUpperBoundedGenericTrait,
-      PlainZeroParameterTrait
+      PlainZeroParameterTrait, RestrictedOrTwoUpperBoundedGenericTrait
 
   private enum CompositionPolicy:
     case StandaloneOnly, SourceOrdered
@@ -1047,6 +1047,8 @@ private object ParadiseTreeRewrite:
           TargetAdmissionProfile.TwoUpperBoundedGenericTrait
         case ExternalExpansionTargetProfile.PlainZeroParameterTrait =>
           TargetAdmissionProfile.PlainZeroParameterTrait
+        case ExternalExpansionTargetProfile.RestrictedOrTwoUpperBoundedGenericTrait =>
+          TargetAdmissionProfile.RestrictedOrTwoUpperBoundedGenericTrait
     override val compositionPolicy: CompositionPolicy =
       descriptor.compositionPolicy match
         case ExternalExpansionCompositionPolicy.StandaloneOnly =>
@@ -1785,6 +1787,9 @@ private object ParadiseTreeRewrite:
         case expander :: Nil
             if expander.targetAdmissionProfile == TargetAdmissionProfile.PlainZeroParameterTrait =>
           "the plain zero-parameter top-level trait envelope"
+        case expander :: Nil
+            if expander.targetAdmissionProfile == TargetAdmissionProfile.RestrictedOrTwoUpperBoundedGenericTrait =>
+          "either the one-unbounded-parameter restricted trait shape or the two-upper-bounded-parameter trait shape"
         case _ => "top-level classes"
     reportDiagnostic(
       ExpansionDiagnostic(
@@ -1846,6 +1851,10 @@ private object ParadiseTreeRewrite:
             _.targetAdmissionProfile == TargetAdmissionProfile.PlainZeroParameterTrait
           )
           then AnnotatedClassAdmission.plainZeroParameterTraitRejection(view, labels)
+          else if matching.nonEmpty && matching.forall(
+            _.targetAdmissionProfile == TargetAdmissionProfile.RestrictedOrTwoUpperBoundedGenericTrait
+          )
+          then AnnotatedClassAdmission.restrictedOrTwoUpperBoundedGenericTraitRejection(view, labels)
           else AnnotatedClassAdmission.commonRejection(view, labels)
         profileRejection
           .orElse:

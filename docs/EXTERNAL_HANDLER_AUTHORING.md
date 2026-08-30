@@ -182,6 +182,16 @@ The safe defaults are:
 Override a capability only when the handler has evidence for the corresponding
 plugin-owned admission, composition, or companion contract.
 
+Unreleased `0.1.1-SNAPSHOT` includes the additive
+`ExpansionTargetProfile.RestrictedOrTwoUpperBoundedGenericTrait` case for one
+handler that must accept exactly either the established one-invariant ordinary
+unbounded trait envelope or the established two-invariant ordinary upper-
+bounded trait envelope. This is a dedicated closed union: handlers still
+return one `ExpansionTargetProfile`, and no arbitrary profile collections,
+predicates, callbacks, or boolean profile algebra are exposed. The plugin
+retains all admission authority and rejects targets outside both constituent
+profiles before handler invocation.
+
 ## Generated-output follow-on
 
 After the identity smoke test passes, the user-authored `@gen` from the

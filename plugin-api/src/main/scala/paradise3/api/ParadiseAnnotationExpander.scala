@@ -26,6 +26,8 @@ enum ExpansionTargetProfile:
   case TwoUpperBoundedGenericTrait
   /** Request one ordinary top-level trait with no type or constructor/value parameters. */
   case PlainZeroParameterTrait
+  /** Request exactly the closed union of the restricted one-unbounded and two-upper-bounded trait envelopes. */
+  case RestrictedOrTwoUpperBoundedGenericTrait
 
 /** Experimental handler-loading spike contract.
   *

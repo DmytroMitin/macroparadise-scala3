@@ -309,6 +309,69 @@ class AnnotatedClassAdmissionSpec extends munit.FunSuite:
       )
   }
 
+  test("closed restricted-or-two-upper-bounded profile is exactly the constituent union") {
+    val show = shape("trait Show[A]")
+    val add = shape(
+      """trait Add[N <: Nat, M <: Nat]:
+        |  type Out <: Nat
+        |""".stripMargin
+    )
+    val labels = "@externalClosedGenericTrait"
+
+    assertEquals(
+      AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(show, labels),
+      None
+    )
+    assert(
+      AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(show, labels).nonEmpty
+    )
+    assert(
+      AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(add, labels).nonEmpty
+    )
+    assertEquals(
+      AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(add, labels),
+      None
+    )
+    assertEquals(
+      AnnotatedClassAdmission.restrictedOrTwoUpperBoundedGenericTraitRejection(show, labels),
+      None
+    )
+    assertEquals(
+      AnnotatedClassAdmission.restrictedOrTwoUpperBoundedGenericTraitRejection(add, labels),
+      None
+    )
+
+    val ordinaryTwoBounded = shape("trait Ordinary[N <: Nat, M <: Nat]")
+    val caseLike = ordinaryTwoBounded.copy(
+      modifiers = ordinaryTwoBounded.modifiers.copy(isCase = true)
+    )
+    val rejected = List(
+      shape("trait Zero"),
+      shape("trait TwoUnbounded[A, B]"),
+      shape("trait OneBounded[A <: Nat]"),
+      shape("trait Mixed[A, B <: Nat]"),
+      shape("trait LowerBounded[A >: Null <: Nat, B <: Nat]"),
+      shape("trait Constructor[A](val value: A)"),
+      shape("class OrdinaryClass[A]"),
+      caseLike,
+      shape("sealed trait SealedShow[A]"),
+      shape("trait ContextualShow[A: Ordering]"),
+      shape("trait ContextualAdd[A <: Nat: Ordering, B <: Nat]"),
+      shape("trait CovariantShow[+A]"),
+      shape("trait ContravariantAdd[-A <: Nat, B <: Nat]")
+    )
+
+    rejected.foreach: candidate =>
+      val rejection =
+        AnnotatedClassAdmission
+          .restrictedOrTwoUpperBoundedGenericTraitRejection(candidate, labels)
+      assert(rejection.nonEmpty, s"expected closed-union rejection for ${candidate.className}")
+      assert(rejection.exists(_.message.contains("either")))
+      assert(rejection.exists(_.message.contains("one-unbounded-parameter restricted trait shape")))
+      assert(rejection.exists(_.message.contains("two-upper-bounded-parameter trait shape")))
+      assert(rejection.exists(_.pos.span.exists))
+  }
+
   test("plain zero-parameter trait profile is body-neutral and admits only its structural envelope") {
     val canonical = shape(
       """trait Nat:

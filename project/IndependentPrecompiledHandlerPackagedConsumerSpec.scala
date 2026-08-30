@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 116
+  val CaseCount = 142
 
   def run(repositoryRoot: File): Unit = {
     val independentRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/positive")
@@ -20,6 +20,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val selfTraitHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/self-trait")
     val selfTraitConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-self-trait")
     val selfTraitRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-self-trait-reject")
+    val closedUnionHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/closed-target-union")
+    val closedUnionConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-closed-target-union")
+    val closedUnionRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-closed-target-union-reject")
     val independentSource = new File(independentRoot, "IndependentMarkerAndHandler.scala")
     val consumerSource = new File(consumerRoot, "IndependentPackagedConsumer.scala")
     val bodyViewHandlerSource = new File(bodyViewHandlerRoot, "IndependentBodyViewMarkerAndHandler.scala")
@@ -34,6 +37,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val selfTraitHandlerSource = new File(selfTraitHandlerRoot, "IndependentSelfTraitMarkerAndHandler.scala")
     val selfTraitConsumerSource = new File(selfTraitConsumerRoot, "IndependentSelfTraitConsumer.scala")
     val selfTraitRejectSource = new File(selfTraitRejectRoot, "IndependentSelfTraitRejectConsumer.scala")
+    val closedUnionHandlerSource = new File(closedUnionHandlerRoot, "IndependentClosedTargetUnionMarkerAndHandler.scala")
+    val closedUnionConsumerSource = new File(closedUnionConsumerRoot, "IndependentClosedTargetUnionConsumer.scala")
+    val closedUnionRejectSource = new File(closedUnionRejectRoot, "IndependentClosedTargetUnionRejectConsumer.scala")
     val independent = read(independentSource)
     val consumer = read(consumerSource)
     val bodyViewHandler = read(bodyViewHandlerSource)
@@ -48,6 +54,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val selfTraitHandler = read(selfTraitHandlerSource)
     val selfTraitConsumer = read(selfTraitConsumerSource)
     val selfTraitReject = read(selfTraitRejectSource)
+    val closedUnionHandler = read(closedUnionHandlerSource)
+    val closedUnionConsumer = read(closedUnionConsumerSource)
+    val closedUnionReject = read(closedUnionRejectSource)
     var completed = 0
 
     def check(condition: Boolean, message: String): Unit = {
@@ -69,6 +78,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(scalaSources(selfTraitHandlerRoot) == Vector(selfTraitHandlerSource.getCanonicalFile), "self-trait handler source inventory changed")
     check(scalaSources(selfTraitConsumerRoot) == Vector(selfTraitConsumerSource.getCanonicalFile), "self-trait consumer source inventory changed")
     check(scalaSources(selfTraitRejectRoot) == Vector(selfTraitRejectSource.getCanonicalFile), "self-trait reject source inventory changed")
+    check(scalaSources(closedUnionHandlerRoot) == Vector(closedUnionHandlerSource.getCanonicalFile), "closed-union handler source inventory changed")
+    check(scalaSources(closedUnionConsumerRoot) == Vector(closedUnionConsumerSource.getCanonicalFile), "closed-union consumer source inventory changed")
+    check(scalaSources(closedUnionRejectRoot) == Vector(closedUnionRejectSource.getCanonicalFile), "closed-union reject source inventory changed")
     check(independent.contains("package contractprobe"), "independent package changed")
     check(independent.contains("final class IndependentMarker"), "independent marker class changed")
     check(independent.contains("final class IndependentHandler extends ParadiseAnnotationExpander"), "independent handler parent changed")
@@ -166,6 +178,28 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(selfTraitReject.contains("class RejectSelfClass"), "self-trait reject consumer lacks a class structural negative")
     check(selfTraitReject.contains("object RejectSelfObject"), "self-trait reject consumer lacks an object structural negative")
     check(selfTraitReject.contains("enum RejectSelfEnum"), "self-trait reject consumer lacks an enum structural negative")
+    check(closedUnionHandler.contains("package contractprobeunion"), "closed-union handler package changed")
+    check(closedUnionHandler.contains("final class IndependentClosedTargetUnionMarker"), "closed-union marker class changed")
+    check(closedUnionHandler.contains("final class IndependentClosedTargetUnionHandler extends ParadiseAnnotationExpander"), "closed-union handler parent changed")
+    check(closedUnionHandler.contains("@expander(\"contractprobeunion.IndependentClosedTargetUnionHandler\")"), "closed-union marker metadata changed")
+    check(closedUnionHandler.contains("ExpansionTargetProfile.RestrictedOrTwoUpperBoundedGenericTrait"), "closed-union handler does not request the closed profile")
+    check(closedUnionHandler.contains("ExpansionHelpers.addStringMethodToCompanion("), "closed-union handler lacks the bounded companion operation")
+    check(closedUnionHandler.contains("methodName = \"closedTargetUnionInvoked\""), "closed-union generated method changed")
+    check(!closedUnionHandler.contains("macroparadise."), "closed-union handler imports plugin implementation")
+    check(!closedUnionHandler.contains("auxify"), "closed-union handler depends on AUXify")
+    check(!closedUnionHandler.contains("quasiquotes"), "closed-union handler depends on Quasiquotes")
+    check(closedUnionConsumer.contains("import contractprobeunion.IndependentClosedTargetUnionMarker"), "closed-union consumer lacks the independent marker import")
+    check(closedUnionConsumer.contains("trait Show[A]"), "closed-union consumer lacks the canonical Show shape")
+    check(closedUnionConsumer.contains("trait Add[N <: Nat, M <: Nat]"), "closed-union consumer lacks the canonical Add shape")
+    check(closedUnionConsumer.contains("type Out <: Nat"), "closed-union consumer lacks the canonical Out member")
+    check(closedUnionConsumer.contains("Show.closedTargetUnionInvoked") && closedUnionConsumer.contains("Add.closedTargetUnionInvoked"), "closed-union consumer does not observe both handler invocations")
+    check(!closedUnionConsumer.contains("paradise3."), "closed-union consumer imports repository API")
+    check(closedUnionReject.split("@IndependentClosedTargetUnionMarker", -1).length - 1 == 10, "closed-union rejection matrix size changed")
+    check(closedUnionReject.contains("trait Zero") && closedUnionReject.contains("trait TwoUnbounded[A, B]"), "closed-union rejection matrix lacks arity negatives")
+    check(closedUnionReject.contains("trait Mixed[A, B <: Nat]") && closedUnionReject.contains("trait LowerBounded[A >: Nothing <: Nat, B <: Nat]"), "closed-union rejection matrix lacks bound negatives")
+    check(closedUnionReject.contains("class OrdinaryClass[A]") && closedUnionReject.contains("sealed trait SealedShow[A]"), "closed-union rejection matrix lacks class-family negatives")
+    check(closedUnionReject.contains("trait ContextualShow[A: Ordering]") && closedUnionReject.contains("trait CovariantShow[+A]"), "closed-union rejection matrix lacks context-bound and variance negatives")
+    check(!closedUnionReject.contains("auxify") && !closedUnionReject.contains("quasiquotes"), "closed-union rejection consumer depends on a peer")
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries == Set(
         "contractprobe/IndependentHandler.class",
@@ -190,6 +224,10 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(
       IndependentPrecompiledHandlerPackagedConsumer.expectedSelfTraitCompiledEntries.size == 4,
       "self-trait compiled-entry allowlist changed"
+    )
+    check(
+      IndependentPrecompiledHandlerPackagedConsumer.expectedClosedUnionCompiledEntries.size == 4,
+      "closed-union compiled-entry allowlist changed"
     )
     require(completed == CaseCount, s"focused model spec ran $completed/$CaseCount cases")
   }

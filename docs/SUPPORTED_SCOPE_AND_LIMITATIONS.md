@@ -41,6 +41,15 @@ upper-bounded type parameters, no lower/alias/context bounds, and no
 constructor/value parameters. The profile is purely structural: it does not
 inspect direct body features or implement downstream annotation semantics.
 
+The same unreleased line adds
+`RestrictedOrTwoUpperBoundedGenericTrait`, one closed profile that admits
+exactly the existing `RestrictedGenericTraitApply` envelope or the existing
+`TwoUpperBoundedGenericTrait` envelope. It does not broaden either constituent
+profile and is not a profile set, combinator, predicate API, or arbitrary
+composition mechanism. Representative zero-parameter, two-unbounded, mixed-
+bound, constructor-parameter, class, case/sealed, context-bound, and variant
+shapes remain outside this closed union.
+
 The plugin remains the authority for every syntactic admission rule and
 diagnostic. Annotation names and handler class names do not grant broader
 admission.
