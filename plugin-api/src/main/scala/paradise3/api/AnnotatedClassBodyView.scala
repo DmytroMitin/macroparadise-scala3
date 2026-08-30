@@ -25,8 +25,9 @@ import scala.util.control.NonFatal
   * direct body members.
   *
   * The decoder preserves direct source order and normalizes only the tiny type
-  * subset needed to identify unqualified references to enclosing type
-  * parameters. It performs no typing, symbol or owner lookup, inheritance,
+  * subset needed to distinguish unqualified references to enclosing type
+  * parameters from other simple unqualified type names. It performs no typing,
+  * symbol or owner lookup, inheritance,
   * alias expansion, overload analysis, or consumer-specific admission policy.
   * Advanced exact-compiler consumers retain the separate raw
   * `ExpansionInput.annotatedClass` escape hatch.
@@ -49,6 +50,7 @@ object AnnotatedClassBodyView:
   enum DirectTypeShape:
     case EnclosingTypeParameter(name: String, pos: SrcPos)
     case Unsupported(kind: String, summary: String, pos: SrcPos)
+    case NamedType(name: String, pos: SrcPos)
 
   final case class DirectMember(
       name: String,
@@ -336,12 +338,18 @@ object AnnotatedClassBodyView:
         val pos = safePos(value, fallback)
         val shape = value match
           case identifier: Ident =>
-            val name = safeName(identifier.name)
-            if methodTypeParameters.contains(name) then
-              DirectTypeShape.Unsupported("method-type-parameter-reference", name, pos)
-            else if enclosingTypeParameters.contains(name) then
-              DirectTypeShape.EnclosingTypeParameter(name, pos)
-            else DirectTypeShape.Unsupported("unqualified-reference", name, pos)
+            Option(identifier.name) match
+              case None =>
+                DirectTypeShape.Unsupported("unqualified-reference", "<unknown>", pos)
+              case Some(rawName) =>
+                val name = safeName(rawName)
+                if methodTypeParameters.contains(name) then
+                  DirectTypeShape.Unsupported("method-type-parameter-reference", name, pos)
+                else if enclosingTypeParameters.contains(name) then
+                  DirectTypeShape.EnclosingTypeParameter(name, pos)
+                else if name == "<error>" || name == "<unknown>" then
+                  DirectTypeShape.Unsupported("unqualified-reference", name, pos)
+                else DirectTypeShape.NamedType(name, pos)
           case _: Function =>
             DirectTypeShape.Unsupported("function-type", safeTreeDescription(value), pos)
           case _: AppliedTypeTree =>

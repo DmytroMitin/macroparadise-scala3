@@ -272,8 +272,10 @@ positive evidence remains bounded to the combinations in the test suite.
   construction, arbitrary composition, typed tree construction, semantic
   member analysis, or a stable public API. The bounded body view performs no
   typing, symbol/owner lookup, inheritance, alias expansion, or overload
-  resolution; raw `ExpansionInput.annotatedClass` remains the exact-compiler
-  escape hatch.
+  resolution. Its simple named-type case records only an unqualified syntactic
+  name such as `String`; applied, qualified, refined, function, and broader
+  shapes remain unsupported. Raw `ExpansionInput.annotatedClass` remains the
+  exact-compiler escape hatch.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
 - Top-level local publication is enabled only for the exact-cross plugin and

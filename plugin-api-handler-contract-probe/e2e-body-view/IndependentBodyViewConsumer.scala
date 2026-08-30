@@ -3,10 +3,9 @@ package contractprobeconsumer
 import contractprobebody.IndependentBodyViewMarker
 
 @IndependentBodyViewMarker
-trait IndependentMonoid[A]:
-  def empty: A
-  def combine(a: A, a1: A): A
+trait IndependentShow[A]:
+  def show(a: A): String
 
 object IndependentBodyViewConsumer:
   def main(args: Array[String]): Unit =
-    println(IndependentMonoid.independentBodyView)
+    println(IndependentShow.independentBodyView)

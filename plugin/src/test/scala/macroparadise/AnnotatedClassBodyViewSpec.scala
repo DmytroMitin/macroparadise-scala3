@@ -3,7 +3,7 @@ package macroparadise
 import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
-import dotty.tools.dotc.core.Names.typeName
+import dotty.tools.dotc.core.Names.{Name, typeName}
 import dotty.tools.dotc.parsing.Parsers
 import paradise3.api.{AnnotatedClassBodyView, ExpansionInput}
 import paradise3.api.AnnotatedClassBodyView.*
@@ -50,6 +50,26 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     assertEquals(enclosingName(combine.resultType), "A")
   }
 
+  test("normalizes the exact delegated Show shape without resolving its simple result name") {
+    val show = methodMap(body("trait Show[A]:\n  def show(a: A): String"))("show")
+    val parameter = show.parameterClauses.head.parameters.head
+
+    assertEquals(parameter.name, "a")
+    assertEquals(enclosingName(parameter.parameterType), "A")
+    assertEquals(namedType(show.resultType), "String")
+    assert(show.resultTypePos.span.exists)
+    assertEquals(typePosition(show.resultType), show.resultTypePos)
+  }
+
+  test("normalizes an ordinary simple named parameter and preserves its raw type position") {
+    val echo = methodMap(body("trait Echo:\n  def echo(s: String): String"))("echo")
+    val parameter = echo.parameterClauses.head.parameters.head
+
+    assertEquals(namedType(parameter.parameterType), "String")
+    assertEquals(typePosition(parameter.parameterType), parameter.typePos)
+    assert(parameter.typePos.span.exists)
+  }
+
   test("exposes using implicit and default evidence without treating clauses as ordinary") {
     val methods = methodMap(
       body(
@@ -76,14 +96,13 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     assertEquals(unsupportedKind(polymorphic.resultType), "method-type-parameter-reference")
   }
 
-  test("normalizes applied qualified function and ordinary external references as explicit unsupported shapes") {
+  test("keeps applied qualified and function types as explicit unsupported shapes") {
     val methods = methodMap(
       body(
         """trait TypeShapes[A]:
           |  def applied(value: List[A]): List[A]
           |  def qualified(value: example.Types.Alias): example.Types.Alias
           |  def function(value: A => A): A => A
-          |  def external(value: String): String
           |""".stripMargin
       )
     )
@@ -91,7 +110,103 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     assertEquals(unsupportedKind(methods("applied").resultType), "applied-type")
     assertEquals(unsupportedKind(methods("qualified").resultType), "qualified-type")
     assertEquals(unsupportedKind(methods("function").resultType), "function-type")
-    assertEquals(unsupportedKind(methods("external").resultType), "unqualified-reference")
+  }
+
+  test("keeps inferred and absent parameter and result types explicitly unsupported") {
+    val inferred = methodMap(body("trait InferredType:\n  def inferred = ???"))("inferred")
+    assertEquals(unsupportedKind(inferred.resultType), "inferred-or-missing-type")
+
+    val (stats, context) = parsedStats("trait MissingType:\n  def missing(value: String): String")
+    given Context = context
+    val primary = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail("missing trait"))
+    val template = primary.rhs.asInstanceOf[Template]
+    val method = template.body.collectFirst { case definition: DefDef => definition }.getOrElse(fail("missing method"))
+    val missingMethod = cpy.DefDef(method)(method.name, method.paramss, TypeTree(), method.rhs)
+    val missingTemplate =
+      cpy.Template(template)(
+        template.constr,
+        template.parentsOrDerived,
+        template.derived,
+        template.self,
+        List(missingMethod)
+      )
+    val missingPrimary = cpy.TypeDef(primary)(primary.name, missingTemplate)
+    val missing = AnnotatedClassBodyView.decode(missingPrimary).fold(error => fail(error.message), identity)
+
+    assertEquals(unsupportedKind(methodMap(missing)("missing").resultType), "inferred-or-missing-type")
+
+    val parameter = method.termParamss.head.head
+    val missingParameter = cpy.ValDef(parameter)(parameter.name, TypeTree(), parameter.rhs)
+    val missingParameterMethod =
+      cpy.DefDef(method)(method.name, method.paramss.map(_.map(_ => missingParameter)), method.tpt, method.rhs)
+    val missingParameterTemplate =
+      cpy.Template(template)(
+        template.constr,
+        template.parentsOrDerived,
+        template.derived,
+        template.self,
+        List(missingParameterMethod)
+      )
+    val missingParameterPrimary = cpy.TypeDef(primary)(primary.name, missingParameterTemplate)
+    val missingParameterView =
+      AnnotatedClassBodyView.decode(missingParameterPrimary).fold(error => fail(error.message), identity)
+
+    assertEquals(
+      unsupportedKind(methodMap(missingParameterView)("missing").parameterClauses.head.parameters.head.parameterType),
+      "inferred-or-missing-type"
+    )
+  }
+
+  test("keeps a parser-recovery parameter identifier fail-closed") {
+    val (stats, context) = parsedStats("trait Recovery:\n  def missing(value: String): String")
+    given Context = context
+    val primary = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail("missing trait"))
+    val template = primary.rhs.asInstanceOf[Template]
+    val method = template.body.collectFirst { case definition: DefDef => definition }.getOrElse(fail("missing method"))
+    val parameter = method.termParamss.head.head
+    val recoveredParameter =
+      cpy.ValDef(parameter)(parameter.name, Ident(typeName("<error>")), parameter.rhs)
+    val recoveredMethod =
+      cpy.DefDef(method)(method.name, method.paramss.map(_.map(_ => recoveredParameter)), method.tpt, method.rhs)
+    val recoveredTemplate =
+      cpy.Template(template)(
+        template.constr,
+        template.parentsOrDerived,
+        template.derived,
+        template.self,
+        List(recoveredMethod)
+      )
+    val recoveredPrimary = cpy.TypeDef(primary)(primary.name, recoveredTemplate)
+
+    val recovered = AnnotatedClassBodyView.decode(recoveredPrimary).fold(error => fail(error.message), identity)
+    val shape = methodMap(recovered)("missing").parameterClauses.head.parameters.head.parameterType
+    assertEquals(unsupportedKind(shape), "unqualified-reference")
+  }
+
+  test("keeps a hostile null-name parameter identifier fail-closed") {
+    val (stats, context) = parsedStats("trait HostileName:\n  def hostile(value: String): String")
+    given Context = context
+    val primary = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail("missing trait"))
+    val template = primary.rhs.asInstanceOf[Template]
+    val method = template.body.collectFirst { case definition: DefDef => definition }.getOrElse(fail("missing method"))
+    val parameter = method.termParamss.head.head
+    val hostileParameter =
+      cpy.ValDef(parameter)(parameter.name, Ident(null.asInstanceOf[Name]), parameter.rhs)
+    val hostileMethod =
+      cpy.DefDef(method)(method.name, method.paramss.map(_.map(_ => hostileParameter)), method.tpt, method.rhs)
+    val hostileTemplate =
+      cpy.Template(template)(
+        template.constr,
+        template.parentsOrDerived,
+        template.derived,
+        template.self,
+        List(hostileMethod)
+      )
+    val hostilePrimary = cpy.TypeDef(primary)(primary.name, hostileTemplate)
+
+    val hostile = AnnotatedClassBodyView.decode(hostilePrimary).fold(error => fail(error.message), identity)
+    val shape = methodMap(hostile)("hostile").parameterClauses.head.parameters.head.parameterType
+    assertEquals(unsupportedKind(shape), "unqualified-reference")
   }
 
   test("retains concrete methods in the ordered inventory") {
@@ -196,6 +311,15 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
   private def enclosingName(shape: DirectTypeShape): String = shape match
     case DirectTypeShape.EnclosingTypeParameter(name, _) => name
     case other => fail(s"expected enclosing type parameter, found $other")
+
+  private def namedType(shape: DirectTypeShape): String = shape match
+    case DirectTypeShape.NamedType(name, _) => name
+    case other => fail(s"expected simple named type, found $other")
+
+  private def typePosition(shape: DirectTypeShape): dotty.tools.dotc.util.SrcPos = shape match
+    case DirectTypeShape.EnclosingTypeParameter(_, pos) => pos
+    case DirectTypeShape.Unsupported(_, _, pos) => pos
+    case DirectTypeShape.NamedType(_, pos) => pos
 
   private def unsupportedKind(shape: DirectTypeShape): String = shape match
     case DirectTypeShape.Unsupported(kind, _, _) => kind

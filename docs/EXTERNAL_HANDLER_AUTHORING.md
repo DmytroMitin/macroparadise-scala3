@@ -213,13 +213,18 @@ contextual parameter clauses; retains parameter order, defaults, visibility,
 annotations, positions, and abstract/concrete status; and classifies vals,
 vars, type members, nested definitions, and other direct members.
 
-`AnnotatedClassBodyView.DirectTypeShape` deliberately recognizes only an
-unqualified reference to an enclosing class type parameter. Applied,
-qualified, function, method-local, inferred, and other unsupported type forms
-remain explicit `Unsupported` values for controlled consumer rejection. The
-decoder performs no typing, symbol or owner lookup, inheritance, alias
-expansion, subtype checking, or semantic overload analysis. Released `0.1.0`
-does not contain this body-view API.
+`AnnotatedClassBodyView.DirectTypeShape.EnclosingTypeParameter` is only a
+syntactic reference to an enclosing class type parameter. The separate
+`NamedType(name, pos)` case is likewise syntactic: it carries one unqualified
+simple type name such as `String`, but does not resolve that name to
+`java.lang.String`, `scala.Predef.String`, a package symbol, or an alias, and
+does not imply type equality or fully qualified identity. Applied, qualified,
+refined, function, method-local, inferred, and other broader type forms remain
+explicit `Unsupported` values for controlled consumer rejection. The decoder
+performs no typing, symbol or owner lookup, inheritance, alias expansion,
+subtype checking, or semantic overload analysis. Advanced exact-compiler
+handlers retain raw `ExpansionInput.annotatedClass` as the explicit escape
+hatch. Released `0.1.0` does not contain this body-view API.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
 for the common class shape. Helper methods can add one bounded method to a class

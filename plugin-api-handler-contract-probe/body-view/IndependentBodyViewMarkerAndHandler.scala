@@ -18,7 +18,7 @@ final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
     input.annotatedClassBodyView match
       case Left(diagnostic) =>
         ExpansionOutcome.Rejected(List(diagnostic), input.annotatedClass)
-      case Right(body) if isRepresentativeMonoid(body) =>
+      case Right(body) if isRepresentativeShow(body) =>
         ExpansionHelpers.addStringMethodToCompanion(
           input,
           methodName = "independentBodyView",
@@ -30,25 +30,19 @@ final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
           input.annotatedClass
         )
 
-  private def isRepresentativeMonoid(body: AnnotatedClassBodyView): Boolean =
+  private def isRepresentativeShow(body: AnnotatedClassBodyView): Boolean =
     body.members match
-      case emptyMember :: combineMember :: Nil
-          if emptyMember.kind == DirectMemberKind.Method && combineMember.kind == DirectMemberKind.Method =>
-        (emptyMember.method, combineMember.method) match
-          case (Some(empty), Some(combine)) =>
-            empty.name == "empty" &&
-            empty.typeParameters.isEmpty &&
-            empty.parameterClauses.isEmpty &&
-            isAbstractPublic(empty) &&
-            isEnclosingA(empty.resultType) &&
-            combine.name == "combine" &&
-            combine.typeParameters.isEmpty &&
-            isAbstractPublic(combine) &&
-            isEnclosingA(combine.resultType) &&
-            (combine.parameterClauses match
+      case showMember :: Nil if showMember.kind == DirectMemberKind.Method =>
+        showMember.method match
+          case Some(show) =>
+            show.name == "show" &&
+            show.typeParameters.isEmpty &&
+            isAbstractPublic(show) &&
+            isNamedString(show.resultType) &&
+            (show.parameterClauses match
               case clause :: Nil =>
                 !clause.isContextual &&
-                clause.parameters.map(_.name) == List("a", "a1") &&
+                clause.parameters.map(_.name) == List("a") &&
                 clause.parameters.forall(parameter =>
                   !parameter.hasDefault && !parameter.isContextual && !parameter.isVal && !parameter.isVar &&
                     isEnclosingA(parameter.parameterType)
@@ -65,4 +59,8 @@ final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
 
   private def isEnclosingA(shape: DirectTypeShape): Boolean = shape match
     case DirectTypeShape.EnclosingTypeParameter("A", _) => true
+    case _ => false
+
+  private def isNamedString(shape: DirectTypeShape): Boolean = shape match
+    case DirectTypeShape.NamedType("String", _) => true
     case _ => false

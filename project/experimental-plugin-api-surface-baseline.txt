@@ -28,6 +28,8 @@ CLASS|paradise3/api/AnnotatedClassBodyView$DirectMethodTypeParameter.class|HANDL
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter extends paradise3.api.AnnotatedClassBodyView$DirectTypeShape
+CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$NamedType$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$NamedType extends paradise3.api.AnnotatedClassBodyView$DirectTypeShape
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$Unsupported$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotatedClassBodyView$DirectTypeShape$Unsupported extends paradise3.api.AnnotatedClassBodyView$DirectTypeShape
 CLASS|paradise3/api/AnnotatedClassBodyView$DirectTypeShape.class|HANDLER_CONTRACT|public abstract class paradise3.api.AnnotatedClassBodyView$DirectTypeShape implements scala.reflect.Enum
@@ -466,6 +468,7 @@ MEMBER|paradise3/api/AnnotatedClassBodyView$DirectMethodTypeParameter.class|METH
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|CONSTRUCTOR|<init>|0|public|-|()V
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|FIELD|EnclosingTypeParameter|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter$;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|FIELD|NamedType|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|FIELD|Unsupported|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
@@ -499,6 +502,34 @@ MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParamet
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$EnclosingTypeParameter;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|METHOD|unapply|0|public|-|(Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)V
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|_2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|apply|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|copy$default$2|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|copy|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|name|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|pos|0|public|-|()Ldotty/tools/dotc/util/SrcPos;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType.class|METHOD|unapply|0|public|static|(Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$NamedType;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$.class|CONSTRUCTOR|<init>|0|public|-|()V
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$;
 MEMBER|paradise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/AnnotatedClassBodyView$DirectTypeShape$Unsupported;
@@ -1534,4 +1565,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=d514d7aa772a98e8442bc42a11eb760f6ae978f55df54d46194aacf0daa4938d
+normalized-sha256=7c49d90063927293ed72fcea41c769941c82cd02b5a69d2357644f8841166b96

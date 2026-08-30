@@ -31,7 +31,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
-  val ExpectedBodyViewRuntimeOutput = "empty,combine\n"
+  val ExpectedBodyViewRuntimeOutput = "show\n"
   val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
   val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
   val ExpectedSelfTraitRuntimeOutput =
@@ -705,9 +705,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(exit == 0, s"independent body-view consumer compile failed with exit $exit")
     val outputs = regularRelativeFiles(output)
     val required = Set(
-      "contractprobeconsumer/IndependentMonoid.class",
-      "contractprobeconsumer/IndependentMonoid.tasty",
-      "contractprobeconsumer/IndependentMonoid$.class",
+      "contractprobeconsumer/IndependentShow.class",
+      "contractprobeconsumer/IndependentShow.tasty",
+      "contractprobeconsumer/IndependentShow$.class",
       "contractprobeconsumer/IndependentBodyViewConsumer.class",
       "contractprobeconsumer/IndependentBodyViewConsumer$.class",
       "contractprobeconsumer/IndependentBodyViewConsumer.tasty"
@@ -720,7 +720,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobebody.IndependentBodyViewHandler"))
     require(invocationLines.size == 1, s"expected one body-view handler invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
     val javap = runProcess(
-      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentMonoid$"),
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentShow$"),
       repositoryRoot,
       new File(evidenceDirectory, "body-view-positive/javap.log")
     )

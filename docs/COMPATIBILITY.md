@@ -44,12 +44,15 @@ handler API therefore makes no cross-version binary or source compatibility
 promise.
 
 Unreleased `0.1.1-SNAPSHOT` also exposes a bounded syntactic pre-typer
-read-only direct-body view. Its tiny type algebra recognizes only unqualified
-references to enclosing class type parameters and reports other forms as
-unsupported; it does not type trees or perform symbol/owner lookup,
-inheritance, alias expansion, or overload analysis. The raw
-`ExpansionInput.annotatedClass` tree remains the advanced exact-line escape
-hatch. Released `0.1.0` does not include this API.
+read-only direct-body view. Its tiny type algebra distinguishes a syntactic
+reference to an enclosing class type parameter from one syntactic unqualified
+simple type name such as `String`. The latter is not resolved to a package,
+symbol, alias, fully qualified identity, or semantically equal type. Applied,
+qualified, refined, function, and other broader forms remain unsupported; the
+view does not type trees or perform symbol/owner lookup, inheritance, alias
+expansion, or overload analysis. The raw `ExpansionInput.annotatedClass` tree
+remains the advanced exact-line escape hatch. Released `0.1.0` does not include
+this API.
 
 The same unreleased line includes exact-compiler-sensitive placement of one
 already-created companion `untpd.TypeDef` plus a structural
