@@ -263,11 +263,15 @@ positive evidence remains bounded to the combinations in the test suite.
 - Annotation matching is syntactic. One unambiguous, source-preceding,
   package-level explicit import is supported; alias, wildcard, local/nested,
   given, export, symbol, and general semantic resolution are not implemented.
-- General same-module handler support is deferred. A bounded different-file
-  design probe established a feasible explicit source-mapping, content-identity,
-  and compiler-unit-suspension lifecycle for clean and incremental CLI/Zinc/BSP
-  builds. It is not implemented, does not cover same-file handlers or dependency
-  cycles, and does not qualify live IntelliJ behavior.
+- General same-module handler support is deferred. Unreleased `main` contains a
+  separate opt-in experimental implementation of one bounded different-file
+  Model A: one explicit marker source, one explicit handler source, exact
+  source-byte identity, compiler-unit suspension, and fresh current-output
+  handler loading. Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP
+  qualification pass, but live IntelliJ behavior has not been run. Same-file
+  marker/handler/consumer topologies, dependency cycles, automatic discovery,
+  and multiple configured relationships remain rejected or unimplemented, so
+  same-module support remains false.
 - The project does not provide arbitrary target shapes, arbitrary definition
   construction, arbitrary composition, typed tree construction, semantic
   member analysis, or a stable public API. The bounded body and type-structure

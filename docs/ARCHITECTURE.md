@@ -88,12 +88,18 @@ precheck.
 
 ## Same-module boundary
 
-A bounded different-file design probe established a coherent lifecycle using
-explicit handler-source mapping, packaged content identity, compiler-unit
-suspension, and resumed consumers. The design covers clean and incremental
-CLI/Zinc/BSP execution in principle, but it is not implemented. It does not
-cover same-file handlers, dependency cycles, or live IntelliJ behavior. The
-supported experimental architecture therefore keeps handlers precompiled.
+Unreleased `main` implements one bounded different-file Model A behind a
+separate opt-in sbt plugin. The build names one marker source and one handler
+source beneath an explicit source root, hashes their exact bytes into a
+same-module compiler-input identity, suspends consumers before mutation, and
+resumes them with freshly compiled current output through a fresh child loader.
+Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP qualification pass.
+
+This is implementation evidence, not general support. Live IntelliJ behavior
+has not been run, and same-file marker/handler/consumer topologies, dependency
+cycles, automatic discovery, and multiple configured relationships remain
+rejected or unimplemented. Precompiled handlers remain the supported
+experimental architecture.
 
 See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md). The separate

@@ -111,16 +111,24 @@ pair is implied.
 
 ## Same-module handlers
 
-General production same-module support is deferred.
+General production same-module support is deferred and remains false.
 
-A bounded design probe established a feasible lifecycle for explicitly mapped
-different-file handler sources: package the selected source, derive content
-identity for incremental invalidation, suspend dependent compiler units, load
-the compiled handler, and resume consumers. The design is intended to preserve
-clean and incremental CLI/Zinc/BSP behavior, but it is not implemented or
-supported today. Same-file handlers, dependency cycles, automatic discovery,
-multiple configured relationships, and live IntelliJ behavior remain outside
-the established boundary.
+Unreleased `main` contains a separate no-trigger sbt plugin for one experimental
+different-file Model A. The user must opt in, configure exactly one annotation
+name and handler class, and identify exactly one marker source and one handler
+source beneath a bounded source root. The integration hashes deterministic
+label, normalized relative path, and exact source bytes into a distinct
+`sameModuleSourceIdentity` compiler input. The compiler suspends consumers
+before mutation, then loads the compiled handler from current output through a
+fresh, correctly parented, closed child loader.
+
+Exact Scala 3.3.8 and 3.8.4 clean/incremental CLI/Zinc and persistent sbt BSP
+handler-edit qualification pass. This does not establish live IntelliJ support;
+that qualification has not been run. Same-file marker/handler/consumer
+topologies, dependency cycles, automatic discovery, source-root escapes,
+multiple configured relationships, and broader scheduling remain rejected or
+unimplemented. See the experimental configuration in the
+[source-built sbt integration guide](../sbt-integration/README.md).
 
 Precompiled handlers remain the supported experimental path.
 

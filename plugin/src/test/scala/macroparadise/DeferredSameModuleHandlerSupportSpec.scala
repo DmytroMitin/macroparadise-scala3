@@ -112,3 +112,57 @@ class DeferredSameModuleHandlerSupportSpec extends munit.FunSuite:
       DeferredHandlerAction.RejectSameFile(path)
     )
   }
+
+  test("initial marker and consumer same-file topology is rejected") {
+    val marker = SourceIdentity.parse("demo/MarkerAndConsumer.scala").toOption.get
+    assertEquals(
+      decide(
+        RunKind.Initial,
+        "workspace/demo/MarkerAndConsumer.scala",
+        marker,
+        DependencyResolution.Missing
+      ),
+      DeferredHandlerAction.RejectMarkerConsumerSameFile(
+        "workspace/demo/MarkerAndConsumer.scala"
+      )
+    )
+  }
+
+  test("same-module source digest accepts only a sha256 token") {
+    val digest = "a" * 64
+    assertEquals(SourceDigest.parse("sha256:" + digest).map(_.value), Right("sha256:" + digest))
+    assert(SourceDigest.parse(digest).isLeft)
+    assert(SourceDigest.parse("sha256:" + "g" * 64).isLeft)
+    assert(SourceDigest.parse("sha256:" + "a" * 63).isLeft)
+  }
+
+  test("same-module configuration requires one relationship and one distinct source digest") {
+    val digest = "sha256:" + "a" * 64
+    val relationship =
+      "sameModuleHandler=demo.marker:demo.Handler:demo/Marker.scala:demo/Handler.scala"
+    val parsed = parseConfiguration(
+      List(relationship, "sameModuleSourceIdentity=" + digest)
+    ).map(_.map(configuration => (
+      configuration.annotationName,
+      configuration.handlerClassName,
+      configuration.markerSourceIdentity.value,
+      configuration.handlerSourceIdentity.value,
+      configuration.sourceDigest.value
+    )))
+    assertEquals(
+      parsed,
+      Right(
+        Some((
+          "demo.marker",
+          "demo.Handler",
+          "demo/Marker.scala",
+          "demo/Handler.scala",
+          digest
+        ))
+      )
+    )
+    assert(parseConfiguration(List(relationship)).isLeft)
+    assert(parseConfiguration(List("sameModuleSourceIdentity=" + digest)).isLeft)
+    assert(parseConfiguration(List(relationship, "sameModuleSourceIdentity=sha256:bad")).isLeft)
+    assertEquals(parseConfiguration(Nil), Right(None))
+  }

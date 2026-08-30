@@ -418,7 +418,8 @@ lazy val sameModuleHandlerSpike = (project in file("same-module-handler-spike"))
         s"-Xplugin:$pluginJar",
         "-Xplugin-require:macroparadise",
         s"-P:macroparadise:handlerClasspath=$currentOutput",
-        "-P:macroparadise:sameModuleHandler=sameModuleDebug:demo.SameModuleDebugExpander:demo/SameModuleDebugExpander.scala",
+        "-P:macroparadise:sameModuleHandler=sameModuleDebug:demo.SameModuleDebugExpander:demo/SameModuleDebugAnnotation.scala:demo/SameModuleDebugExpander.scala",
+        "-P:macroparadise:sameModuleSourceIdentity=sha256:0000000000000000000000000000000000000000000000000000000000000000",
         "-Xprint-suspension"
       )
     }
@@ -442,7 +443,8 @@ lazy val sameModuleHandlerSameFileSpike =
           s"-Xplugin:$pluginJar",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$currentOutput",
-          "-P:macroparadise:sameModuleHandler=sameFileDebug:demo.SameFileDebugExpander:demo/SameFileDebug.scala",
+          "-P:macroparadise:sameModuleHandler=sameFileDebug:demo.SameFileDebugExpander:demo/SameFileDebug.scala:demo/SameFileDebug.scala",
+          "-P:macroparadise:sameModuleSourceIdentity=sha256:0000000000000000000000000000000000000000000000000000000000000000",
           "-Xprint-suspension"
         )
       }
@@ -466,7 +468,8 @@ lazy val sameModuleHandlerCycleSpike =
           s"-Xplugin:$pluginJar",
           "-Xplugin-require:macroparadise",
           s"-P:macroparadise:handlerClasspath=$currentOutput",
-          "-P:macroparadise:sameModuleHandler=impossibleDebug:demo.DoesNotExistExpander:demo/MissingHandler.scala",
+          "-P:macroparadise:sameModuleHandler=impossibleDebug:demo.DoesNotExistExpander:demo/ImpossibleDebugAnnotation.scala:demo/MissingHandler.scala",
+          "-P:macroparadise:sameModuleSourceIdentity=sha256:0000000000000000000000000000000000000000000000000000000000000000",
           "-Xprint-suspension"
         )
       }

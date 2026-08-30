@@ -108,12 +108,18 @@ generated tree shape, names in scope, and exact target assumptions.
 
 ### Same-module stale output
 
-General incremental same-module support is not implemented. A bounded design
-exists for explicit different-file source mapping, content-sensitive build
-identity, compiler-unit suspension, and resumed consumers in CLI/Zinc/BSP
-builds, but no user-facing implementation or live IntelliJ qualification
-exists. Same-file handlers and cycles remain outside that design. Use the
-precompiled-handler starter for supported experimental evaluation.
+General incremental same-module support remains false. Unreleased `main` has an
+opt-in implementation of one explicit different-file Model A, qualified on
+exact Scala 3.3.8 and 3.8.4 through CLI/Zinc and persistent sbt BSP. Confirm
+that `scalacOptions` contains one `sameModuleHandler` relationship and one
+`sameModuleSourceIdentity=sha256:...` input, and that the marker and handler
+paths are distinct normalized relative paths beneath the configured source
+root. Empty, missing, duplicate, absolute, or escaping paths fail closed.
+
+The marker, handler, and consumer must be separate source files. Same-file
+topologies and cycles produce focused unsupported-model diagnostics. Live
+IntelliJ behavior has not been run, so use the precompiled-handler path when a
+currently supported experimental workflow is required.
 
 ### Precompiled-handler stale output
 

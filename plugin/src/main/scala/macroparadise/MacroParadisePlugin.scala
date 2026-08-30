@@ -54,7 +54,9 @@ private object ExternalHandlerLoading:
   final case class DeferredSameModuleHandler(
       annotationName: String,
       handlerClassName: String,
-      dependencySourceIdentity: DeferredSameModuleHandlerSupport.SourceIdentity
+      markerSourceIdentity: DeferredSameModuleHandlerSupport.SourceIdentity,
+      handlerSourceIdentity: DeferredSameModuleHandlerSupport.SourceIdentity,
+      sourceDigest: DeferredSameModuleHandlerSupport.SourceDigest
   )
 
   final case class LoadedHandlers(
@@ -245,39 +247,21 @@ private object ExternalHandlerLoading:
   private def parseDeferredSameModuleHandler(
       options: List[String]
   )(using Context): Option[DeferredSameModuleHandler] =
-    val rawEntries =
-      options.collect:
-        case option if option.startsWith("sameModuleHandler=") =>
-          option.stripPrefix("sameModuleHandler=")
-
-    if rawEntries.size > 1 then
-      report.error("the test-only `sameModuleHandler=` option accepts exactly one relationship")
-      None
-    else
-      rawEntries.headOption.flatMap: rawEntry =>
-        rawEntry.split(":", -1).toList.map(_.trim) match
-          case annotationName :: handlerClassName :: dependencySourceIdentity :: Nil
-              if annotationName.nonEmpty && handlerClassName.nonEmpty && dependencySourceIdentity.nonEmpty =>
-            DeferredSameModuleHandlerSupport.SourceIdentity
-              .parse(dependencySourceIdentity)
-              .fold(
-                message =>
-                  report.error(s"invalid test-only `sameModuleHandler=` option: $message")
-                  None,
-                identity =>
-                  Some(
-                    DeferredSameModuleHandler(
-                      annotationName,
-                      handlerClassName,
-                      identity
-                    )
-                  )
-              )
-          case _ =>
-            report.error(
-              "invalid test-only `sameModuleHandler=` option; expected `<annotationName>:<handlerClassName>:<normalizedDependencySourceIdentity>`"
-            )
-            None
+    DeferredSameModuleHandlerSupport.parseConfiguration(options) match
+      case Left(message) =>
+        report.error(s"invalid experimental same-module configuration: $message")
+        None
+      case Right(None) => None
+      case Right(Some(configuration)) =>
+        Some(
+          DeferredSameModuleHandler(
+            configuration.annotationName,
+            configuration.handlerClassName,
+            configuration.markerSourceIdentity,
+            configuration.handlerSourceIdentity,
+            configuration.sourceDigest
+          )
+        )
 
   def discoverMetadataHandlers(
       annotationRequests: Set[ExplicitImportAnnotationIdentityRequest],
@@ -448,14 +432,14 @@ private object ExternalHandlerLoading:
               DeferredLoadResult.Available(loaded)
             case Some(loaded) =>
               report.error(
-                s"test-only same-module handler `${deferred.handlerClassName}` claims `${loaded.descriptor.annotationName}` instead of configured annotation `${deferred.annotationName}`"
+                s"experimental same-module handler `${deferred.handlerClassName}` claims `${loaded.descriptor.annotationName}` instead of configured annotation `${deferred.annotationName}`"
               )
               DeferredLoadResult.Invalid
             case None =>
               DeferredLoadResult.Invalid
         case other =>
           report.error(
-            s"test-only same-module handler `${deferred.handlerClassName}` does not implement paradise3.api.ParadiseAnnotationExpander; got `${other.getClass.getName}`"
+            s"experimental same-module handler `${deferred.handlerClassName}` does not implement paradise3.api.ParadiseAnnotationExpander; got `${other.getClass.getName}`"
           )
           DeferredLoadResult.Invalid
     catch
@@ -465,12 +449,12 @@ private object ExternalHandlerLoading:
         val cause = Option(error.getCause).getOrElse(error)
         val message = Option(cause.getMessage).getOrElse(cause.getClass.getName)
         report.error(
-          s"test-only same-module handler `${deferred.handlerClassName}` failed to instantiate or initialize: $message"
+          s"experimental same-module handler `${deferred.handlerClassName}` failed to instantiate or initialize: $message"
         )
         DeferredLoadResult.Invalid
       case NonFatal(error) =>
         report.error(
-          s"could not load test-only same-module handler `${deferred.handlerClassName}`: ${error.getMessage}"
+          s"could not load experimental same-module handler `${deferred.handlerClassName}`: ${error.getMessage}"
         )
         DeferredLoadResult.Invalid
 
@@ -599,11 +583,16 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
         // Reading current run source paths does not mutate or process any other unit.
         // `ParadiseGenPhase.run` itself remains strictly per-unit.
         resolveDependency(
-          deferred.dependencySourceIdentity,
+          deferred.handlerSourceIdentity,
           ctx.run.units.map(_.source.file.path)
         )
 
-    decide(runKind, consumerPath, dependencyResolution) match
+    decide(
+      runKind,
+      consumerPath,
+      deferred.markerSourceIdentity,
+      dependencyResolution
+    ) match
       case DeferredHandlerAction.SuspendForCurrentRunDependency(dependencyPath) =>
         report.echo(
           s"[same-module-handler] run=initial unit=${unit.source.file.name} dependency=$dependencyPath action=suspend-before-load-and-mutation"
@@ -619,18 +608,23 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
         // and recompiles the suspended unit.
         CompilationUnitSuspension.suspend(
           unit,
-          s"waiting for same-module handler ${deferred.handlerClassName} from ${deferred.dependencySourceIdentity.value}"
+          s"waiting for same-module handler ${deferred.handlerClassName} from ${deferred.handlerSourceIdentity.value}"
         )
       case DeferredHandlerAction.LoadCompiledHandler(reason) =>
         loadAndRewriteDeferredConsumer(unit, deferred, reason)
       case DeferredHandlerAction.RejectSameFile(path) =>
         report.error(
-          s"test-only same-module handler `${deferred.handlerClassName}` cannot be defined and used in the same source file `$path`",
+          s"experimental same-module handler `${deferred.handlerClassName}` cannot be defined and used in the same source file `$path`; only explicit different-file Model A is implemented",
+          unit.untpdTree.sourcePos
+        )
+      case DeferredHandlerAction.RejectMarkerConsumerSameFile(path) =>
+        report.error(
+          s"experimental same-module marker `${deferred.annotationName}` and its consumer cannot share source file `$path`; only separate marker, handler, and consumer files are implemented",
           unit.untpdTree.sourcePos
         )
       case DeferredHandlerAction.RejectAmbiguousDependency(paths) =>
         report.error(
-          s"test-only same-module dependency `${deferred.dependencySourceIdentity.value}` is ambiguous in the current run; matched: ${paths.mkString(", ")}",
+          s"experimental same-module handler source `${deferred.handlerSourceIdentity.value}` is ambiguous in the current run; matched: ${paths.mkString(", ")}",
           unit.untpdTree.sourcePos
         )
 
@@ -659,12 +653,12 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
           reason match
             case LoadReason.ResumedRun =>
               report.error(
-                s"test-only same-module handler `${deferred.handlerClassName}` is unavailable after current-run dependency `${deferred.dependencySourceIdentity.value}` completed",
+                s"experimental same-module handler `${deferred.handlerClassName}` is unavailable after current-run dependency `${deferred.handlerSourceIdentity.value}` completed",
                 unit.untpdTree.sourcePos
               )
             case LoadReason.IncrementalFallback =>
               report.error(
-                s"test-only same-module dependency `${deferred.dependencySourceIdentity.value}` was not found in the current run and handler `${deferred.handlerClassName}` is unavailable from the configured handler classpath",
+                s"experimental same-module handler source `${deferred.handlerSourceIdentity.value}` was not found in the current run and handler `${deferred.handlerClassName}` is unavailable from current compilation outputs",
                 unit.untpdTree.sourcePos
               )
         case ExternalHandlerLoading.DeferredLoadResult.Invalid =>

@@ -4,6 +4,10 @@ This opt-in sbt plugin automates the precompiled Macro-Paradise marker/handler
 setup. It runs in sbt 1.x's Scala 2.12 plugin universe and has no Scala 3
 runtime dependency of its own.
 
+Unreleased `main` also contains a separate no-trigger plugin for one bounded,
+unsupported same-module different-file experiment. Enabling that plugin is an
+explicit choice and does not change the default precompiled path.
+
 It selects exact-full-cross compiler plugin and authoring API coordinates,
 keeps published handlers in a hidden configuration, and derives Zinc
 compiler-option identity from every explicit marker artifact plus the complete
@@ -139,6 +143,48 @@ The primary settings remain explicit overrides, including
 `macroParadisePrecheckEnabled`. `macroParadiseExternalArtifactIdentity` is a
 derived output in supported AutoPlugin mode; replacing it fails validation.
 
+## Experimental same-module different-file Model A
+
+This path is unreleased and unsupported. It is deliberately separate from
+`MacroParadisePrecompiledPlugin`, accepts exactly one explicit relationship,
+and supports only exact Scala 3.3.8 or 3.8.4:
+
+```scala
+import macroparadise.sbt.MacroParadiseSameModulePlugin
+
+enablePlugins(MacroParadiseSameModulePlugin)
+
+scalaVersion := "3.8.4" // or exact 3.3.8
+
+macroParadiseSameModuleBinding := Some(
+  macroParadiseSameModuleHandler(
+    annotationName = "demo.sameModuleDebug",
+    handlerClassName = "demo.SameModuleDebugExpander",
+    markerSource = macroParadiseLabelledSource(
+      "marker-source",
+      "demo/SameModuleDebugAnnotation.scala"
+    ),
+    handlerSource = macroParadiseLabelledSource(
+      "handler-source",
+      "demo/SameModuleDebugExpander.scala"
+    )
+  )
+)
+```
+
+Paths are normalized relative to `Compile / scalaSource` by default. The
+derived `macroParadiseSameModuleSourceIdentity` hashes each configured label,
+normalized path, and exact source bytes; it is distinct from the precompiled
+path's `macroParadiseExternalArtifactIdentity`. Absolute, missing, duplicate,
+or source-root-escaping paths fail closed.
+
+The marker definition, handler implementation, and every consumer must remain
+in separate source files. Same-file topologies, dependency cycles, automatic
+source discovery, and multiple relationships are not implemented. CLI/Zinc and
+persistent sbt BSP handler-edit qualification pass on both exact compiler
+lines, but live IntelliJ behavior has not been run and same-module support
+remains false.
+
 ## Manual alternative and verification
 
 Users who do not want the sbt integration can use the complete manual setup in
@@ -163,4 +209,5 @@ sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
 ```
 
 Neither command remotely publishes an sbt plugin, Maven artifact, tag, or
-release. General same-module handler support remains outside this slice.
+release. The bounded same-module implementation remains unreleased and
+unsupported pending separately authorized live IntelliJ qualification.
