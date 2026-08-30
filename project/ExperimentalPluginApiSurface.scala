@@ -18,8 +18,8 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "44811e37de551eae0a0d3db85d7be8d13bc7e5508878a69a149cd9f498813cbd",
-    "3.8.4" -> "7c49d90063927293ed72fcea41c769941c82cd02b5a69d2357644f8841166b96"
+    "3.3.8" -> "87e33503cabd2ddbd7a635dc361e56553ecb6786e6264183deab03bb051333a4",
+    "3.8.4" -> "e1e345dbf5458f030b25d1c4bd1f6dd840ed14653b2b8f6c7bef58e357ebe4a0"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -732,6 +732,8 @@ object ExperimentalPluginApiSurface {
         "paradise3/api/AnnotatedClassBodyView$DirectMethodStatus.class",
         "paradise3/api/AnnotatedClassBodyView$DirectTypeShape.class",
         "paradise3/api/AnnotatedClassBodyView$DirectVisibility.class",
+        "paradise3/api/AnnotatedClassTypeStructureView$Bound.class",
+        "paradise3/api/AnnotatedClassTypeStructureView$DirectTypeMemberKind.class",
         "paradise3/api/AnnotatedClassView$DefinitionKind.class",
         "paradise3/api/AnnotatedClassView$Variance.class",
         "paradise3/api/AnnotationTermArgument.class",

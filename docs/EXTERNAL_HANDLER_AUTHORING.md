@@ -207,11 +207,23 @@ sbt -batch verifyExternalHandlerAuthoringStarter
 `ExpansionInput` exposes compiler-sensitive untyped trees and bounded decoded
 views. `annotatedClassView` covers the top-level class and primary constructor;
 the unreleased `0.1.1-SNAPSHOT` `annotatedClassBodyView` covers ordered direct
-members and normalized direct-method structure. The latter is a syntactic,
-pre-typer, read-only view: it distinguishes absent, empty, ordinary, and
+members and normalized direct-method structure; and
+`annotatedClassTypeStructureView` separately covers enclosing type-parameter
+bounds plus direct type members without changing the existing view carriers.
+These are syntactic,
+pre-typer, read-only views. The body view distinguishes absent, empty, ordinary, and
 contextual parameter clauses; retains parameter order, defaults, visibility,
 annotations, positions, and abstract/concrete status; and classifies vals,
 vars, type members, nested definitions, and other direct members.
+
+`AnnotatedClassTypeStructureView.Bound` distinguishes an absent source bound
+from a present bound. A present bound contains the shared `DirectTypeShape`, so
+a supported simple source bound such as `Nat` is
+`Present(NamedType("Nat", pos))`, while applied, qualified, malformed, and
+other broader present forms remain `Present(Unsupported(...))`. Direct type
+members retain their body index and distinguish abstract bounds from aliases;
+their type parameters, meaningful lower bounds, visibility, annotations, and
+unsupported modifiers remain explicit for consumer-owned rejection.
 
 `AnnotatedClassBodyView.DirectTypeShape.EnclosingTypeParameter` is only a
 syntactic reference to an enclosing class type parameter. The separate
@@ -224,7 +236,7 @@ explicit `Unsupported` values for controlled consumer rejection. The decoder
 performs no typing, symbol or owner lookup, inheritance, alias expansion,
 subtype checking, or semantic overload analysis. Advanced exact-compiler
 handlers retain raw `ExpansionInput.annotatedClass` as the explicit escape
-hatch. Released `0.1.0` does not contain this body-view API.
+hatch. Released `0.1.0` does not contain these body-view or type-structure APIs.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
 for the common class shape. Helper methods can add one bounded method to a class

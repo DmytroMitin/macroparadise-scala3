@@ -2,6 +2,8 @@ package contractprobeconsumernegative
 
 import contractprobebody.IndependentBodyViewMarker
 
+trait Nat
+
 @IndependentBodyViewMarker
-trait UnsupportedBodyView[A]:
-  def show(a: A): List[String]
+trait UnsupportedBodyView[N <: Nat, M <: Nat]:
+  type Out = Nat

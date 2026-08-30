@@ -270,18 +270,22 @@ positive evidence remains bounded to the combinations in the test suite.
   cycles, and does not qualify live IntelliJ behavior.
 - The project does not provide arbitrary target shapes, arbitrary definition
   construction, arbitrary composition, typed tree construction, semantic
-  member analysis, or a stable public API. The bounded body view performs no
-  typing, symbol/owner lookup, inheritance, alias expansion, or overload
-  resolution. Its simple named-type case records only an unqualified syntactic
-  name such as `String`; applied, qualified, refined, function, and broader
-  shapes remain unsupported. Raw `ExpansionInput.annotatedClass` remains the
-  exact-compiler escape hatch.
+  member analysis, or a stable public API. The bounded body and type-structure
+  views perform no typing, symbol/owner lookup, inheritance, alias expansion,
+  subtyping, or overload resolution. The additive type-structure view makes
+  absent, present-supported, and present-unsupported source bounds distinct,
+  and separates abstract bounded direct type members from aliases,
+  polymorphic, modifier-bearing, and unsupported forms. Its shared simple
+  named-type case records only an unqualified syntactic name such as `String`
+  or `Nat`; applied, qualified, refined, function, and broader shapes remain
+  unsupported. Raw `ExpansionInput.annotatedClass` remains the exact-compiler
+  escape hatch.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
 - Top-level local publication is enabled only for the exact-cross plugin and
   handler API; the unreleased sbt module has separate local/test packaging.
-  Released `0.1.0` does not contain the unreleased direct-body view and has no
-  implied release cadence or production support commitment.
+  Released `0.1.0` does not contain the unreleased direct-body or type-structure
+  views and has no implied release cadence or production support commitment.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.

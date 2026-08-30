@@ -44,9 +44,14 @@ handler API therefore makes no cross-version binary or source compatibility
 promise.
 
 Unreleased `0.1.1-SNAPSHOT` also exposes a bounded syntactic pre-typer
-read-only direct-body view. Its tiny type algebra distinguishes a syntactic
+read-only direct-body view and a separate additive type-structure view. The
+type-structure view reports enclosing type-parameter bounds and ordered direct
+type members without changing existing case-class arities. It distinguishes an
+absent source bound from a present supported or present unsupported bound, and
+distinguishes abstract bounded members from aliases, polymorphic members, and
+modifier-bearing forms. Its tiny shared type algebra distinguishes a syntactic
 reference to an enclosing class type parameter from one syntactic unqualified
-simple type name such as `String`. The latter is not resolved to a package,
+simple type name such as `String` or `Nat`. The latter is not resolved to a package,
 symbol, alias, fully qualified identity, or semantically equal type. Applied,
 qualified, refined, function, and other broader forms remain unsupported; the
 view does not type trees or perform symbol/owner lookup, inheritance, alias

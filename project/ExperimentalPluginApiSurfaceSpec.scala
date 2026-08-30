@@ -76,12 +76,14 @@ object ExperimentalPluginApiSurfaceSpec {
         )
       )
     }
-    check("3.3.8 normalizes the bounded body-view enum encodings") {
+    check("3.3.8 normalizes the bounded structural-view enum encodings") {
       val enumRecords = Vector(
         "AnnotatedClassBodyView$DirectMemberKind",
         "AnnotatedClassBodyView$DirectMethodStatus",
         "AnnotatedClassBodyView$DirectTypeShape",
-        "AnnotatedClassBodyView$DirectVisibility"
+        "AnnotatedClassBodyView$DirectVisibility",
+        "AnnotatedClassTypeStructureView$Bound",
+        "AnnotatedClassTypeStructureView$DirectTypeMemberKind"
       ).map { name =>
         s"CLASS|paradise3/api/$name.class|HANDLER_CONTRACT|public abstract class paradise3.api.$name implements scala.reflect.Enum"
       }

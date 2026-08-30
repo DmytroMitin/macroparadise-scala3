@@ -130,6 +130,15 @@ final case class ExpansionInput(
   def annotatedClassBodyView(using Context): Either[ExpansionDiagnostic, AnnotatedClassBodyView] =
     AnnotatedClassBodyView.decode(annotatedClass)
 
+  /** Decode the bounded read-only enclosing-bound and direct type-member view.
+    *
+    * This additive convenience shares the body view's tiny syntactic type-shape
+    * algebra, preserves the raw `annotatedClass` escape hatch, and applies no
+    * typing or handler-specific admission policy.
+    */
+  def annotatedClassTypeStructureView(using Context): Either[ExpansionDiagnostic, AnnotatedClassTypeStructureView] =
+    AnnotatedClassTypeStructureView.decode(annotatedClass)
+
 /** Explicit result of an external handler expansion attempt.
   *
   * Returning an `ExpansionOutcome` keeps expected handler behavior out of

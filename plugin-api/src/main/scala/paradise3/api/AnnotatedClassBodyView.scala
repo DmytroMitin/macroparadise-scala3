@@ -52,6 +52,52 @@ object AnnotatedClassBodyView:
     case Unsupported(kind: String, summary: String, pos: SrcPos)
     case NamedType(name: String, pos: SrcPos)
 
+  object DirectTypeShape:
+    private[api] def decode(
+        rawType: untpd.Tree,
+        enclosingTypeParameters: Set[String],
+        localTypeParameters: Set[String],
+        localTypeParameterReferenceKind: String,
+        fallback: SrcPos
+    )(using Context): DirectTypeShape =
+      val pos = safePos(rawType, fallback)
+      rawType match
+        case identifier: Ident =>
+          Option(identifier.name) match
+            case None => DirectTypeShape.Unsupported("unqualified-reference", "<unknown>", pos)
+            case Some(rawName) =>
+              val name = safeName(rawName)
+              if localTypeParameters.contains(name) then
+                DirectTypeShape.Unsupported(localTypeParameterReferenceKind, name, pos)
+              else if enclosingTypeParameters.contains(name) then
+                DirectTypeShape.EnclosingTypeParameter(name, pos)
+              else if name == "<error>" || name == "<unknown>" then
+                DirectTypeShape.Unsupported("unqualified-reference", name, pos)
+              else DirectTypeShape.NamedType(name, pos)
+        case _: Function =>
+          DirectTypeShape.Unsupported("function-type", safeTreeDescription(rawType), pos)
+        case _: AppliedTypeTree =>
+          DirectTypeShape.Unsupported("applied-type", safeTreeDescription(rawType), pos)
+        case _: Select =>
+          DirectTypeShape.Unsupported("qualified-type", safeTreeDescription(rawType), pos)
+        case other if other.isEmpty =>
+          DirectTypeShape.Unsupported("inferred-or-missing-type", safeTreeDescription(other), pos)
+        case other =>
+          DirectTypeShape.Unsupported("unsupported-type", safeTreeDescription(other), pos)
+
+    private[api] def nullShape(kind: String, fallback: SrcPos): DirectTypeShape =
+      DirectTypeShape.Unsupported(kind, "<null>", fallback)
+
+    private def safePos(tree: untpd.Tree, fallback: SrcPos)(using Context): SrcPos =
+      try Option(tree.sourcePos).getOrElse(fallback)
+      catch case NonFatal(_) => fallback
+
+    private def safeName(name: Any | Null): String = Option(name).map(_.toString).getOrElse("<unknown>")
+
+    private def safeTreeDescription(tree: untpd.Tree): String =
+      try tree.getClass.getSimpleName
+      catch case NonFatal(_) => "unknown raw tree"
+
   final case class DirectMember(
       name: String,
       kind: DirectMemberKind,
@@ -335,32 +381,15 @@ object AnnotatedClassBodyView:
     Option(rawType) match
       case None => Left(failure("could not decode annotated class body view: null direct method type", fallback))
       case Some(value) =>
-        val pos = safePos(value, fallback)
-        val shape = value match
-          case identifier: Ident =>
-            Option(identifier.name) match
-              case None =>
-                DirectTypeShape.Unsupported("unqualified-reference", "<unknown>", pos)
-              case Some(rawName) =>
-                val name = safeName(rawName)
-                if methodTypeParameters.contains(name) then
-                  DirectTypeShape.Unsupported("method-type-parameter-reference", name, pos)
-                else if enclosingTypeParameters.contains(name) then
-                  DirectTypeShape.EnclosingTypeParameter(name, pos)
-                else if name == "<error>" || name == "<unknown>" then
-                  DirectTypeShape.Unsupported("unqualified-reference", name, pos)
-                else DirectTypeShape.NamedType(name, pos)
-          case _: Function =>
-            DirectTypeShape.Unsupported("function-type", safeTreeDescription(value), pos)
-          case _: AppliedTypeTree =>
-            DirectTypeShape.Unsupported("applied-type", safeTreeDescription(value), pos)
-          case _: Select =>
-            DirectTypeShape.Unsupported("qualified-type", safeTreeDescription(value), pos)
-          case other if other.isEmpty =>
-            DirectTypeShape.Unsupported("inferred-or-missing-type", safeTreeDescription(other), pos)
-          case other =>
-            DirectTypeShape.Unsupported("unsupported-type", safeTreeDescription(other), pos)
-        Right(shape)
+        Right(
+          DirectTypeShape.decode(
+            value,
+            enclosingTypeParameters,
+            methodTypeParameters,
+            "method-type-parameter-reference",
+            fallback
+          )
+        )
 
   private def requireList[A](value: List[A] | Null, label: String, pos: SrcPos): Either[ExpansionDiagnostic, List[A]] =
     Option(value).toRight(failure(s"could not decode annotated class body view: null $label", pos))

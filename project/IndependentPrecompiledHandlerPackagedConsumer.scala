@@ -31,7 +31,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
-  val ExpectedBodyViewRuntimeOutput = "show\n"
+  val ExpectedBodyViewRuntimeOutput = "N,M,Out\n"
   val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
   val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
   val ExpectedSelfTraitRuntimeOutput =
@@ -705,9 +705,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(exit == 0, s"independent body-view consumer compile failed with exit $exit")
     val outputs = regularRelativeFiles(output)
     val required = Set(
-      "contractprobeconsumer/IndependentShow.class",
-      "contractprobeconsumer/IndependentShow.tasty",
-      "contractprobeconsumer/IndependentShow$.class",
+      "contractprobeconsumer/IndependentAdd.class",
+      "contractprobeconsumer/IndependentAdd.tasty",
+      "contractprobeconsumer/IndependentAdd$.class",
       "contractprobeconsumer/IndependentBodyViewConsumer.class",
       "contractprobeconsumer/IndependentBodyViewConsumer$.class",
       "contractprobeconsumer/IndependentBodyViewConsumer.tasty"
@@ -720,7 +720,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobebody.IndependentBodyViewHandler"))
     require(invocationLines.size == 1, s"expected one body-view handler invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
     val javap = runProcess(
-      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentShow$"),
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentAdd$"),
       repositoryRoot,
       new File(evidenceDirectory, "body-view-positive/javap.log")
     )
@@ -1080,13 +1080,13 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "body-view-negative/compile.log"))
-    val diagnostic = "unsupported direct body shape for IndependentBodyViewMarker"
+    val diagnostic = "unsupported normalized type structure for IndependentBodyViewMarker"
     require(exit != 0, "unsupported body-view lane unexpectedly compiled")
     require(log.contains(diagnostic), s"unsupported body-view lane lacked controlled diagnostic: $log")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"unsupported body-view lane exposed an uncontrolled failure: $log")
     val outputs = regularRelativeFiles(output)
     require(outputs.isEmpty, s"unsupported body-view lane emitted partial output: ${outputs.mkString(", ")}")
-    NegativeEvidence("unsupported-direct-body-type", exit, diagnostic, outputs.size)
+    NegativeEvidence("alias-direct-type-member", exit, diagnostic, outputs.size)
   }
 
   private def compileMissingHandler(
