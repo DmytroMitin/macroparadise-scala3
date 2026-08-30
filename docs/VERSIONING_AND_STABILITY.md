@@ -18,8 +18,10 @@ stable compatibility promise.
   compiler internals.
 - Helper views and structured output reduce boilerplate but remain
   compiler-sensitive.
-- Same-module handling is a deferred research prototype, not supported public
-  behavior.
+- General same-module handling remains unsupported. Unreleased `main` has one
+  bounded opt-in different-file Model A that is experimentally supported only
+  in its enumerated exact-line CLI/Zinc, persistent sbt BSP, and sbt-delegated
+  IntelliJ workflows.
 - The released coordinate does not imply a release cadence or maintained
   compatibility line.
 

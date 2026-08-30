@@ -95,10 +95,13 @@ same-module compiler-input identity, suspends consumers before mutation, and
 resumes them with freshly compiled current output through a fresh child loader.
 Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP qualification pass.
 
-This is implementation evidence, not general support. Live IntelliJ behavior
-has not been run, and same-file marker/handler/consumer topologies, dependency
-cycles, automatic discovery, and multiple configured relationships remain
-rejected or unimplemented. Precompiled handlers remain the supported
+This is bounded experimental support, not general support. Live IntelliJ
+qualification passes on both exact lines only for an sbt-imported project with
+Build and Run delegated to sbt on JDK 25 and sbt 1.12.15, including
+handler-only edits without `clean`. Native JPS, same-file
+marker/handler/consumer topologies, dependency cycles, automatic discovery,
+and multiple configured relationships remain unqualified, rejected, or
+unimplemented. Precompiled handlers remain the broad/default supported
 experimental architecture.
 
 See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and

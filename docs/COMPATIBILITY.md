@@ -17,15 +17,18 @@ IntelliJ must import the build with sbt running on JDK 25. Packaged external-
 handler projects should delegate build and run actions to sbt so the exact
 plugin options, handler packaging dependency, and content identity are retained.
 This sbt-imported workflow is the qualified IDE path. Native JPS compilation is
-not currently qualified, and live same-module handler editing is not supported.
+not currently qualified. On unreleased `main`, the separate opt-in bounded
+different-file Model A is also qualified for live handler editing through this
+sbt-delegated workflow on both exact Scala lines; that does not establish
+general same-module or native JPS support.
 
 The separate source-built, unreleased sbt integration is also qualified through
 real persistent sbt BSP sessions for exact Scala `3.3.8` and `3.8.4`, sbt
 1.12.15, and JDK 25. One process is retained across no-op compilation,
 handler-only, handler-dependency-only, marker-metadata-only, and consumer-only
 edits, followed by stale-handler failure and repaired compilation without
-`clean`. This BSP qualification does not extend to native JPS, same-module
-handler authoring, or a remotely published sbt integration coordinate.
+`clean`. This BSP qualification does not extend to native JPS, broader
+same-module topologies, or a remotely published sbt integration coordinate.
 
 ## Plugin and handler compatibility
 

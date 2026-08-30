@@ -122,12 +122,14 @@ label, normalized relative path, and exact source bytes into a distinct
 before mutation, then loads the compiled handler from current output through a
 fresh, correctly parented, closed child loader.
 
-Exact Scala 3.3.8 and 3.8.4 clean/incremental CLI/Zinc and persistent sbt BSP
-handler-edit qualification pass. This does not establish live IntelliJ support;
-that qualification has not been run. Same-file marker/handler/consumer
-topologies, dependency cycles, automatic discovery, source-root escapes,
-multiple configured relationships, and broader scheduling remain rejected or
-unimplemented. See the experimental configuration in the
+Exact Scala 3.3.8 and 3.8.4 clean/incremental CLI/Zinc, persistent sbt BSP, and
+live sbt-delegated IntelliJ handler-edit qualification pass on JDK 25 and sbt
+1.12.15. The IntelliJ qualification includes baseline and no-op builds,
+handler-only and consumer-only edits without `clean`, and close/reopen with a
+fresh sbt session. Native IntelliJ/JPS compilation is not qualified. Same-file
+marker/handler/consumer topologies, dependency cycles, automatic discovery,
+source-root escapes, multiple configured relationships, and broader scheduling
+remain rejected or unimplemented. See the experimental configuration in the
 [source-built sbt integration guide](../sbt-integration/README.md).
 
 Precompiled handlers remain the supported experimental path.

@@ -4,9 +4,10 @@ This opt-in sbt plugin automates the precompiled Macro-Paradise marker/handler
 setup. It runs in sbt 1.x's Scala 2.12 plugin universe and has no Scala 3
 runtime dependency of its own.
 
-Unreleased `main` also contains a separate no-trigger plugin for one bounded,
-unsupported same-module different-file experiment. Enabling that plugin is an
-explicit choice and does not change the default precompiled path.
+Unreleased `main` also contains a separate no-trigger plugin for one bounded
+same-module different-file Model A, experimentally supported only in the
+enumerated exact-line workflows below. Enabling that plugin is an explicit
+choice and does not change the default precompiled path.
 
 It selects exact-full-cross compiler plugin and authoring API coordinates,
 keeps published handlers in a hidden configuration, and derives Zinc
@@ -145,7 +146,8 @@ derived output in supported AutoPlugin mode; replacing it fails validation.
 
 ## Experimental same-module different-file Model A
 
-This path is unreleased and unsupported. It is deliberately separate from
+This path is unreleased and experimentally supported only within its bounded
+qualified workflows. It is deliberately separate from
 `MacroParadisePrecompiledPlugin`, accepts exactly one explicit relationship,
 and supports only exact Scala 3.3.8 or 3.8.4:
 
@@ -180,10 +182,12 @@ or source-root-escaping paths fail closed.
 
 The marker definition, handler implementation, and every consumer must remain
 in separate source files. Same-file topologies, dependency cycles, automatic
-source discovery, and multiple relationships are not implemented. CLI/Zinc and
-persistent sbt BSP handler-edit qualification pass on both exact compiler
-lines, but live IntelliJ behavior has not been run and same-module support
-remains false.
+source discovery, and multiple relationships are not implemented. CLI/Zinc,
+persistent sbt BSP, and live sbt-delegated IntelliJ handler-edit qualification
+pass on both exact compiler lines with JDK 25 and sbt 1.12.15. The IntelliJ
+qualification includes no-op builds, a handler-only edit without `clean`, a
+consumer-only edit, and close/reopen with a fresh sbt session. Native JPS and
+general same-module support remain false.
 
 ## Manual alternative and verification
 
@@ -209,5 +213,7 @@ sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
 ```
 
 Neither command remotely publishes an sbt plugin, Maven artifact, tag, or
-release. The bounded same-module implementation remains unreleased and
-unsupported pending separately authorized live IntelliJ qualification.
+release. The bounded same-module implementation remains unreleased and is
+experimentally supported only for its enumerated exact-line CLI/Zinc,
+persistent sbt BSP, and sbt-delegated IntelliJ workflows. Precompiled handlers
+remain the broad/default supported experimental path.

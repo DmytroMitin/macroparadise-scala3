@@ -268,10 +268,14 @@ positive evidence remains bounded to the combinations in the test suite.
   Model A: one explicit marker source, one explicit handler source, exact
   source-byte identity, compiler-unit suspension, and fresh current-output
   handler loading. Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP
-  qualification pass, but live IntelliJ behavior has not been run. Same-file
-  marker/handler/consumer topologies, dependency cycles, automatic discovery,
-  and multiple configured relationships remain rejected or unimplemented, so
-  same-module support remains false.
+  qualification pass. Live IntelliJ qualification also passes on both exact
+  lines when the sbt-imported project delegates Build and Run to sbt on JDK 25
+  and sbt 1.12.15, including handler-only edits without `clean` and a fresh
+  session after close/reopen. Same-file marker/handler/consumer topologies,
+  dependency cycles, automatic discovery, multiple configured relationships,
+  and native IntelliJ/JPS compilation remain rejected, unimplemented, or
+  unqualified, so general same-module support remains false. Precompiled
+  handlers remain the broad/default supported experimental path.
 - The project does not provide arbitrary target shapes, arbitrary definition
   construction, arbitrary composition, typed tree construction, semantic
   member analysis, or a stable public API. The bounded body and type-structure

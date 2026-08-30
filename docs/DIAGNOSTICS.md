@@ -117,9 +117,12 @@ paths are distinct normalized relative paths beneath the configured source
 root. Empty, missing, duplicate, absolute, or escaping paths fail closed.
 
 The marker, handler, and consumer must be separate source files. Same-file
-topologies and cycles produce focused unsupported-model diagnostics. Live
-IntelliJ behavior has not been run, so use the precompiled-handler path when a
-currently supported experimental workflow is required.
+topologies and cycles produce focused unsupported-model diagnostics. On
+unreleased `main`, the bounded topology is qualified in IntelliJ only for an
+sbt-imported project with Build and Run delegated to sbt on JDK 25 and sbt
+1.12.15, across exact Scala 3.3.8 and 3.8.4. Native JPS and broader same-module
+topologies remain outside the claim; precompiled handlers remain the
+broad/default supported experimental path.
 
 ### Precompiled-handler stale output
 
