@@ -174,6 +174,94 @@ macroParadiseSameModuleBinding := Some(
 )
 ```
 
+The `demo` package, annotation, handler, source labels, and generated method
+below are examples, not reserved names. For the current bounded Model A, keep
+the configured `annotationName`, the handler's `annotationName`, and the
+consumer's raw annotation spelling identical. In particular, a qualified
+binding such as `demo.sameModuleDebug` currently requires the direct-qualified
+consumer spelling `@demo.sameModuleDebug`. Imported-short canonicalization is
+supported by the precompiled-handler path but is not a same-module scheduling
+trigger in this bounded implementation.
+
+A minimal fresh downstream source layout is:
+
+```text
+project/build.properties
+project/plugins.sbt
+build.sbt
+src/main/scala/demo/SameModuleDebugAnnotation.scala
+src/main/scala/demo/SameModuleDebugExpander.scala
+src/main/scala/demo/SameModuleDebugUsage.scala
+```
+
+Pin the external build and use the locally installed integration:
+
+```text
+# project/build.properties
+sbt.version=1.12.15
+```
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1-SNAPSHOT")
+```
+
+Use the `build.sbt` configuration above, then define the marker in its own
+file:
+
+```scala
+// src/main/scala/demo/SameModuleDebugAnnotation.scala
+package demo
+
+import paradise3.api.expander
+import scala.annotation.StaticAnnotation
+
+@expander("demo.SameModuleDebugExpander")
+final class sameModuleDebug extends StaticAnnotation
+```
+
+Define the handler in a second file. The generated string is an observable
+runtime token for incremental checks:
+
+```scala
+// src/main/scala/demo/SameModuleDebugExpander.scala
+package demo
+
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+import paradise3.api.helpers.ExpansionHelpers
+
+final class SameModuleDebugExpander extends ParadiseAnnotationExpander:
+  override def annotationName: String =
+    "demo.sameModuleDebug"
+
+  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionHelpers.addStringMethodToClass(
+      input,
+      methodName = "sameModuleToken",
+      value = "same-module-v1"
+    )
+```
+
+Use it from a third file with the current direct-qualified spelling:
+
+```scala
+// src/main/scala/demo/SameModuleDebugUsage.scala
+package demo
+
+@demo.sameModuleDebug
+class SameModuleUser
+
+object SameModuleDebugUsage:
+  def main(args: Array[String]): Unit =
+    println(new SameModuleUser().sameModuleToken)
+```
+
+Run `sbt -batch "runMain demo.SameModuleDebugUsage"` and expect
+`same-module-v1`. To check the documented incremental envelope, edit only the
+handler token to `same-module-v2`, run `sbt -batch compile` without `clean`,
+and run the unchanged consumer again. The output must be `same-module-v2`.
+
 Paths are normalized relative to `Compile / scalaSource` by default. The
 derived `macroParadiseSameModuleSourceIdentity` hashes each configured label,
 normalized path, and exact source bytes; it is distinct from the precompiled

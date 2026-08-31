@@ -200,6 +200,12 @@ are delegated to sbt, including handler-only edits without `clean`. This does
 not make the integration a remotely published sbt plugin, establish general
 same-module support, or qualify IntelliJ native JPS compilation.
 
+The bounded Model-A copy/paste source layout is in the
+[source-built integration guide](../sbt-integration/README.md#experimental-same-module-different-file-model-a).
+Its current qualified binding uses direct-qualified consumer annotation syntax;
+the precompiled path's imported-short canonicalization is not a same-module
+scheduling trigger.
+
 Successful unchanged-class compilation proves marker discovery, metadata
 binding, canonicalization, handler loading, and one handler invocation. It does
 not depend on generated-member helpers or more involved tree construction.

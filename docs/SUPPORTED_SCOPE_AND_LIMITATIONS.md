@@ -122,6 +122,12 @@ label, normalized relative path, and exact source bytes into a distinct
 before mutation, then loads the compiled handler from current output through a
 fresh, correctly parented, closed child loader.
 
+The current bounded scheduler matches the configured annotation against raw
+consumer syntax before the normal precompiled-handler import canonicalization
+step. A qualified same-module binding therefore uses the identical
+direct-qualified consumer spelling; imported-short syntax is not currently a
+same-module scheduling trigger.
+
 Exact Scala 3.3.8 and 3.8.4 clean/incremental CLI/Zinc, persistent sbt BSP, and
 live sbt-delegated IntelliJ handler-edit qualification pass on JDK 25 and sbt
 1.12.15. The IntelliJ qualification includes baseline and no-op builds,
