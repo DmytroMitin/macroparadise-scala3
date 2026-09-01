@@ -18,8 +18,8 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "fe8569c3140639ee36807b8a683038feafd1f9cdaa5bd111decfa61817d67c47",
-    "3.8.4" -> "8caf5f0f05c87043b2cd86c6035afe42a3e7078c544849f0bfc0eab0396258c5"
+    "3.3.8" -> "2a77b1dbac8fa7ba874afd130bcd421f58fec185f7427f897806a107c35de5a7",
+    "3.8.4" -> "9360edfb1ee568cd7fe4fd93f07214fc4592f4e1da7ecaec8afd1d2924a62ed8"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -65,6 +65,8 @@ object ExperimentalPluginApiSurface {
     "paradise3/malformedMissingPrimary.class",
     "paradise3/metadataEmpty.class",
     "paradise3/metadataMissing.class",
+    "paradise3/mixedRestrictedCompanion.class",
+    "paradise3/mixedUnionCompanion.class",
     "paradise3/structuredNullAdditionalElement.class",
     "paradise3/structuredNullAdditionalList.class",
     "paradise3/structuredNullCompanion.class",

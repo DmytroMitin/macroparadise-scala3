@@ -1728,17 +1728,7 @@ private object ParadiseTreeRewrite:
               typeDef.sourcePos
             )
           )
-        case None =>
-          val profiles = annotations.map(_.expander.targetAdmissionProfile).distinct
-          if profiles.size == 1 then None
-          else
-            Some(
-              ExpansionDiagnostic(
-                s"composition admission failure: stage=admission category=INCOMPATIBLE_COMPOSITION_TARGET_PROFILES " +
-                  s"annotations=$namesInSourceOrder (source order) profiles=${profiles.mkString(", ")}",
-                typeDef.sourcePos
-              )
-            )
+        case None => None
 
   private def spliceExpansionResult(
       result: ValidatedExpansionResult,
@@ -1832,30 +1822,55 @@ private object ParadiseTreeRewrite:
         Some(ExpansionDiagnostic(rejection.message, rejection.pos))
       case Right(view) =>
         val labels = HandledAnnotations.annotationLabel(matching)
+        val profiles = matching.map(_.targetAdmissionProfile).distinct
         val profileRejection =
-          if matching.nonEmpty && matching.forall(
-              _.targetAdmissionProfile == TargetAdmissionProfile.RestrictedGenericTraitApply
-            )
-          then AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(view, labels)
-          else if matching.nonEmpty && matching.forall(
-            _.targetAdmissionProfile == TargetAdmissionProfile.TwoUpperBoundedGenericTrait
-          )
-          then AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(view, labels)
-          else if matching.nonEmpty && matching.forall(
-            _.targetAdmissionProfile == TargetAdmissionProfile.PlainZeroParameterTrait
-          )
-          then AnnotatedClassAdmission.plainZeroParameterTraitRejection(view, labels)
-          else if matching.nonEmpty && matching.forall(
-            _.targetAdmissionProfile == TargetAdmissionProfile.RestrictedOrTwoUpperBoundedGenericTrait
-          )
-          then AnnotatedClassAdmission.restrictedOrTwoUpperBoundedGenericTraitRejection(view, labels)
-          else AnnotatedClassAdmission.commonRejection(view, labels)
+          profiles match
+            case profile :: Nil =>
+              targetProfileRejection(view, labels, profile)
+            case _ =>
+              matching.iterator
+                .flatMap: expander =>
+                  targetProfileRejection(
+                    view,
+                    s"@${expander.annotationName}",
+                    expander.targetAdmissionProfile
+                  )
+                .nextOption()
         profileRejection
           .orElse:
             matching.iterator
               .flatMap(_.admissionRejection(view))
               .nextOption()
           .map(rejection => ExpansionDiagnostic(rejection.message, rejection.pos))
+
+  private def targetProfileRejection(
+      view: AnnotatedClassView,
+      annotationLabel: String,
+      profile: TargetAdmissionProfile
+  ): Option[AnnotatedClassAdmission.Rejection] =
+    profile match
+      case TargetAdmissionProfile.CommonClassOnly =>
+        AnnotatedClassAdmission.commonRejection(view, annotationLabel)
+      case TargetAdmissionProfile.RestrictedGenericTraitApply =>
+        AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(
+          view,
+          annotationLabel
+        )
+      case TargetAdmissionProfile.TwoUpperBoundedGenericTrait =>
+        AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(
+          view,
+          annotationLabel
+        )
+      case TargetAdmissionProfile.PlainZeroParameterTrait =>
+        AnnotatedClassAdmission.plainZeroParameterTraitRejection(
+          view,
+          annotationLabel
+        )
+      case TargetAdmissionProfile.RestrictedOrTwoUpperBoundedGenericTrait =>
+        AnnotatedClassAdmission.restrictedOrTwoUpperBoundedGenericTraitRejection(
+          view,
+          annotationLabel
+        )
 
   private def unsupportedTypeDefTarget(typeDef: TypeDef)(using Context): String =
     val prefix =

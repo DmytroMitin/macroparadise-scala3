@@ -76,7 +76,7 @@ object PluginApiSourceProjectSplitPolicy {
     val contractSources = sources(repositoryRoot, "plugin-api")
     val markerSources = sources(repositoryRoot, "plugin-test-markers")
     require(contractSources.size == 12, s"expected twelve contract sources, found ${contractSources.size}")
-    require(markerSources.size == 20, s"expected twenty marker sources, found ${markerSources.size}")
+    require(markerSources.size == 22, s"expected twenty-two marker sources, found ${markerSources.size}")
     require(
       contractSources.forall(_.replace(File.separatorChar, '/').contains("/paradise3/api/")),
       s"contract source escaped paradise3/api: ${contractSources.mkString(", ")}"
@@ -109,7 +109,10 @@ object PluginApiSourceProjectSplitPolicy {
         "paradise3.externalSiblingDebug" -> "demo.ExternalSiblingDebugExpander",
         "paradise3.externalTypedLabel" -> "demo.ExternalTypedLabelExpander",
         "paradise3.metadataEmpty" -> "",
-        "paradise3.metadataMissing" -> "missing.DoesNotExist"
+        "paradise3.metadataMissing" -> "missing.DoesNotExist",
+        "paradise3.mixedRestrictedCompanion" ->
+          "demo.MixedRestrictedCompanionExpander",
+        "paradise3.mixedUnionCompanion" -> "demo.MixedUnionCompanionExpander"
       )
       metadata.foreach {
         case (name, expected) =>

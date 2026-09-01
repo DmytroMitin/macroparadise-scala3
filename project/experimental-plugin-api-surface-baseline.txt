@@ -149,6 +149,8 @@ CLASS|paradise3/malformedLateCompanion.class|INTEGRATION_FIXTURE_MARKER|public f
 CLASS|paradise3/malformedMissingPrimary.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.malformedMissingPrimary extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/metadataEmpty.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.metadataEmpty extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/metadataMissing.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.metadataMissing extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/mixedRestrictedCompanion.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.mixedRestrictedCompanion extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
+CLASS|paradise3/mixedUnionCompanion.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.mixedUnionCompanion extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/structuredNullAdditionalElement.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullAdditionalElement extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/structuredNullAdditionalList.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullAdditionalList extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
 CLASS|paradise3/structuredNullCompanion.class|INTEGRATION_FIXTURE_MARKER|public final class paradise3.structuredNullCompanion extends scala.annotation.Annotation implements scala.annotation.StaticAnnotation
@@ -1853,6 +1855,8 @@ RESOURCE|paradise3/malformedLateCompanion.tasty|SCALA_TASTY
 RESOURCE|paradise3/malformedMissingPrimary.tasty|SCALA_TASTY
 RESOURCE|paradise3/metadataEmpty.tasty|SCALA_TASTY
 RESOURCE|paradise3/metadataMissing.tasty|SCALA_TASTY
+RESOURCE|paradise3/mixedRestrictedCompanion.tasty|SCALA_TASTY
+RESOURCE|paradise3/mixedUnionCompanion.tasty|SCALA_TASTY
 RESOURCE|paradise3/structuredNullAdditionalElement.tasty|SCALA_TASTY
 RESOURCE|paradise3/structuredNullAdditionalList.tasty|SCALA_TASTY
 RESOURCE|paradise3/structuredNullCompanion.tasty|SCALA_TASTY
@@ -1866,4 +1870,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=8caf5f0f05c87043b2cd86c6035afe42a3e7078c544849f0bfc0eab0396258c5
+normalized-sha256=9360edfb1ee568cd7fe4fd93f07214fc4592f4e1da7ecaec8afd1d2924a62ed8

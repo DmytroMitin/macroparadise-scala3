@@ -1503,34 +1503,91 @@ class ConflictSpec extends munit.FunSuite:
     )
   }
 
-  test("mixed target profiles reject before any handler invocation") {
+  test("mixed target profiles reject before invocation when one participant excludes the target") {
     val (outcome, invocations) =
       compileSnippetWithInvocationTrace(
         """package compositioncontract
           |
-          |import paradise3.externalDebug
-          |import scala.annotation.StaticAnnotation
+          |import paradise3.{mixedRestrictedCompanion, mixedUnionCompanion}
           |
-          |final class compositionRestrictedProfile extends StaticAnnotation
+          |trait MixedProfileBound
           |
-          |@externalDebug
-          |@compositionRestrictedProfile
-          |class MixedTargetProfilesUser
+          |@mixedUnionCompanion
+          |@mixedRestrictedCompanion
+          |trait MixedTargetProfilesOutside[
+          |  A <: MixedProfileBound,
+          |  B <: MixedProfileBound
+          |]
           |""".stripMargin,
         Seq(
-          s"-P:macroparadise:handlerClasspath=$handlerJar",
-          "-P:macroparadise:handler=demo.CompositionRestrictedProfileExpander"
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
         )
       )
 
-    assertBoundaryDiagnostic(
-      outcome,
-      "admission",
-      "category=INCOMPATIBLE_COMPOSITION_TARGET_PROFILES",
-      "@externalDebug, @compositionRestrictedProfile (source order)",
-      "CommonClassOnly, RestrictedGenericTraitApply"
-    )
+    outcome match
+      case CompileOutcome.ReportedErrors(messages, outputFiles) =>
+        val diagnostic = messages.mkString("\n")
+        assert(
+          diagnostic.contains(
+            "@mixedRestrictedCompanion requires one top-level non-sealed ordinary trait with exactly one invariant, ordinary unbounded type parameter"
+          ),
+          diagnostic
+        )
+        assert(diagnostic.contains("found 2 type parameters"), diagnostic)
+        assert(!diagnostic.contains("INCOMPATIBLE_COMPOSITION_TARGET_PROFILES"), diagnostic)
+        assertEquals(
+          outputFiles,
+          Nil,
+          s"unexpected partial class/Tasty output: ${outputFiles.mkString(", ")}"
+        )
+      case CompileOutcome.Threw(throwable, outputFiles) =>
+        fail(
+          s"expected participant-specific admission diagnostic, got ${throwable.getClass.getName}: " +
+            s"${throwable.getMessage}; outputs=${outputFiles.mkString(", ")}"
+        )
+      case other =>
+        fail(s"expected participant-specific admission diagnostic, got $other")
     assertEquals(invocations, Nil)
+  }
+
+  test("mixed-profile late failure invokes both participants and rolls back the companion transaction") {
+    val (outcome, invocations) =
+      compileSnippetWithInvocationTrace(
+        """package compositioncontract
+          |
+          |import paradise3.{mixedRestrictedCompanion, mixedUnionCompanion}
+          |
+          |@mixedUnionCompanion
+          |@mixedRestrictedCompanion
+          |trait MixedProfileLateFailureUser[A]
+          |
+          |object MixedProfileLateFailureUser:
+          |  val preserved: Int = 126
+          |
+          |object MixedProfileLateFailureWitness:
+          |  val preserved: Int = MixedProfileLateFailureUser.preserved
+          |""".stripMargin,
+        Seq(
+          s"-P:macroparadise:handlerClasspath=$handlerJar"
+        )
+      )
+
+    assertInvocationProtocolDiagnostic(
+      outcome,
+      "NONFATAL_EXCEPTION",
+      "annotation=@mixedRestrictedCompanion",
+      "handler=demo.MixedRestrictedCompanionExpander",
+      "class=MixedProfileLateFailureUser",
+      "cause=java.lang.IllegalStateException",
+      "message=mixed-profile late-step fixture failure"
+    )
+    assertEquals(
+      invocations,
+      List(
+        "handler=demo.MixedUnionCompanionExpander annotation=mixedUnionCompanion class=MixedProfileLateFailureUser",
+        "handler=demo.MixedRestrictedCompanionExpander annotation=mixedRestrictedCompanion class=MixedProfileLateFailureUser"
+      )
+    )
   }
 
   test("raw output validation remains active inside source-ordered composition") {

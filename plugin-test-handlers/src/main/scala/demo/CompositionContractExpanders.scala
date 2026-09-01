@@ -9,7 +9,6 @@ import paradise3.api.{
   ExpansionCompositionPolicy,
   ExpansionInput,
   ExpansionOutcome,
-  ExpansionTargetProfile,
   ParadiseAnnotationExpander
 }
 
@@ -219,13 +218,3 @@ final class CompositionFailsAfterCompanionAndSiblingExpander extends ParadiseAnn
     throw new IllegalStateException(
       "late companion and sibling composition fixture failure"
     )
-
-final class CompositionRestrictedProfileExpander extends ParadiseAnnotationExpander:
-  val annotationName: String = "compositionRestrictedProfile"
-  override val compositionPolicy: ExpansionCompositionPolicy =
-    ExpansionCompositionPolicy.SourceOrdered
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.RestrictedGenericTraitApply
-
-  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionOutcome.NotApplicable

@@ -8,7 +8,9 @@ import dotty.tools.dotc.util.SrcPos
 enum ExpansionCompositionPolicy:
   /** Preserve the safe historical behavior: the handler is admitted only by itself. */
   case StandaloneOnly
-  /** Opt into source-ordered composition subject to plugin-owned admission and verification. */
+  /** Opt into source-ordered composition subject to independent plugin-owned
+    * target admission for every participant and output verification.
+    */
   case SourceOrdered
 
 /** Exact-build target envelope requested by an experimental external handler.
@@ -63,8 +65,9 @@ trait ParadiseAnnotationExpander:
   /** Composition capability snapshotted by the plugin before expansion.
     *
     * The safe default keeps pre-existing handlers standalone. `SourceOrdered`
-    * is only an opt-in to plugin-owned orchestration; it does not bypass target
-    * admission or output and annotation-preservation validation.
+    * is only an opt-in to plugin-owned orchestration; it does not bypass each
+    * participant's target admission or output and annotation-preservation
+    * validation.
     */
   def compositionPolicy: ExpansionCompositionPolicy =
     ExpansionCompositionPolicy.StandaloneOnly

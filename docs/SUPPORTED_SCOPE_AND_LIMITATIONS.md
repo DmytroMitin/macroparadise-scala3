@@ -98,7 +98,10 @@ declares the matching qualified identity.
 
 Handlers default to `StandaloneOnly`. A handler may opt into `SourceOrdered`,
 but a multi-annotation stack is admitted only when every participant opts in,
-all participants share one target profile, and all admission checks succeed.
+and all admission checks succeed. Source-ordered handlers may use different
+existing closed target profiles when the concrete target independently
+satisfies every participant's profile. The coordinator does not synthesize an
+intersection profile or expose profile algebra.
 
 After each successful step, the plugin requires the returned primary to consume
 the current annotation and preserve all later handled annotation objects in

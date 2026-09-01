@@ -207,6 +207,36 @@ class ExampleSpec extends munit.FunSuite:
     assertEquals(ExternalSameTargetCompositionExample.unhandledMarkerValue, "kept")
   }
 
+  test("different closed profiles compose union then restricted on their shared trait target") {
+    assertEquals(
+      MixedClosedProfileCompositionExample.unionThenRestrictedUnionResult,
+      "MixedProfileUnionThenRestricted"
+    )
+    assertEquals(
+      MixedClosedProfileCompositionExample.unionThenRestrictedRestrictedResult,
+      "MixedProfileUnionThenRestricted"
+    )
+    assertEquals(
+      MixedClosedProfileCompositionExample.unionThenRestrictedPreserved,
+      42
+    )
+  }
+
+  test("different closed profiles compose restricted then union on their shared trait target") {
+    assertEquals(
+      MixedClosedProfileCompositionExample.restrictedThenUnionRestrictedResult,
+      "MixedProfileRestrictedThenUnion"
+    )
+    assertEquals(
+      MixedClosedProfileCompositionExample.restrictedThenUnionUnionResult,
+      "MixedProfileRestrictedThenUnion"
+    )
+    assertEquals(
+      MixedClosedProfileCompositionExample.restrictedThenUnionPreserved,
+      84
+    )
+  }
+
   test("external typed label composition preserves a parameterized later annotation") {
     assertEquals(ExternalTypedLabelCompositionExample.directDebugResult, "ExternalTypedLabelUser")
     assertEquals(ExternalTypedLabelCompositionExample.directTypedLabelResult, "kept")
