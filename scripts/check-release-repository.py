@@ -12,11 +12,17 @@ from pathlib import Path
 
 GROUP = "com.github.dmytromitin"
 GROUP_PATH = Path("com/github/dmytromitin")
-VERSION = "0.1.0"
-SCALA_VERSION = "3.8.4"
-PLUGIN_API = f"macroparadise-scala3-plugin-api_{SCALA_VERSION}"
-PLUGIN = f"macroparadise-scala3-plugin_{SCALA_VERSION}"
-MODULES = (PLUGIN_API, PLUGIN)
+VERSION = "0.1.1"
+SCALA_VERSIONS = ("3.3.8", "3.8.4", "3.9.0")
+PLUGIN_APIS = tuple(f"macroparadise-scala3-plugin-api_{version}" for version in SCALA_VERSIONS)
+PLUGINS = tuple(f"macroparadise-scala3-plugin_{version}" for version in SCALA_VERSIONS)
+SBT_MODULE = "sbt-macroparadise_2.12_1.0"
+MODULES = tuple(module for pair in zip(PLUGIN_APIS, PLUGINS) for module in pair) + (SBT_MODULE,)
+MODULE_SCALA_VERSION = {
+    module: version
+    for version, pair in zip(SCALA_VERSIONS, zip(PLUGIN_APIS, PLUGINS))
+    for module in pair
+}
 CLASSIFIERS = ("", "-sources", "-javadoc")
 CHECKSUMS = ("md5", "sha1", "sha256", "sha512")
 PROJECT_URL = "https://github.com/DmytroMitin/macroparadise-scala3"
@@ -100,11 +106,17 @@ def pom_dependencies(path: Path, module: str, errors: list[str]) -> list[dict[st
         for item in dependencies
         if item["scope"] != "test"
     }
-    compiler = ("org.scala-lang", "scala3-compiler_3", SCALA_VERSION)
-    if compiler not in compile_coordinates:
-        errors.append(f"POM_COMPILER_DEPENDENCY_INVALID:{module}")
-    if module == PLUGIN and (GROUP, PLUGIN_API, VERSION) in compile_coordinates:
-        errors.append(f"POM_PLUGIN_API_DEPENDENCY_UNNECESSARY:{module}")
+    if module in MODULE_SCALA_VERSION:
+        compiler = ("org.scala-lang", "scala3-compiler_3", MODULE_SCALA_VERSION[module])
+        if compiler not in compile_coordinates:
+            errors.append(f"POM_COMPILER_DEPENDENCY_INVALID:{module}")
+    else:
+        if any(group == "org.scala-lang" and artifact.startswith("scala3") for group, artifact, _ in compile_coordinates):
+            errors.append(f"POM_SBT_SCALA3_DEPENDENCY_FORBIDDEN:{module}")
+    if module in PLUGINS:
+        plugin_api = module.replace("macroparadise-scala3-plugin_", "macroparadise-scala3-plugin-api_")
+        if (GROUP, plugin_api, VERSION) in compile_coordinates:
+            errors.append(f"POM_PLUGIN_API_DEPENDENCY_UNNECESSARY:{module}")
     return sorted(dependencies, key=lambda item: (item["scope"], item["group"], item["artifact"]))
 
 
@@ -181,7 +193,7 @@ def check(
         coordinates.append(
             {
                 "coordinate": f"{GROUP}:{module}:{VERSION}",
-                "scala_compiler_line": SCALA_VERSION,
+                "scala_compiler_line": MODULE_SCALA_VERSION.get(module, "sbt-1.x/scala-2.12"),
                 "files": files,
                 "pom_dependencies": dependencies,
             }
@@ -207,23 +219,23 @@ def check(
     ).encode("utf-8")
 
     manifest: dict[str, object] = {
-        "schema": "macroparadise-release-candidate-manifest-v2",
+        "schema": "macroparadise-release-candidate-manifest-v3",
         "source_identity": source_identity,
         "source": {
             "identity": source_identity,
             "status": source_status,
         },
         "candidate_version": VERSION,
-        "scala_compiler_line": SCALA_VERSION,
+        "scala_compiler_lines": list(SCALA_VERSIONS),
         "release_contract": {
             "organization": GROUP,
             "version": VERSION,
-            "scala_full_version": SCALA_VERSION,
+            "scala_full_versions": list(SCALA_VERSIONS),
             "jdk_feature": 25,
             "sbt_version": "1.12.15",
             "plugin_name": "macroparadise",
-            "future_tag_if_separately_authorized": "v0.1.0",
-            "publication_allowlist": ["pluginApi", "plugin"],
+            "future_tag_if_separately_authorized": "v0.1.1",
+            "publication_allowlist": [*MODULES],
             "nightly_resolver_required": False,
         },
         "license": {
@@ -256,7 +268,7 @@ def markdown(manifest: dict[str, object]) -> str:
         "",
         f"Source: `{manifest['source_identity']}`",
         f"Version: `{manifest['candidate_version']}`",
-        f"Scala: `{manifest['scala_compiler_line']}`",
+        f"Scala: `{', '.join(manifest['scala_compiler_lines'])}`",
         "Signing: `OWNER_GATED_NOT_SIGNED`",
         "",
     ]

@@ -14,7 +14,7 @@ ThisBuild / publish / skip := true
 
 Global / onLoad := { state =>
   require(
-    Set("3.3.8", "3.8.4").contains(ExactScalaVersion),
+    Set("3.3.8", "3.8.4", "3.9.0").contains(ExactScalaVersion),
     s"unsupported exact Scala line $ExactScalaVersion"
   )
   val actual = java.lang.Runtime.version().feature()

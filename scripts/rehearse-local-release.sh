@@ -19,22 +19,41 @@ mkdir -p "$raw_repository" "$candidate_repository"
 
 (
   cd "$repository_root"
+  for scala_version in 3.3.8 3.8.4 3.9.0; do
+    sbt -Dmacroparadise.exactScalaVersion="$scala_version" -batch \
+      "++$scala_version!" \
+      "set ThisBuild / version := \"0.1.1\"" \
+      "set ThisBuild / publishTo := Some(Resolver.file(\"release-candidate-task-local\", file(\"$raw_repository\"))(Resolver.mavenStylePatterns))" \
+      "set ThisBuild / credentials := Nil" \
+      "pluginApi/clean" \
+      "plugin/clean" \
+      "pluginApi/publish" \
+      "plugin/publish"
+  done
+)
+
+(
+  cd "$repository_root/sbt-integration"
   sbt -batch \
+    "set ThisBuild / version := \"0.1.1\"" \
     "set ThisBuild / publishTo := Some(Resolver.file(\"release-candidate-task-local\", file(\"$raw_repository\"))(Resolver.mavenStylePatterns))" \
     "set ThisBuild / credentials := Nil" \
-    "pluginApi/clean" \
-    "plugin/clean" \
-    "pluginApi/publish" \
-    "plugin/publish"
+    clean \
+    publish
 )
 
 group_path="com/github/dmytromitin"
-version="0.1.0"
-scala_version="3.8.4"
-modules=(
-  "macroparadise-scala3-plugin-api_${scala_version}"
-  "macroparadise-scala3-plugin_${scala_version}"
-)
+version="0.1.1"
+scala_versions=("3.3.8" "3.8.4" "3.9.0")
+sbt_module="sbt-macroparadise_2.12_1.0"
+modules=()
+for scala_version in "${scala_versions[@]}"; do
+  modules+=(
+    "macroparadise-scala3-plugin-api_${scala_version}"
+    "macroparadise-scala3-plugin_${scala_version}"
+  )
+done
+modules+=("$sbt_module")
 
 for module in "${modules[@]}"; do
   raw_directory="$raw_repository/$group_path/$module/$version"

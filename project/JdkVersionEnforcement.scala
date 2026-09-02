@@ -63,7 +63,7 @@ object JdkVersionEnforcement {
         .getOrElse("feature unavailable")
 
     s"Unsupported JVM for macroparadise-scala3: detected JVM version `${detected.display}` ($featureText); required major version is 25. " +
-      "This project is pinned to JDK 25 because it uses compiler-internal exact Scala 3.3.8/3.8.4 pre-typer plugin toolchains. " +
+      "This project is pinned to JDK 25 because it uses compiler-internal exact Scala 3.3.8/3.8.4/3.9.0 pre-typer plugin toolchains. " +
       "Select JDK 25 before rerunning sbt."
   }
 

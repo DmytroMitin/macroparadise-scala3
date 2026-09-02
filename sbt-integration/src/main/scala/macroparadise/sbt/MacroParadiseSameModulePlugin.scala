@@ -8,7 +8,7 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
   private val Organization = "com.github.dmytromitin"
   private val PluginModule = "macroparadise-scala3-plugin"
   private val PluginApiModule = "macroparadise-scala3-plugin-api"
-  private val SupportedScalaVersions = Set("3.3.8", "3.8.4")
+  private val SupportedScalaVersions = Set("3.3.8", "3.8.4", "3.9.0")
 
   object autoImport {
     val macroParadiseSameModuleCompilerProductVersion =
@@ -60,7 +60,7 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
       val selectedScala = scalaVersion.value
       check(
         SupportedScalaVersions(selectedScala),
-        s"unsupported target Scala version $selectedScala; expected 3.3.8 or 3.8.4"
+        s"unsupported target Scala version $selectedScala; expected 3.3.8, 3.8.4, or 3.9.0"
       )
       val binding = macroParadiseSameModuleBinding.value.getOrElse {
         throw new MessageOnlyException(

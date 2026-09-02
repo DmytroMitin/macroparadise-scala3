@@ -68,10 +68,10 @@ class ReleaseSigningRehearsalTest(unittest.TestCase):
             self.assertEqual(proof["primary_manifest_sha256"], unsigned["primary_manifest_sha256"])
             self.assertEqual(proof["signer"]["kind"], "EPHEMERAL_TEST_ONLY")
             self.assertEqual(len(proof["signer"]["fingerprint"]), 40)
-            self.assertEqual(proof["signed_primary_count"], 8)
+            self.assertEqual(proof["signed_primary_count"], 28)
             self.assertTrue(proof["all_signatures_verified"])
             self.assertFalse(proof["secret_key_material_retained"])
-            self.assertEqual(len(list((output / "signed-repository").rglob("*.asc"))), 8)
+            self.assertEqual(len(list((output / "signed-repository").rglob("*.asc"))), 28)
             self.assertTrue((output / "macroparadise-central-bundle-EPHEMERAL-TEST-ONLY.zip").is_file())
             self.assertFalse(any(path.name in {"private-keys-v1.d", "secring.gpg"} for path in output.rglob("*")))
 

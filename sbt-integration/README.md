@@ -49,7 +49,7 @@ not run `publishLocal` for either producer.
 import macroparadise.sbt.MacroParadiseIntegration
 import macroparadise.sbt.MacroParadisePrecompiledPlugin.autoImport._
 
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 
 val mpVersion = "0.1.1-SNAPSHOT"
 val mpApi =
@@ -94,7 +94,7 @@ exact-full-cross artifact names:
 
 ```scala
 // producer build settings
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 
 lazy val macroAnnotations = (project in file("macro-annotations"))
   .settings(
@@ -115,7 +115,7 @@ The consumer selects those resolved modules:
 // build.sbt, with MacroParadisePrecompiledPlugin enabled on core
 import macroparadise.sbt.MacroParadisePrecompiledPlugin.autoImport._
 
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 
 lazy val core = (project in file("core"))
   .enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
@@ -149,14 +149,14 @@ derived output in supported AutoPlugin mode; replacing it fails validation.
 This path is unreleased and experimentally supported only within its bounded
 qualified workflows. It is deliberately separate from
 `MacroParadisePrecompiledPlugin`, accepts exactly one explicit relationship,
-and supports only exact Scala 3.3.8 or 3.8.4:
+and supports only exact Scala 3.3.8, 3.8.4, or 3.9.0:
 
 ```scala
 import macroparadise.sbt.MacroParadiseSameModulePlugin
 
 enablePlugins(MacroParadiseSameModulePlugin)
 
-scalaVersion := "3.8.4" // or exact 3.3.8
+scalaVersion := "3.8.4" // or exact 3.3.8 / 3.9.0
 
 macroParadiseSameModuleBinding := Some(
   macroParadiseSameModuleHandler(
@@ -270,9 +270,10 @@ or source-root-escaping paths fail closed.
 
 The marker definition, handler implementation, and every consumer must remain
 in separate source files. Same-file topologies, dependency cycles, automatic
-source discovery, and multiple relationships are not implemented. CLI/Zinc,
-persistent sbt BSP, and live sbt-delegated IntelliJ handler-edit qualification
-pass on both exact compiler lines with JDK 25 and sbt 1.12.15. The IntelliJ
+source discovery, and multiple relationships are not implemented. CLI/Zinc
+qualification passes on exact Scala 3.3.8, 3.8.4, and 3.9.0. Persistent sbt BSP
+and live sbt-delegated IntelliJ handler-edit qualification pass on exact Scala
+3.3.8 and 3.8.4 with JDK 25 and sbt 1.12.15. The IntelliJ
 qualification includes no-op builds, a handler-only edit without `clean`, a
 consumer-only edit, and close/reopen with a fresh sbt session. Native JPS and
 general same-module support remain false.
@@ -302,6 +303,7 @@ sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
 
 Neither command remotely publishes an sbt plugin, Maven artifact, tag, or
 release. The bounded same-module implementation remains unreleased and is
-experimentally supported only for its enumerated exact-line CLI/Zinc,
-persistent sbt BSP, and sbt-delegated IntelliJ workflows. Precompiled handlers
-remain the broad/default supported experimental path.
+experimentally supported only for exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc,
+plus exact 3.3.8 and 3.8.4 persistent sbt BSP and sbt-delegated IntelliJ
+workflows. Precompiled handlers remain the broad/default supported
+experimental path.

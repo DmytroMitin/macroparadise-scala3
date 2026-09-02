@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/test.yml"
-SUPPORTED_LINES = ("3.3.8", "3.8.4")
+SUPPORTED_LINES = ("3.3.8", "3.8.4", "3.9.0")
 
 
 def indentation(line: str) -> int:
@@ -89,7 +89,11 @@ class HostedCiMatrixTest(unittest.TestCase):
         test_job = indented_block(self.workflow, "  test:")
         self.assertEqual(
             matrix_rows(self.workflow),
-            [("3.3.8", "3.8.4"), ("3.8.4", "3.3.8")],
+            [
+                ("3.3.8", "3.8.4"),
+                ("3.8.4", "3.3.8"),
+                ("3.9.0", "3.3.8"),
+            ],
         )
         self.assertIn("fail-fast: false", test_job)
         self.assertIn('name: Test (Scala ${{ matrix.scala-version }})', test_job)
@@ -104,7 +108,12 @@ class HostedCiMatrixTest(unittest.TestCase):
 
         self.assertEqual(
             matrix_rows(mutated),
-            [("3.3.8", "3.8.4"), ("3.8.4", "3.3.8"), ("3.9.0", "3.8.4")],
+            [
+                ("3.3.8", "3.8.4"),
+                ("3.8.4", "3.3.8"),
+                ("3.9.0", "3.3.8"),
+                ("3.9.0", "3.8.4"),
+            ],
         )
 
     def test_each_lane_prepares_the_opposite_artifact_then_runs_the_boundary(self) -> None:

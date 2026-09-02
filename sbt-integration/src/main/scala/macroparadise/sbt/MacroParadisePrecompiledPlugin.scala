@@ -12,7 +12,7 @@ object MacroParadisePrecompiledPlugin extends AutoPlugin {
   private val Organization = "com.github.dmytromitin"
   private val PluginModule = "macroparadise-scala3-plugin"
   private val PluginApiModule = "macroparadise-scala3-plugin-api"
-  private val SupportedScalaVersions = Set("3.3.8", "3.8.4")
+  private val SupportedScalaVersions = Set("3.3.8", "3.8.4", "3.9.0")
 
   object autoImport {
     val macroParadiseCompilerProductVersion =
@@ -134,7 +134,7 @@ object MacroParadisePrecompiledPlugin extends AutoPlugin {
   ): DerivedArtifactIdentity = {
     check(
       SupportedScalaVersions(targetScalaVersion),
-      s"unsupported target Scala version $targetScalaVersion; expected 3.3.8 or 3.8.4"
+      s"unsupported target Scala version $targetScalaVersion; expected 3.3.8, 3.8.4, or 3.9.0"
     )
     validateProductModule(pluginModule, PluginModule, productVersion, "compiler plugin")
     validateProductModule(apiModule, PluginApiModule, productVersion, "plugin API")

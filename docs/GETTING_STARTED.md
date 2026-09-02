@@ -2,7 +2,7 @@
 
 Macro-Paradise `0.1.0` is available from Maven Central for exact Scala `3.8.4`.
 Unreleased `main` uses `0.1.1-SNAPSHOT` and can be built or installed locally
-for exact Scala `3.3.8` or `3.8.4` as separate lanes.
+for exact Scala `3.3.8`, `3.8.4`, or stable `3.9.0` as separate lanes.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ for exact Scala `3.3.8` or `3.8.4` as separate lanes.
 - network access to resolve the pinned stable Scala release and ordinary build
   dependencies when they are not already cached
 
-The build accepts only exact Scala `3.3.8` and `3.8.4`; select one lane
+The build accepts only exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`; select one lane
 explicitly for cross-line qualification. The global load check rejects other
 JDK feature versions before normal tasks execute.
 
@@ -76,6 +76,8 @@ not part of these commands:
 
 ```sh
 sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "plugin/publishLocal"
 ```
 
 In a fresh external development project, use the same exact line and snapshot:
@@ -87,7 +89,7 @@ addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0
 
 Do not replace `.cross(CrossVersion.full)` with `%%`: the published artifact is
 `macroparadise-scala3-plugin_3.3.8` and is tied to that exact compiler. The
-same rule applies independently to `_3.8.4`; the two artifacts are not
+same rule applies independently to `_3.8.4` and `_3.9.0`; the artifacts are not
 interchangeable.
 
 This declaration adds one self-contained plugin JAR to Dotty's plugin loader.
@@ -191,11 +193,12 @@ transparent escape hatch.
 
 For this source-built, unreleased integration, real persistent sbt BSP
 compilation and run requests are qualified on exact Scala `3.3.8` and `3.8.4`
-with sbt 1.12.15 and JDK 25. The retained-process qualification includes
+with sbt 1.12.15 and JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt
+qualification, but no retained-process BSP claim. The retained-process qualification includes
 content-sensitive handler, handler-dependency, and marker invalidation plus
 stale-handler failure and repair without `clean` or server restart. The
 separate opt-in bounded different-file Model A on unreleased `main` is also
-qualified for live IntelliJ use on both exact Scala lines when Build and Run
+qualified for live IntelliJ use on exact Scala 3.3.8 and 3.8.4 when Build and Run
 are delegated to sbt, including handler-only edits without `clean`. This does
 not make the integration a remotely published sbt plugin, establish general
 same-module support, or qualify IntelliJ native JPS compilation.

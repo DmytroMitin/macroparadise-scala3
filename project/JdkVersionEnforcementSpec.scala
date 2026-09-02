@@ -12,7 +12,7 @@ object JdkVersionEnforcementSpec {
     val jdk21Message = validationError(jdk21).get
     assert(jdk21Message.contains("detected JVM version `21.0.8` (feature 21)"))
     assert(jdk21Message.contains("required major version is 25"))
-    assert(jdk21Message.contains("exact Scala 3.3.8/3.8.4 pre-typer plugin"))
+    assert(jdk21Message.contains("exact Scala 3.3.8/3.8.4/3.9.0 pre-typer plugin"))
     assert(jdk21Message.contains("Select JDK 25 before rerunning sbt"))
 
     val jdk26 = DetectedVersion(Some(26), "26-ea")

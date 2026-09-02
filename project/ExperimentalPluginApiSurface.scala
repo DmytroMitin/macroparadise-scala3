@@ -19,7 +19,8 @@ object ExperimentalPluginApiSurface {
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
     "3.3.8" -> "2a77b1dbac8fa7ba874afd130bcd421f58fec185f7427f897806a107c35de5a7",
-    "3.8.4" -> "9360edfb1ee568cd7fe4fd93f07214fc4592f4e1da7ecaec8afd1d2924a62ed8"
+    "3.8.4" -> "9360edfb1ee568cd7fe4fd93f07214fc4592f4e1da7ecaec8afd1d2924a62ed8",
+    "3.9.0" -> "2f7804deb1bfcd0bb051f42e56b9283605b666eda22207c15e2327a97a589912"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -750,7 +751,17 @@ object ExperimentalPluginApiSurface {
       released384Surface.map {
         case line if line.startsWith("scala-compiler=") =>
           s"scala-compiler=$exactScalaVersion"
-        case line if line.startsWith("CLASS|") =>
+        case line if exactScalaVersion == "3.9.0" && line.startsWith("CLASS|") =>
+          val fields = line.split("\\|", 4)
+          val withoutObsoleteModuleSerializable =
+            if (fields(1).endsWith("$.class"))
+              fields(3)
+                .replace(",java.io.Serializable", "")
+                .replace(" implements java.io.Serializable", "")
+            else fields(3)
+          fields.take(3).mkString("|") + "|" +
+            withoutObsoleteModuleSerializable.replace(",", ", ")
+        case line if exactScalaVersion == "3.3.8" && line.startsWith("CLASS|") =>
           val fields = line.split("\\|", 4)
           if (
             enumEntries.contains(fields(1)) &&

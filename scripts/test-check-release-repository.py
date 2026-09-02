@@ -13,12 +13,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHECKER = ROOT / "scripts/check-release-repository.py"
 GROUP_PATH = Path("com/github/dmytromitin")
-VERSION = "0.1.0"
-SCALA_VERSION = "3.8.4"
-MODULES = (
-    f"macroparadise-scala3-plugin-api_{SCALA_VERSION}",
-    f"macroparadise-scala3-plugin_{SCALA_VERSION}",
-)
+VERSION = "0.1.1"
+SCALA_VERSIONS = ("3.3.8", "3.8.4", "3.9.0")
+MODULES = tuple(
+    module
+    for scala_version in SCALA_VERSIONS
+    for module in (
+        f"macroparadise-scala3-plugin-api_{scala_version}",
+        f"macroparadise-scala3-plugin_{scala_version}",
+    )
+) + ("sbt-macroparadise_2.12_1.0",)
 
 
 def digest(path: Path, algorithm: str) -> str:
@@ -38,6 +42,12 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             directory.mkdir(parents=True)
             base = f"{module}-{VERSION}"
             pom = directory / f"{base}.pom"
+            scala_version = next((version for version in SCALA_VERSIONS if module.endswith("_" + version)), None)
+            dependency = (
+                f"<dependency><groupId>org.scala-lang</groupId><artifactId>scala3-compiler_3</artifactId><version>{scala_version}</version></dependency>"
+                if scala_version
+                else "<dependency><groupId>org.scala-sbt</groupId><artifactId>sbt</artifactId><version>1.12.15</version><scope>provided</scope></dependency>"
+            )
             pom.write_text(
                 f"""<project><modelVersion>4.0.0</modelVersion>
   <groupId>com.github.dmytromitin</groupId><artifactId>{module}</artifactId><version>{VERSION}</version>
@@ -45,7 +55,7 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
   <licenses><license><name>Apache-2.0</name><url>https://www.apache.org/licenses/LICENSE-2.0</url><distribution>repo</distribution></license></licenses>
   <scm><url>https://github.com/DmytroMitin/macroparadise-scala3</url><connection>scm:git:https://github.com/DmytroMitin/macroparadise-scala3.git</connection></scm>
   <developers><developer><id>DmytroMitin</id><name>Dmytro Mitin</name><email>dmitin3@gmail.com</email><url>https://github.com/DmytroMitin</url></developer></developers>
-  <dependencies><dependency><groupId>org.scala-lang</groupId><artifactId>scala3-compiler_3</artifactId><version>{SCALA_VERSION}</version></dependency></dependencies>
+  <dependencies>{dependency}</dependencies>
 </project>\n""",
                 encoding="utf-8",
             )
@@ -88,7 +98,7 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout)
             manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["candidate_version"], VERSION)
-            self.assertEqual(len(manifest["coordinates"]), 2)
+            self.assertEqual(len(manifest["coordinates"]), 7)
             self.assertEqual(manifest["signing"]["status"], "OWNER_GATED_NOT_SIGNED")
             self.assertTrue(manifest["assertions"]["all_checksums_verified"])
 
@@ -104,7 +114,7 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
             self.assertEqual((root / "manifest.json").read_bytes(), first_bytes)
 
             manifest = json.loads(first_bytes)
-            self.assertEqual(manifest["schema"], "macroparadise-release-candidate-manifest-v2")
+            self.assertEqual(manifest["schema"], "macroparadise-release-candidate-manifest-v3")
             self.assertEqual(
                 manifest["source"],
                 {
@@ -116,13 +126,13 @@ class ReleaseRepositoryCheckerTest(unittest.TestCase):
                 manifest["release_contract"],
                 {
                     "organization": "com.github.dmytromitin",
-                    "version": "0.1.0",
-                    "scala_full_version": "3.8.4",
+                    "version": "0.1.1",
+                    "scala_full_versions": ["3.3.8", "3.8.4", "3.9.0"],
                     "jdk_feature": 25,
                     "sbt_version": "1.12.15",
                     "plugin_name": "macroparadise",
-                    "future_tag_if_separately_authorized": "v0.1.0",
-                    "publication_allowlist": ["pluginApi", "plugin"],
+                    "future_tag_if_separately_authorized": "v0.1.1",
+                    "publication_allowlist": list(MODULES),
                     "nightly_resolver_required": False,
                 },
             )

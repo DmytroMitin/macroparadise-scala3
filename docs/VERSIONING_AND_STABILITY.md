@@ -2,7 +2,7 @@
 
 Macro-Paradise for Scala 3 has an experimental `0.1.0` release on Maven Central
 for exact Scala `3.8.4`. The source build now uses `0.1.1-SNAPSHOT` and
-separately qualifies exact Scala `3.3.8` and `3.8.4`.
+separately qualifies exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`.
 
 The POM uses sbt's `early-semver` tooling hint so dependency tools treat the
 pre-1.0 line conservatively. It does not upgrade the experimental API into a

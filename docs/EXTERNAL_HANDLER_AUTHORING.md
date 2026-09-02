@@ -42,7 +42,7 @@ required for the supported incremental contract: a one-shot clean compile may
 work without it, but stable-path handler-body, handler-dependency, or marker
 metadata edits may otherwise leave Zinc or BSP consumers stale.
 
-Use JDK feature version 25 and select exact Scala `3.3.8` or `3.8.4`. The
+Use JDK feature version 25 and select exact Scala `3.3.8`, `3.8.4`, or `3.9.0`. The
 plugin, API, marker, handler, and consumer must all use the same selected line;
 a nearby or cross-line artifact is not interchangeable.
 
@@ -413,7 +413,7 @@ A separate marker/handler build then compiles against the exact full-cross API
 coordinate, not the plugin implementation or any test fixture:
 
 ```scala
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 libraryDependencies +=
   ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.1-SNAPSHOT")
     .cross(CrossVersion.full)
@@ -431,7 +431,7 @@ no `compilerPlugin` dependency, so Macro-Paradise is not active while either
 producer is compiled:
 
 ```scala
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 val mpOrg = "com.github.dmytromitin"
 val mpVersion = "0.1.1-SNAPSHOT"
 val mpApi =
@@ -589,8 +589,9 @@ keeps published handlers in a hidden configuration, expands their complete
 ordered dependency classpath, and installs the compiler options. Its static
 local-project helper returns settings only: the consumer still declares
 `.dependsOn(marker)`. The module is source-built and unreleased, and persistent
-BSP compilation and run requests are qualified for the exact Scala 3.3.8 and
-3.8.4 lanes with sbt 1.12.15 on JDK 25. That qualification covers one retained
+BSP compilation and run requests are qualified for exact Scala 3.3.8 and 3.8.4
+with sbt 1.12.15 on JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt
+qualification, but no retained-process BSP claim. That qualification covers one retained
 BSP process through no-op, handler-only, handler-dependency-only,
 marker-metadata-only, consumer-only, stale-handler failure, and repaired
 compilation without `clean` or restart. It does not qualify IntelliJ native JPS

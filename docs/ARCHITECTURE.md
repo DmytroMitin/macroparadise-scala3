@@ -93,10 +93,11 @@ separate opt-in sbt plugin. The build names one marker source and one handler
 source beneath an explicit source root, hashes their exact bytes into a
 same-module compiler-input identity, suspends consumers before mutation, and
 resumes them with freshly compiled current output through a fresh child loader.
-Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP qualification pass.
+Exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc qualification passes. Persistent
+sbt BSP qualification remains bounded to exact 3.3.8 and 3.8.4.
 
 This is bounded experimental support, not general support. Live IntelliJ
-qualification passes on both exact lines only for an sbt-imported project with
+qualification passes on exact 3.3.8 and 3.8.4 only for an sbt-imported project with
 Build and Run delegated to sbt on JDK 25 and sbt 1.12.15, including
 handler-only edits without `clean`. Native JPS, same-file
 marker/handler/consumer topologies, dependency cycles, automatic discovery,

@@ -11,7 +11,7 @@ final class ExactCompilerMismatchSpec extends munit.FunSuite:
 
   test("the active compiler rejects the plugin artifact from the other exact line"):
     val active = Properties.versionNumberString
-    val other = if active == "3.3.8" then "3.8.4" else "3.3.8"
+    val other = List("3.3.8", "3.8.4", "3.9.0").find(_ != active).get
     val wrongPlugin =
       File(
         s"plugin/target/scala-$other/macroparadise-scala3-plugin_$other-$projectVersion.jar"

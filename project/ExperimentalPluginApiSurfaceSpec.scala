@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 23
+  val CaseCount = 24
 
   def run(): Unit = {
     var completed = 0
@@ -98,6 +98,22 @@ object ExperimentalPluginApiSurfaceSpec {
             " implements scala.reflect.Enum",
             " implements scala.Product,scala.reflect.Enum"
           )
+        )
+      )
+    }
+    check("3.9.0 normalizes compiler-generated class presentation only") {
+      val module =
+        "CLASS|paradise3/api/ExpansionInput$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput$ implements scala.deriving.Mirror$Product,java.io.Serializable"
+      val product =
+        "CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput implements scala.Product,java.io.Serializable"
+      assert(
+        ExperimentalPluginApiSurface.expectedSurfaceForExactCompilerLine(
+          Vector("scala-compiler=3.8.4", module, product),
+          "3.9.0"
+        ) == Vector(
+          "scala-compiler=3.9.0",
+          module.replace(",java.io.Serializable", ""),
+          product.replace(",java.io.Serializable", ", java.io.Serializable")
         )
       )
     }

@@ -14,6 +14,7 @@ from pathlib import Path
 
 PASS = "EPHEMERAL_RELEASE_SIGNING_DRY_RUN_PASS"
 BLOCKED = "EPHEMERAL_RELEASE_SIGNING_DRY_RUN_BLOCKED"
+EXPECTED_PRIMARY_COUNT = 28
 
 
 def digest(path: Path, algorithm: str = "sha256") -> str:
@@ -71,8 +72,10 @@ def verify_unsigned_primaries(repository: Path, manifest: dict[str, object]) -> 
         ):
             raise ValueError(f"PRIMARY_MANIFEST_MISMATCH:{relative.as_posix()}")
         primaries.append(primary)
-    if len(primaries) != 8:
-        raise ValueError(f"PRIMARY_MANIFEST_MISMATCH:expected-8:actual-{len(primaries)}")
+    if len(primaries) != EXPECTED_PRIMARY_COUNT:
+        raise ValueError(
+            f"PRIMARY_MANIFEST_MISMATCH:expected-{EXPECTED_PRIMARY_COUNT}:actual-{len(primaries)}"
+        )
     return primaries
 
 
@@ -183,7 +186,7 @@ def rehearse(repository: Path, manifest_path: Path, output: Path) -> dict[str, o
         },
         "signed_primary_count": len(verified),
         "signed_primary_paths": sorted(verified),
-        "all_signatures_verified": len(verified) == 8,
+        "all_signatures_verified": len(verified) == EXPECTED_PRIMARY_COUNT,
         "primary_bytes_unchanged": True,
         "secret_key_material_retained": False,
         "bundle": {

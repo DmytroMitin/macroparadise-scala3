@@ -8,9 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GROUP = "com.github.dmytromitin"
 RELEASE_VERSION = "0.1.0"
+CANDIDATE_VERSION = "0.1.1"
 DEVELOPMENT_VERSION = "0.1.1-SNAPSHOT"
 RELEASE_SCALA_VERSION = "3.8.4"
-SUPPORTED_SCALA_VERSIONS = ("3.3.8", "3.8.4")
+SUPPORTED_SCALA_VERSIONS = ("3.3.8", "3.8.4", "3.9.0")
 PLUGIN_ID = "macroparadise"
 
 
@@ -31,7 +32,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertIn('ThisBuild / versionScheme := Some("early-semver")', self.build)
         self.assertIn(f'ThisBuild / scalaVersion := "{RELEASE_SCALA_VERSION}"', self.build)
         self.assertIn(
-            'ThisBuild / crossScalaVersions := Seq("3.3.8", "3.8.4")',
+            'ThisBuild / crossScalaVersions := Seq("3.3.8", "3.8.4", "3.9.0")',
             self.build,
         )
         self.assertNotIn("Resolver.scalaNightlyRepository", self.build)
@@ -67,6 +68,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
         adapters = (
             ROOT / "plugin/src/main/scala-3.3.8/macroparadise/MacroParadisePlugin338.scala",
             ROOT / "plugin/src/main/scala-3.8.4/macroparadise/MacroParadisePlugin384.scala",
+            ROOT / "plugin/src/main/scala-3.9.0/macroparadise/MacroParadisePlugin390.scala",
         )
         for source in adapters:
             self.assertTrue(source.is_file(), source)
@@ -112,10 +114,11 @@ class ReleaseConfigurationTest(unittest.TestCase):
         self.assertIn(".cross(CrossVersion.full)", authoring)
         self.assertIn(f"-P:{PLUGIN_ID}:handlerClasspath=", authoring)
 
-    def test_release_rehearsal_retains_the_immutable_0_1_0_identity(self) -> None:
+    def test_release_rehearsal_targets_the_0_1_1_three_line_identity(self) -> None:
         rehearsal = (ROOT / "scripts/rehearse-local-release.sh").read_text(encoding="utf-8")
-        self.assertIn(f'version="{RELEASE_VERSION}"', rehearsal)
-        self.assertIn(f'scala_version="{RELEASE_SCALA_VERSION}"', rehearsal)
+        self.assertIn(f'version="{CANDIDATE_VERSION}"', rehearsal)
+        self.assertIn('scala_versions=("3.3.8" "3.8.4" "3.9.0")', rehearsal)
+        self.assertIn('sbt_module="sbt-macroparadise_2.12_1.0"', rehearsal)
         for version in SUPPORTED_SCALA_VERSIONS:
             self.assertIn(version, self.build)
 

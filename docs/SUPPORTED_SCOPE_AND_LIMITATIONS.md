@@ -131,9 +131,10 @@ step. A qualified same-module binding therefore uses the identical
 direct-qualified consumer spelling; imported-short syntax is not currently a
 same-module scheduling trigger.
 
-Exact Scala 3.3.8 and 3.8.4 clean/incremental CLI/Zinc, persistent sbt BSP, and
-live sbt-delegated IntelliJ handler-edit qualification pass on JDK 25 and sbt
-1.12.15. The IntelliJ qualification includes baseline and no-op builds,
+Exact Scala 3.3.8, 3.8.4, and 3.9.0 clean/incremental CLI/Zinc qualification
+passes on JDK 25 and sbt 1.12.15. Persistent sbt BSP and live sbt-delegated
+IntelliJ handler-edit qualification remain bounded to exact 3.3.8 and 3.8.4.
+The IntelliJ qualification includes baseline and no-op builds,
 handler-only and consumer-only edits without `clean`, and close/reopen with a
 fresh sbt session. Native IntelliJ/JPS compilation is not qualified. Same-file
 marker/handler/consumer topologies, dependency cycles, automatic discovery,

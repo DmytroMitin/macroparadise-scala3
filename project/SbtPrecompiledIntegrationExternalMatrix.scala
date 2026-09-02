@@ -81,7 +81,7 @@ object SbtPrecompiledIntegrationExternalMatrix {
       taskRoot: File,
       config: Config
   ): VerificationResult = {
-    require(Set("3.3.8", "3.8.4")(config.scalaVersion), "unsupported exact Scala line")
+    require(Set("3.3.8", "3.8.4", "3.9.0")(config.scalaVersion), "unsupported exact Scala line")
     require(config.sbtVersion == "1.12.15", "unsupported sbt version")
     require(config.projectVersion == "0.1.1-SNAPSHOT", "unexpected product version")
     sbt.IO.delete(taskRoot)

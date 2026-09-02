@@ -35,7 +35,7 @@ bypass.
 ### Exact compiler mismatch
 
 The plugin, handler API, handler, and consumer must use one exact supported
-line: `3.3.8` or `3.8.4`. Rebuilding only one raw-tree participant with the
+line: `3.3.8`, `3.8.4`, or `3.9.0`. Rebuilding only one raw-tree participant with the
 other line fails closed as an exact compiler mismatch.
 
 ### Missing handler
@@ -110,8 +110,9 @@ generated tree shape, names in scope, and exact target assumptions.
 
 General incremental same-module support remains false. Unreleased `main` has an
 opt-in implementation of one explicit different-file Model A, qualified on
-exact Scala 3.3.8 and 3.8.4 through CLI/Zinc and persistent sbt BSP. Confirm
-that `scalacOptions` contains one `sameModuleHandler` relationship and one
+exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc. Persistent sbt BSP
+qualification remains bounded to exact 3.3.8 and 3.8.4. Confirm that
+`scalacOptions` contains one `sameModuleHandler` relationship and one
 `sameModuleSourceIdentity=sha256:...` input, and that the marker and handler
 paths are distinct normalized relative paths beneath the configured source
 root. Empty, missing, duplicate, absolute, or escaping paths fail closed.

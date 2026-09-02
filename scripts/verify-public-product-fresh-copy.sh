@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   printf '%s\n' \
-    'Usage: scripts/verify-public-product-fresh-copy.sh [--source PATH] [--scala-version 3.3.8|3.8.4] [--include-untracked PATH]...' \
+    'Usage: scripts/verify-public-product-fresh-copy.sh [--source PATH] [--scala-version 3.3.8|3.8.4|3.9.0] [--include-untracked PATH]...' \
     '' \
     'Create a disposable product-only copy with fresh dependency/output caches' \
     'and run the canonical verifyPublicProductBoundary gate inside it.' \
@@ -45,7 +45,7 @@ while (($# > 0)); do
 done
 
 case "$scala_version" in
-  3.3.8|3.8.4) ;;
+  3.3.8|3.8.4|3.9.0) ;;
   *)
     printf 'Unsupported exact Scala version: %s\n' "$scala_version" >&2
     exit 2

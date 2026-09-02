@@ -9,8 +9,8 @@ The core mechanism and a precompiled external-handler path are executable and
 well tested. The project is still compiler-sensitive research: its API,
 configuration, supported shapes, and compatibility policy may change. The
 immutable `0.1.0` release supports exact Scala `3.8.4` and is available
-from Maven Central. Unreleased `main` is now qualified separately for exact
-Scala `3.3.8` and `3.8.4` at development version `0.1.1-SNAPSHOT`.
+from Maven Central. Unreleased `main` is qualified separately for exact Scala
+`3.3.8`, `3.8.4`, and stable `3.9.0` at development version `0.1.1-SNAPSHOT`.
 
 ## A small user-authored example
 
@@ -77,7 +77,7 @@ The source build requires:
 
 - JDK feature version 25;
 - sbt 1.12.15;
-- Scala `3.3.8` or `3.8.4`, selected as a separate exact build lane.
+- Scala `3.3.8`, `3.8.4`, or stable `3.9.0`, selected as a separate exact build lane.
 
 The build rejects other JDK feature versions before normal tasks run. The
 plugin and handler contract expose Scala compiler internals, so a nearby Scala
@@ -147,17 +147,18 @@ select that line explicitly and publish only to the machine-local repository:
 ```sh
 sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
 sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "plugin/publishLocal"
 ```
 
 Then a local development consumer uses the matching exact line and snapshot:
 
 ```scala
-ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1-SNAPSHOT").cross(CrossVersion.full))
 ```
 
 `CrossVersion.full` is required; `%%` produces only a binary Scala suffix and
-does not name this exact-compiler plugin. The new 3.3.8 line and snapshot
+does not name this exact-compiler plugin. The added exact lines and snapshot
 version are source-build/local-publication support only; no 0.1.1 artifact has
 been published remotely.
 
@@ -267,9 +268,9 @@ positive evidence remains bounded to the combinations in the test suite.
   separate opt-in experimental implementation of one bounded different-file
   Model A: one explicit marker source, one explicit handler source, exact
   source-byte identity, compiler-unit suspension, and fresh current-output
-  handler loading. Exact Scala 3.3.8 and 3.8.4 CLI/Zinc and persistent sbt BSP
-  qualification pass. Live IntelliJ qualification also passes on both exact
-  lines when the sbt-imported project delegates Build and Run to sbt on JDK 25
+  handler loading. Exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc qualification
+  passes. Persistent sbt BSP and live IntelliJ qualification remain bounded to
+  exact Scala 3.3.8 and 3.8.4 when the sbt-imported project delegates Build and Run to sbt on JDK 25
   and sbt 1.12.15, including handler-only edits without `clean` and a fresh
   session after close/reopen. Same-file marker/handler/consumer topologies,
   dependency cycles, automatic discovery, multiple configured relationships,
@@ -332,6 +333,6 @@ explained in the [Security policy](SECURITY.md).
 The source is licensed under the [Apache License 2.0](LICENSE). The plugin and
 handler-facing API remain experimental, compiler-version-specific, and without
 stability guarantees. The exact Scala 3.8.4 plugin and plugin API are published
-as `0.1.0`; the 0.1.1-SNAPSHOT/Scala 3.3.8 work is not published remotely.
+as `0.1.0`; the 0.1.1-SNAPSHOT three-line work is not published remotely.
 Only the plugin and plugin API support `publishLocal`; internal fixtures,
 tests, examples, consumers, and spikes remain unpublished.
