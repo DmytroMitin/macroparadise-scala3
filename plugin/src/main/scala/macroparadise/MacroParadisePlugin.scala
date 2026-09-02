@@ -734,6 +734,8 @@ private object ParadiseTreeRewrite:
 
   private trait AnnotationExpander:
     def annotationName: String
+    def canonicalHandlerIdentity: String =
+      s"macroparadise.builtin.$annotationName"
     def consumesExistingCompanion: Boolean = false
     def targetAdmissionProfile: TargetAdmissionProfile =
       TargetAdmissionProfile.CommonClassOnly
@@ -760,7 +762,10 @@ private object ParadiseTreeRewrite:
     case Rejected(diagnostics: List[ExpansionDiagnostic], fallback: TypeDef)
 
   private enum ValidatedExpansionResult:
-    case Expanded(trees: List[Tree])
+    case Expanded(
+        trees: List[Tree],
+        furtherExpansionDrafts: List[InternalFurtherExpansionRequests.Draft]
+    )
     case Rejected(diagnostics: List[ExpansionDiagnostic], fallback: TypeDef)
 
   private final case class ExpansionDiagnostic(message: String, pos: SrcPos)
@@ -773,10 +778,55 @@ private object ParadiseTreeRewrite:
   private final case class CompositionState(
       currentClass: TypeDef,
       currentCompanion: Option[ModuleDef],
-      additionalTopLevelTrees: List[Tree]
+      additionalTopLevelTrees: List[Tree],
+      generatedQueue: List[FurtherExpansionRequest],
+      seenGeneratedStates: List[FurtherExpansionEffectiveState],
+      generatedSteps: Int,
+      recentTrace: Vector[FurtherExpansionTraceEntry],
+      nextTraceStep: Int
   ):
     def outputTrees: List[Tree] =
       List(currentClass) ++ currentCompanion.toList ++ additionalTopLevelTrees
+
+    def appendTrace(entry: FurtherExpansionTraceEntry): CompositionState =
+      copy(
+        recentTrace = (recentTrace :+ entry).takeRight(FurtherExpansionTraceLimit),
+        nextTraceStep = nextTraceStep + 1
+      )
+
+  private final case class FurtherExpansionRequest(
+      annotationName: String,
+      canonicalHandlerIdentity: String,
+      rawApplication: Tree,
+      requestedBy: String
+  ):
+    lazy val syntax: PositionIndependentStructure =
+      PositionIndependentStructure.tree(rawApplication)
+
+  private final case class FurtherExpansionEffectiveState(
+      lineage: String,
+      canonicalHandlerIdentity: String,
+      requestSyntax: PositionIndependentStructure,
+      targetState: PositionIndependentStructure
+  )
+
+  private final case class FurtherExpansionTraceEntry(
+      step: Int,
+      provenance: String,
+      annotationName: String,
+      canonicalHandlerIdentity: String,
+      targetName: String,
+      requestedBy: Option[String]
+  ):
+    def render: String =
+      requestedBy match
+        case Some(generator) =>
+          s"step $step: $provenance @$annotationName by $generator on $targetName"
+        case None =>
+          s"step $step: $provenance @$annotationName handler=$canonicalHandlerIdentity on $targetName"
+
+  private val FurtherExpansionStepBudget = 32
+  private val FurtherExpansionTraceLimit = 8
 
   private def builtInExpanders: List[AnnotationExpander] =
     // ASSUMPTION
@@ -1029,6 +1079,8 @@ private object ParadiseTreeRewrite:
     private val handler = loadedHandler.instance
     private val descriptor = loadedHandler.descriptor
     val annotationName: String = descriptor.annotationName
+    override val canonicalHandlerIdentity: String =
+      descriptor.handlerClassName
     override val consumesExistingCompanion: Boolean =
       descriptor.consumesExistingCompanion
     override val targetAdmissionProfile: TargetAdmissionProfile =
@@ -1448,20 +1500,139 @@ private object ParadiseTreeRewrite:
       externalExpanders: List[AnnotationExpander]
   )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     matchingAnnotations match
-      case MatchingAnnotation(annotation, expander) :: Nil =>
-        val (existingCompanion, remainingStats) =
-          if expander.consumesExistingCompanion then takeExistingCompanion(typeDef.name, rest)
-          else (None, rest)
-        val input = ExpansionInput(typeDef, existingCompanion, topLevel, Some(annotation))
+      case matching :: Nil =>
+        rewriteSingleTopLevelClass(
+          typeDef,
+          rest,
+          topLevel,
+          matching,
+          externalExpanders
+        )
+      case sourceOrdered =>
+        rewriteComposedTopLevelClass(
+          typeDef,
+          rest,
+          topLevel,
+          sourceOrdered,
+          externalExpanders
+        )
+
+  private def rewriteSingleTopLevelClass(
+      typeDef: TypeDef,
+      rest: List[Tree],
+      topLevel: TopLevelRewriteContext,
+      matching: MatchingAnnotation,
+      externalExpanders: List[AnnotationExpander]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
+    val MatchingAnnotation(annotation, expander) = matching
+    val (existingCompanion, remainingStats) =
+      if expander.consumesExistingCompanion then
+        takeExistingCompanion(typeDef.name, rest)
+      else (None, rest)
+    val input =
+      ExpansionInput(typeDef, existingCompanion, topLevel, Some(annotation))
+    expandAndValidate(expander, input) match
+      case expanded @ ValidatedExpansionResult.Expanded(_, Nil) =>
+        // Preserve the established single-annotation path exactly when no
+        // coordinator-owned request exists, independent of the descriptor's
+        // captured composition declaration.
         spliceExpansionResult(
-          expandAndValidate(expander, input),
+          expanded,
           remainingStats,
           topLevel,
           externalExpanders,
           restoredCompanionOnRejection = existingCompanion
         )
-      case many =>
-        rewriteComposedTopLevelClass(typeDef, rest, topLevel, many, externalExpanders)
+      case rejected: ValidatedExpansionResult.Rejected =>
+        spliceExpansionResult(
+          rejected,
+          remainingStats,
+          topLevel,
+          externalExpanders,
+          restoredCompanionOnRejection = existingCompanion
+        )
+      case ValidatedExpansionResult.Expanded(trees, drafts) =>
+        val (transactionCompanion, postTransactionStats) =
+          if expander.consumesExistingCompanion then
+            (existingCompanion, remainingStats)
+          else takeExistingCompanion(typeDef.name, remainingStats)
+        val lineage =
+          s"${typeDef.name.toString}@${System.identityHashCode(typeDef).toHexString}"
+        val initialState =
+          CompositionState(
+            currentClass = typeDef,
+            currentCompanion = transactionCompanion,
+            additionalTopLevelTrees = Nil,
+            generatedQueue = Nil,
+            seenGeneratedStates = Nil,
+            generatedSteps = 0,
+            recentTrace = Vector.empty,
+            nextTraceStep = 0
+          )
+        val sourceTrace =
+          FurtherExpansionTraceEntry(
+            step = 0,
+            provenance = "source",
+            annotationName = expander.annotationName,
+            canonicalHandlerIdentity = expander.canonicalHandlerIdentity,
+            targetName = typeDef.name.toString,
+            requestedBy = None
+          )
+        val tentativeState =
+          updateCompositionState(initialState, trees).appendTrace(sourceTrace)
+        val sourceResult =
+          if expander.compositionPolicy == CompositionPolicy.StandaloneOnly then
+            resolveFurtherExpansionDrafts(
+              tentativeState,
+              drafts,
+              expander,
+              externalExpanders,
+              annotation.sourcePos
+            ).map(_ => tentativeState)
+          else
+            validateCompositionStep(
+              current = matching,
+              consumed = Nil,
+              later = Nil,
+              externalExpanders = externalExpanders,
+              trees = trees
+            ) match
+              case Some(diagnostic) => Left(List(diagnostic))
+              case None =>
+                resolveFurtherExpansionDrafts(
+                  tentativeState,
+                  drafts,
+                  expander,
+                  externalExpanders,
+                  annotation.sourcePos
+                ).map: requests =>
+                  tentativeState.copy(generatedQueue = requests)
+        val result =
+          sourceResult
+            .left.map(diagnostics => (diagnostics, typeDef))
+            .flatMap: state =>
+              drainFurtherExpansionQueue(
+                state,
+                lineage,
+                topLevel,
+                externalExpanders
+              )
+        result match
+          case Right(state) =>
+            state.outputTrees ++
+              rewritePackageStats(
+                postTransactionStats,
+                topLevel,
+                externalExpanders
+              )
+          case Left((diagnostics, fallback)) =>
+            spliceExpansionResult(
+              ValidatedExpansionResult.Rejected(diagnostics, fallback),
+              postTransactionStats,
+              topLevel,
+              externalExpanders,
+              restoredCompanionOnRejection = transactionCompanion
+            )
 
   private def rewriteComposedTopLevelClass(
       typeDef: TypeDef,
@@ -1472,13 +1643,25 @@ private object ParadiseTreeRewrite:
   )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     val (existingCompanion, remainingStats) =
       // ASSUMPTION
-      // A following top-level companion is removed from package stats exactly
-      // once and seeds the shared state for every companion-consuming expander.
-      if annotations.exists(_.expander.consumesExistingCompanion) then takeExistingCompanion(typeDef.name, rest)
-      else (None, rest)
+      // A following top-level companion is leased exactly once for the complete
+      // source plus generated transaction. Source/generated handlers still see
+      // it only when their captured descriptor requests companion consumption.
+      takeExistingCompanion(typeDef.name, rest)
 
-    val initialState = CompositionState(typeDef, existingCompanion, Nil)
-    val result =
+    val lineage =
+      s"${typeDef.name.toString}@${System.identityHashCode(typeDef).toHexString}"
+    val initialState =
+      CompositionState(
+        currentClass = typeDef,
+        currentCompanion = existingCompanion,
+        additionalTopLevelTrees = Nil,
+        generatedQueue = Nil,
+        seenGeneratedStates = Nil,
+        generatedSteps = 0,
+        recentTrace = Vector.empty,
+        nextTraceStep = 0
+      )
+    val sourceResult =
       annotations.zipWithIndex.foldLeft[Either[(List[ExpansionDiagnostic], TypeDef), CompositionState]](Right(initialState)):
         case (Left(rejected), _) =>
           Left(rejected)
@@ -1498,7 +1681,7 @@ private object ParadiseTreeRewrite:
             input,
             knownAdditionalTrees = state.additionalTopLevelTrees
           ) match
-            case ValidatedExpansionResult.Expanded(trees) =>
+            case ValidatedExpansionResult.Expanded(trees, drafts) =>
               validateCompositionStep(
                 matchingAnnotation,
                 annotations.take(index),
@@ -1509,9 +1692,44 @@ private object ParadiseTreeRewrite:
                 case Some(diagnostic) =>
                   Left((List(diagnostic), state.currentClass))
                 case None =>
-                  Right(updateCompositionState(state, trees))
+                  val nextState =
+                    updateCompositionState(state, trees).appendTrace(
+                      FurtherExpansionTraceEntry(
+                        step = state.nextTraceStep,
+                        provenance = "source",
+                        annotationName = matchingAnnotation.expander.annotationName,
+                        canonicalHandlerIdentity =
+                          matchingAnnotation.expander.canonicalHandlerIdentity,
+                        targetName = typeDef.name.toString,
+                        requestedBy = None
+                      )
+                    )
+                  resolveFurtherExpansionDrafts(
+                    nextState,
+                    drafts,
+                    matchingAnnotation.expander,
+                    externalExpanders,
+                    matchingAnnotation.annotation.sourcePos
+                  ) match
+                    case Left(diagnostics) =>
+                      Left((diagnostics, state.currentClass))
+                    case Right(requests) =>
+                      Right(
+                        nextState.copy(
+                          generatedQueue = nextState.generatedQueue ++ requests
+                        )
+                      )
             case ValidatedExpansionResult.Rejected(diagnostics, fallback) =>
               Left((diagnostics, fallback))
+
+    val result =
+      sourceResult.flatMap: state =>
+        drainFurtherExpansionQueue(
+          state,
+          lineage,
+          topLevel,
+          externalExpanders
+        )
 
     result match
       case Right(state) =>
@@ -1527,12 +1745,418 @@ private object ParadiseTreeRewrite:
           restoredCompanionOnRejection = existingCompanion
         )
 
+  private def resolveFurtherExpansionDrafts(
+      state: CompositionState,
+      drafts: List[InternalFurtherExpansionRequests.Draft],
+      generator: AnnotationExpander,
+      externalExpanders: List[AnnotationExpander],
+      fallbackPos: SrcPos
+  )(using Context): Either[List[ExpansionDiagnostic], List[FurtherExpansionRequest]] =
+    if drafts.isEmpty then Right(Nil)
+    else if generator.compositionPolicy != CompositionPolicy.SourceOrdered then
+      Left(
+        List(
+          furtherExpansionDiagnostic(
+            "FURTHER_EXPANSION_STANDALONE_GENERATOR",
+            List(
+              "handler" -> s"@${generator.annotationName}",
+              "requestedBy" -> generator.canonicalHandlerIdentity,
+              "detail" -> "a StandaloneOnly handler cannot enqueue generated/delegated work"
+            ),
+            state,
+            None,
+            fallbackPos
+          )
+        )
+      )
+    else
+      val available = expanders(externalExpanders)
+      drafts.foldLeft[Either[List[ExpansionDiagnostic], List[FurtherExpansionRequest]]](Right(Nil)):
+        case (Left(diagnostics), _) => Left(diagnostics)
+        case (Right(resolved), draft) =>
+          val requestPos =
+            Option(draft.rawApplication)
+              .map(_.sourcePos)
+              .filter(_.span.exists)
+              .getOrElse(fallbackPos)
+          val normalizedName =
+            Option(draft.annotationName).map(_.trim).filter(_.nonEmpty)
+          normalizedName match
+            case None =>
+              Left(
+                List(
+                  furtherExpansionDiagnostic(
+                    "FURTHER_EXPANSION_MALFORMED_REQUEST",
+                    List(
+                      "handler" -> "@<missing>",
+                      "requestedBy" -> generator.canonicalHandlerIdentity,
+                      "detail" -> "request annotation name is empty"
+                    ),
+                    state,
+                    None,
+                    requestPos
+                  )
+                )
+              )
+            case Some(annotationName) if draft.rawApplication == null =>
+              Left(
+                List(
+                  furtherExpansionDiagnostic(
+                    "FURTHER_EXPANSION_MALFORMED_REQUEST",
+                    List(
+                      "handler" -> s"@$annotationName",
+                      "requestedBy" -> generator.canonicalHandlerIdentity,
+                      "detail" -> "request raw application is null"
+                    ),
+                    state,
+                    None,
+                    requestPos
+                  )
+                )
+              )
+            case Some(annotationName) =>
+              val rawName =
+                SyntacticAnnotationIdentity.fromTree(draft.rawApplication)
+                  .map(_.value)
+              val rawNameMatches =
+                rawName.exists: value =>
+                  value == annotationName ||
+                    annotationName.endsWith(s".$value")
+              if !rawNameMatches then
+                Left(
+                  List(
+                    furtherExpansionDiagnostic(
+                      "FURTHER_EXPANSION_MALFORMED_REQUEST",
+                      List(
+                        "handler" -> s"@$annotationName",
+                        "requestedBy" -> generator.canonicalHandlerIdentity,
+                        "detail" -> s"raw request names @${rawName.getOrElse("<unrecognized>")}"
+                      ),
+                      state,
+                      None,
+                      requestPos
+                    )
+                  )
+                )
+              else
+                available.find(_.annotationName == annotationName) match
+                  case None =>
+                    Left(
+                      List(
+                        furtherExpansionDiagnostic(
+                          "FURTHER_EXPANSION_UNKNOWN_HANDLER",
+                          List(
+                            "handler" -> s"@$annotationName",
+                            "requestedBy" -> generator.canonicalHandlerIdentity,
+                            "detail" -> "no canonical handler is available in the captured registry"
+                          ),
+                          state,
+                          None,
+                          requestPos
+                        )
+                      )
+                    )
+                  case Some(requested)
+                      if requested.compositionPolicy != CompositionPolicy.SourceOrdered =>
+                    Left(
+                      List(
+                        furtherExpansionDiagnostic(
+                          "FURTHER_EXPANSION_STANDALONE_HANDLER",
+                          List(
+                            "handler" -> s"@$annotationName",
+                            "requestedBy" -> generator.canonicalHandlerIdentity,
+                            "detail" -> "requested handler declares StandaloneOnly"
+                          ),
+                          state,
+                          None,
+                          requestPos
+                        )
+                      )
+                    )
+                  case Some(requested) =>
+                    Right(
+                      resolved :+ FurtherExpansionRequest(
+                        annotationName = annotationName,
+                        canonicalHandlerIdentity =
+                          requested.canonicalHandlerIdentity,
+                        rawApplication = draft.rawApplication,
+                        requestedBy = generator.canonicalHandlerIdentity
+                      )
+                    )
+
+  private def drainFurtherExpansionQueue(
+      initialState: CompositionState,
+      lineage: String,
+      topLevel: TopLevelRewriteContext,
+      externalExpanders: List[AnnotationExpander]
+  )(using Context, ExplicitImportAnnotationIdentityResolver)
+      : Either[(List[ExpansionDiagnostic], TypeDef), CompositionState] =
+    val available = expanders(externalExpanders)
+
+    def loop(
+        state: CompositionState
+    ): Either[(List[ExpansionDiagnostic], TypeDef), CompositionState] =
+      state.generatedQueue match
+        case Nil => Right(state)
+        case request :: remainingQueue =>
+          val requestPos =
+            Option(request.rawApplication)
+              .map(_.sourcePos)
+              .filter(_.span.exists)
+              .getOrElse(state.currentClass.sourcePos)
+          val currentTrace =
+            FurtherExpansionTraceEntry(
+              step = state.nextTraceStep,
+              provenance = "generated/delegated",
+              annotationName = request.annotationName,
+              canonicalHandlerIdentity = request.canonicalHandlerIdentity,
+              targetName = state.currentClass.name.toString,
+              requestedBy = Some(request.requestedBy)
+            )
+          val effectiveState =
+            FurtherExpansionEffectiveState(
+              lineage = lineage,
+              canonicalHandlerIdentity = request.canonicalHandlerIdentity,
+              requestSyntax = request.syntax,
+              targetState = currentTargetStructure(state)
+            )
+
+          if state.seenGeneratedStates.contains(effectiveState) then
+            Left(
+              (
+                List(
+                  furtherExpansionDiagnostic(
+                    "FURTHER_EXPANSION_REPEATED_STATE",
+                    List(
+                      "handler" -> s"@${request.annotationName}",
+                      "requestedBy" -> request.requestedBy,
+                      "detail" -> "exact position-independent request/target state repeated"
+                    ),
+                    state,
+                    Some(currentTrace),
+                    requestPos
+                  )
+                ),
+                state.currentClass
+              )
+            )
+          else if state.generatedSteps >= FurtherExpansionStepBudget then
+            Left(
+              (
+                List(
+                  furtherExpansionDiagnostic(
+                    "FURTHER_EXPANSION_STEP_BUDGET",
+                    List(
+                      "budget" -> FurtherExpansionStepBudget.toString,
+                      "lastRequest" -> s"@${request.annotationName}",
+                      "handler" -> s"@${request.annotationName}",
+                      "detail" -> "private generated/delegated step budget exceeded"
+                    ),
+                    state,
+                    Some(currentTrace),
+                    requestPos
+                  )
+                ),
+                state.currentClass
+              )
+            )
+          else
+            available.find: candidate =>
+              candidate.annotationName == request.annotationName &&
+                candidate.canonicalHandlerIdentity ==
+                  request.canonicalHandlerIdentity
+            match
+              case None =>
+                Left(
+                  (
+                    List(
+                      furtherExpansionDiagnostic(
+                        "FURTHER_EXPANSION_UNKNOWN_HANDLER",
+                        List(
+                          "handler" -> s"@${request.annotationName}",
+                          "requestedBy" -> request.requestedBy,
+                          "detail" -> "canonical handler disappeared from the captured registry"
+                        ),
+                        state,
+                        Some(currentTrace),
+                        requestPos
+                      )
+                    ),
+                    state.currentClass
+                  )
+                )
+              case Some(expander) =>
+                preExpansionAdmission(state.currentClass, List(expander)) match
+                  case Some(diagnostic) =>
+                    Left(
+                      (
+                        appendFurtherExpansionTrace(
+                          List(diagnostic),
+                          state,
+                          currentTrace,
+                          request
+                        ),
+                        state.currentClass
+                      )
+                    )
+                  case None =>
+                    val input =
+                      ExpansionInput(
+                        annotatedClass = state.currentClass,
+                        existingCompanion =
+                          if expander.consumesExistingCompanion then
+                            state.currentCompanion
+                          else None,
+                        topLevel = topLevel,
+                        currentAnnotation = Some(request.rawApplication)
+                      )
+                    val executingState =
+                      state
+                        .copy(
+                          generatedQueue = remainingQueue,
+                          seenGeneratedStates =
+                            state.seenGeneratedStates :+ effectiveState,
+                          generatedSteps = state.generatedSteps + 1
+                        )
+                        .appendTrace(currentTrace)
+                    expandAndValidate(
+                      expander,
+                      input,
+                      knownAdditionalTrees = state.additionalTopLevelTrees
+                    ) match
+                      case ValidatedExpansionResult.Rejected(
+                            diagnostics,
+                            fallback
+                          ) =>
+                        Left(
+                          (
+                            appendFurtherExpansionTrace(
+                              diagnostics,
+                              state,
+                              currentTrace,
+                              request
+                            ),
+                            fallback
+                          )
+                        )
+                      case ValidatedExpansionResult.Expanded(trees, drafts) =>
+                        validateGeneratedStep(
+                          request,
+                          expander,
+                          state.currentClass,
+                          externalExpanders,
+                          trees
+                        ) match
+                          case Some(diagnostic) =>
+                            Left(
+                              (
+                                appendFurtherExpansionTrace(
+                                  List(diagnostic),
+                                  state,
+                                  currentTrace,
+                                  request
+                                ),
+                                state.currentClass
+                              )
+                            )
+                          case None =>
+                            val updatedState =
+                              updateCompositionState(executingState, trees)
+                            resolveFurtherExpansionDrafts(
+                              updatedState,
+                              drafts,
+                              expander,
+                              externalExpanders,
+                              requestPos
+                            ) match
+                              case Left(diagnostics) =>
+                                Left((diagnostics, state.currentClass))
+                              case Right(generatedRequests) =>
+                                val madeNoProgress =
+                                  currentTargetStructure(state) ==
+                                    currentTargetStructure(updatedState) &&
+                                    generatedRequests.exists: next =>
+                                      next.canonicalHandlerIdentity ==
+                                        request.canonicalHandlerIdentity &&
+                                        next.syntax == request.syntax
+                                if madeNoProgress then
+                                  Left(
+                                    (
+                                      List(
+                                        furtherExpansionDiagnostic(
+                                          "FURTHER_EXPANSION_NO_PROGRESS",
+                                          List(
+                                            "handler" -> s"@${request.annotationName}",
+                                            "requestedBy" -> request.requestedBy,
+                                            "detail" -> "handler reproduced the same effective request without target progress"
+                                          ),
+                                          updatedState,
+                                          None,
+                                          requestPos
+                                        )
+                                      ),
+                                      state.currentClass
+                                    )
+                                  )
+                                else
+                                  loop(
+                                    updatedState.copy(
+                                      generatedQueue =
+                                        updatedState.generatedQueue ++ generatedRequests
+                                    )
+                                  )
+
+    loop(initialState)
+
+  private def currentTargetStructure(
+      state: CompositionState
+  ): PositionIndependentStructure =
+    PositionIndependentStructure.trees(state.outputTrees)
+
+  private def appendFurtherExpansionTrace(
+      diagnostics: List[ExpansionDiagnostic],
+      state: CompositionState,
+      current: FurtherExpansionTraceEntry,
+      request: FurtherExpansionRequest
+  ): List[ExpansionDiagnostic] =
+    val trace = renderFurtherExpansionTrace(state, Some(current))
+    diagnostics.map: diagnostic =>
+      diagnostic.copy(
+        message =
+          s"${diagnostic.message}; generated/delegated handler=@${request.annotationName} requestedBy=${request.requestedBy} trace=$trace"
+      )
+
+  private def furtherExpansionDiagnostic(
+      category: String,
+      fields: List[(String, String)],
+      state: CompositionState,
+      current: Option[FurtherExpansionTraceEntry],
+      pos: SrcPos
+  ): ExpansionDiagnostic =
+    val renderedFields =
+      fields.map((name, value) => s"$name=$value").mkString(" ")
+    ExpansionDiagnostic(
+      s"internal further-expansion failure: stage=further-expansion category=$category $renderedFields trace=${renderFurtherExpansionTrace(state, current)}",
+      pos
+    )
+
+  private def renderFurtherExpansionTrace(
+      state: CompositionState,
+      current: Option[FurtherExpansionTraceEntry]
+  ): String =
+    (state.recentTrace ++ current.toVector)
+      .takeRight(FurtherExpansionTraceLimit)
+      .map(_.render)
+      .mkString("[", " -> ", "]")
+
   private def expandAndValidate(
       expander: AnnotationExpander,
       input: ExpansionInput,
       knownAdditionalTrees: List[Tree] = Nil
   )(using Context): ValidatedExpansionResult =
-    expander.expand(input) match
+    val captured =
+      InternalFurtherExpansionRequests.capture(expander.expand(input))
+    captured.value match
       case ExpansionResult.Expanded(trees) =>
         val knownAdditionalNames =
           knownAdditionalTrees.collect:
@@ -1568,7 +2192,7 @@ private object ParadiseTreeRewrite:
               input.annotatedClass
             )
           case None =>
-            ValidatedExpansionResult.Expanded(trees)
+            ValidatedExpansionResult.Expanded(trees, captured.drafts)
       case ExpansionResult.Structured(output) =>
         val knownAdditionalNames =
           knownAdditionalTrees.collect:
@@ -1604,7 +2228,10 @@ private object ParadiseTreeRewrite:
               input.annotatedClass
             )
           case Right(canonicalTrees) =>
-            ValidatedExpansionResult.Expanded(canonicalTrees)
+            ValidatedExpansionResult.Expanded(
+              canonicalTrees,
+              captured.drafts
+            )
       case ExpansionResult.Rejected(diagnostics, fallback) =>
         ValidatedExpansionResult.Rejected(diagnostics, fallback)
 
@@ -1641,6 +2268,70 @@ private object ParadiseTreeRewrite:
       currentCompanion = nextCompanion,
       additionalTopLevelTrees = additionalTopLevelTrees
     )
+
+  private def validateGeneratedStep(
+      request: FurtherExpansionRequest,
+      expander: AnnotationExpander,
+      beforePrimary: TypeDef,
+      externalExpanders: List[AnnotationExpander],
+      trees: List[Tree]
+  )(using Context, ExplicitImportAnnotationIdentityResolver)
+      : Option[ExpansionDiagnostic] =
+    val expected =
+      HandledAnnotations.matchingAnnotationsInSourceOrder(
+        beforePrimary,
+        externalExpanders
+      )
+    trees.collectFirst:
+      case typeDef: TypeDef if typeDef.name == beforePrimary.name => typeDef
+    .flatMap: returnedPrimary =>
+      val returnedAnnotations = Trees.mods(returnedPrimary).annotations
+      val returnedHandled =
+        HandledAnnotations.matchingAnnotationsInSourceOrder(
+          returnedPrimary,
+          externalExpanders,
+          identityWitnesses = expected.map(_.annotation)
+        )
+      val detail =
+        expected.iterator
+          .map: preserved =>
+            val occurrences =
+              returnedAnnotations.count(_ eq preserved.annotation)
+            (preserved, occurrences)
+          .collectFirst:
+            case (preserved, 0) =>
+              s"generated/delegated composition contract violation: source handled annotation @${preserved.expander.annotationName} was not preserved by identity"
+            case (preserved, occurrences) if occurrences != 1 =>
+              s"generated/delegated composition contract violation: source handled annotation @${preserved.expander.annotationName} was preserved $occurrences times instead of exactly once"
+          .orElse:
+            val positions = expected.map: preserved =>
+              returnedAnnotations.indexWhere(_ eq preserved.annotation)
+            if positions != positions.sorted then
+              Some(
+                "generated/delegated composition contract violation: preserved source handled annotations changed relative order"
+              )
+            else
+              returnedHandled.iterator
+                .filterNot: returned =>
+                  expected.exists(preserved =>
+                    preserved.annotation eq returned.annotation
+                  )
+                .map: unexpected =>
+                  s"generated/delegated composition contract violation: reason=NEW_UNEXPECTED_HANDLED_ANNOTATION " +
+                    s"new unexpected handled annotation @${unexpected.expander.annotationName}"
+                .nextOption()
+
+      detail.map: value =>
+        ExpansionDiagnostic(
+          expander.outputValidationDiagnostic(
+            "COMPOSITION_ANNOTATION_PRESERVATION",
+            value
+          ),
+          Option(request.rawApplication)
+            .map(_.sourcePos)
+            .filter(_.span.exists)
+            .getOrElse(beforePrimary.sourcePos)
+        )
 
   private def validateCompositionStep(
       current: MatchingAnnotation,
@@ -1738,7 +2429,7 @@ private object ParadiseTreeRewrite:
       restoredCompanionOnRejection: Option[ModuleDef] = None
   )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     result match
-      case ValidatedExpansionResult.Expanded(trees) =>
+      case ValidatedExpansionResult.Expanded(trees, _) =>
         trees ++ rewritePackageStats(remainingStats, topLevel, externalExpanders)
       case ValidatedExpansionResult.Rejected(diagnostics, fallback) =>
         diagnostics.foreach(reportDiagnostic)
