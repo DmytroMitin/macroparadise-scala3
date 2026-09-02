@@ -6,6 +6,146 @@ import dotty.tools.dotc.core.Names.Name
 
 import scala.collection.mutable.ListBuffer
 
+private[macroparadise] enum InternalGeneratedProvenance:
+  case GeneratedDelegated
+  case UnsupportedFixtureValue(value: String | Null)
+
+private[macroparadise] final case class InternalGeneratedAnnotationDirective(
+    annotationName: String,
+    rawApplication: untpd.Tree,
+    provenance: InternalGeneratedProvenance
+)
+
+private[macroparadise] final case class InternalStructuredExpansion[A](
+    ordinaryResult: A,
+    directives: List[InternalGeneratedAnnotationDirective]
+)
+
+private[macroparadise] object InternalStructuredExpansionValidator:
+  enum Category:
+    case DirectiveRejected
+    case MixedAuthoring
+
+  final case class Violation(
+      category: Category,
+      annotationName: String,
+      rawApplication: untpd.Tree | Null,
+      detail: String
+  )
+
+  def lowerToR1(
+      directives: List[InternalGeneratedAnnotationDirective],
+      originalSourceAnnotations: List[Tree[?]]
+  )(using dotty.tools.dotc.core.Contexts.Context)
+      : Either[Violation, List[InternalFurtherExpansionRequests.Draft]] =
+    directives.foldLeft[
+      Either[Violation, List[InternalFurtherExpansionRequests.Draft]]
+    ](Right(Nil)):
+      case (left @ Left(_), _) => left
+      case (Right(lowered), null) =>
+        Left(
+          Violation(
+            Category.DirectiveRejected,
+            "<missing>",
+            null,
+            "directive structure is null"
+          )
+        )
+      case (Right(lowered), directive) =>
+        validate(directive, originalSourceAnnotations).map(_ :: lowered)
+    .map(_.reverse)
+
+  private def validate(
+      directive: InternalGeneratedAnnotationDirective,
+      originalSourceAnnotations: List[Tree[?]]
+  )(using dotty.tools.dotc.core.Contexts.Context)
+      : Either[Violation, InternalFurtherExpansionRequests.Draft] =
+    val logicalName = Option(directive.annotationName).map(_.trim)
+    logicalName match
+      case None | Some("") =>
+        Left(
+          Violation(
+            Category.DirectiveRejected,
+            "<missing>",
+            directive.rawApplication,
+            "directive annotation name is empty"
+          )
+        )
+      case Some(annotationName)
+          if directive.provenance !=
+            InternalGeneratedProvenance.GeneratedDelegated =>
+        Left(
+          Violation(
+            Category.DirectiveRejected,
+            annotationName,
+            directive.rawApplication,
+            "directive provenance is not generated/delegated"
+          )
+        )
+      case Some(annotationName) if directive.rawApplication == null =>
+        Left(
+          Violation(
+            Category.DirectiveRejected,
+            annotationName,
+            null,
+            "directive raw application is null"
+          )
+        )
+      case Some(annotationName)
+          if originalSourceAnnotations.exists(_.eq(directive.rawApplication)) =>
+        Left(
+          Violation(
+            Category.DirectiveRejected,
+            annotationName,
+            directive.rawApplication,
+            "directive raw application reuses an original source annotation object"
+          )
+        )
+      case Some(annotationName) =>
+        rawConstructorName(directive.rawApplication) match
+          case None =>
+            Left(
+              Violation(
+                Category.DirectiveRejected,
+                annotationName,
+                directive.rawApplication,
+                "directive raw application expected a constructor application"
+              )
+            )
+          case Some(rawName)
+              if rawName != annotationName &&
+                !annotationName.endsWith(s".$rawName") =>
+            Left(
+              Violation(
+                Category.DirectiveRejected,
+                annotationName,
+                directive.rawApplication,
+                s"raw application names @$rawName but directive names @$annotationName"
+              )
+            )
+          case Some(_) =>
+            Right(
+              InternalFurtherExpansionRequests.Draft(
+                annotationName,
+                directive.rawApplication
+              )
+            )
+
+  private def rawConstructorName(
+      rawApplication: untpd.Tree
+  )(using dotty.tools.dotc.core.Contexts.Context): Option[String] =
+    rawApplication match
+      case untpd.Apply(
+            untpd.Select(untpd.New(typeTree), constructorName),
+            _
+          ) if constructorName.toString == "<init>" =>
+        val annotationType =
+          typeTree match
+            case untpd.AppliedTypeTree(base, _) => base
+            case base => base
+        SyntacticAnnotationIdentity.fromTree(annotationType).map(_.value)
+      case _ => None
+
 /** Product-private same-thread request scope used by the coordinator.
   *
   * The only retained producer is a repository fixture reached reflectively, so
@@ -15,19 +155,35 @@ import scala.collection.mutable.ListBuffer
   */
 private[macroparadise] object InternalFurtherExpansionRequests:
   final case class Draft(annotationName: String, rawApplication: untpd.Tree)
-  final case class Captured[A](value: A, drafts: List[Draft])
+  final case class Captured[A](
+      drafts: List[Draft],
+      structured: InternalStructuredExpansion[A]
+  ):
+    def value: A = structured.ordinaryResult
 
-  private val activeDrafts = new ThreadLocal[ListBuffer[Draft]]
+  private final class ActiveCapture:
+    val drafts = ListBuffer.empty[Draft]
+    var directives: ListBuffer[InternalGeneratedAnnotationDirective] | Null = null
+
+  private val activeCapture = new ThreadLocal[ActiveCapture]
 
   def capture[A](operation: => A): Captured[A] =
-    if activeDrafts.get() != null then
+    if activeCapture.get() != null then
       throw IllegalStateException(
         "nested internal further-expansion request capture is unsupported"
       )
-    val drafts = ListBuffer.empty[Draft]
-    activeDrafts.set(drafts)
-    try Captured(operation, drafts.toList)
-    finally activeDrafts.remove()
+    val active = new ActiveCapture
+    activeCapture.set(active)
+    try
+      val result = operation
+      Captured(
+        drafts = active.drafts.toList,
+        structured = InternalStructuredExpansion(
+          ordinaryResult = result,
+          directives = Option(active.directives).fold(Nil)(_.toList)
+        )
+      )
+    finally activeCapture.remove()
 
   /** Repository-fixture seam. External product handlers have no typed access
     * to this method and cannot place request records in ordinary output.
@@ -36,12 +192,38 @@ private[macroparadise] object InternalFurtherExpansionRequests:
       annotationName: String,
       rawApplication: untpd.Tree
   ): Unit =
-    val drafts = activeDrafts.get()
-    if drafts == null then
+    val active = activeCapture.get()
+    if active == null then
       throw IllegalStateException(
         "internal further-expansion request was emitted outside coordinator invocation"
       )
-    drafts += Draft(annotationName, rawApplication)
+    active.drafts += Draft(annotationName, rawApplication)
+
+  /** Repository-fixture seam for an explicit structured R2 directive. The
+    * directive remains disjoint from the ordinary expansion result until the
+    * coordinator validates and lowers it to a private R1 draft.
+    */
+  def emitFixtureStructuredDirective(
+      annotationName: String,
+      rawApplication: untpd.Tree,
+      provenance: String
+  ): Unit =
+    val active = activeCapture.get()
+    if active == null then
+      throw IllegalStateException(
+        "internal structured directive was emitted outside coordinator invocation"
+      )
+    val normalizedProvenance =
+      if provenance == "generated/delegated" then
+        InternalGeneratedProvenance.GeneratedDelegated
+      else InternalGeneratedProvenance.UnsupportedFixtureValue(provenance)
+    if active.directives == null then
+      active.directives = ListBuffer.empty[InternalGeneratedAnnotationDirective]
+    active.directives.nn += InternalGeneratedAnnotationDirective(
+      annotationName,
+      rawApplication,
+      normalizedProvenance
+    )
 
 /** Position-independent structural evidence for bounded request-state keys.
   *

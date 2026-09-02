@@ -72,6 +72,87 @@ private object InternalFurtherExpansionFixtureBridge:
       case error: InvocationTargetException =>
         throw Option(error.getCause).getOrElse(error)
 
+private object InternalStructuredR2FixtureBridge:
+  private val BridgeClassName =
+    "macroparadise.InternalFurtherExpansionRequests$"
+
+  def directive(
+      input: ExpansionInput,
+      annotationName: String,
+      typeArguments: List[untpd.Tree] = Nil,
+      termArguments: List[untpd.Tree] = Nil
+  )(using Context): Unit =
+    val rawApplication = InternalFurtherExpansionFixtureBridge.application(
+      input,
+      annotationName,
+      typeArguments,
+      termArguments
+    )
+    emit(annotationName, rawApplication, "generated/delegated")
+
+  def mismatchedDirective(
+      input: ExpansionInput,
+      annotationName: String,
+      rawAnnotationName: String
+  )(using Context): Unit =
+    emit(
+      annotationName,
+      InternalFurtherExpansionFixtureBridge.application(
+        input,
+        rawAnnotationName
+      ),
+      "generated/delegated"
+    )
+
+  def malformedRawDirective(
+      annotationName: String
+  )(using Context): Unit =
+    emit(
+      annotationName,
+      untpd.Ident(typeName(annotationName)),
+      "generated/delegated"
+    )
+
+  def nullRawDirective(annotationName: String): Unit =
+    emit(annotationName, null, "generated/delegated")
+
+  def unsupportedProvenanceDirective(
+      input: ExpansionInput,
+      annotationName: String
+  )(using Context): Unit =
+    emit(
+      annotationName,
+      InternalFurtherExpansionFixtureBridge.application(input, annotationName),
+      "source"
+    )
+
+  def sourceObjectDirective(input: ExpansionInput): Unit =
+    emit(
+      input.annotationName,
+      input.currentAnnotation.orNull,
+      "generated/delegated"
+    )
+
+  private def emit(
+      annotationName: String,
+      rawApplication: untpd.Tree,
+      provenance: String
+  ): Unit =
+    val bridgeClass = Class.forName(BridgeClassName)
+    val module = bridgeClass.getField("MODULE$").get(null)
+    val emitDirective =
+      bridgeClass.getMethod(
+        "emitFixtureStructuredDirective",
+        classOf[String],
+        classOf[untpd.Tree],
+        classOf[String]
+      )
+    try
+      emitDirective.invoke(module, annotationName, rawApplication, provenance)
+    catch
+      case error: InvocationTargetException =>
+        throw Option(error.getCause).getOrElse(error)
+
 private object InternalFurtherExpansionFixtureTrees:
   def withoutCurrent(input: ExpansionInput)(using Context): untpd.TypeDef =
     val mods = Trees.mods(input.annotatedClass)
@@ -459,3 +540,322 @@ final class InternalR1FreshHandledExpander extends ParadiseAnnotationExpander:
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     InternalFurtherExpansionFixtureTrees.withFreshHandledAnnotation(input, "r1B")
+
+final class InternalR2AExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2A"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+  override val consumesExistingCompanion: Boolean = true
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    input.className match
+      case "R2EmptyName" =>
+        InternalStructuredR2FixtureBridge.mismatchedDirective(input, "", "r2B")
+      case "R2NameMismatch" =>
+        InternalStructuredR2FixtureBridge.mismatchedDirective(input, "r2B", "r2C")
+      case "R2MalformedRaw" =>
+        InternalStructuredR2FixtureBridge.malformedRawDirective("r2B")
+      case "R2NullRaw" =>
+        InternalStructuredR2FixtureBridge.nullRawDirective("r2B")
+      case "R2UnsupportedProvenance" =>
+        InternalStructuredR2FixtureBridge.unsupportedProvenanceDirective(
+          input,
+          "r2B"
+        )
+      case "R2SourceObjectReuse" =>
+        InternalStructuredR2FixtureBridge.sourceObjectDirective(input)
+      case "R2MultiFifo" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2B")
+        InternalStructuredR2FixtureBridge.directive(input, "r2C")
+      case "R2Arguments" =>
+        InternalStructuredR2FixtureBridge.directive(
+          input,
+          "r2B",
+          typeArguments = List(untpd.Ident(typeName("String"))),
+          termArguments = List(
+            untpd.Literal(Constant(1)),
+            untpd.Literal(Constant("a")),
+            untpd.NamedArg(
+              termName("flag"),
+              untpd.Literal(Constant(true))
+            )
+          )
+        )
+      case "R2Companion" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2B")
+        return ExpansionHelpers.addStringMethodToCompanion(
+          input,
+          "r2ACompanionValue",
+          "A"
+        )
+      case "R2Additional" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2B")
+        return InternalFurtherExpansionFixtureTrees.withAdditional(
+          input,
+          "R2AExtra"
+        )
+      case "R2LateFailure" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2LateFailure")
+        return InternalFurtherExpansionFixtureTrees.withCompanionAndAdditional(
+          input,
+          "r2ATentativeCompanion",
+          "R2TentativeExtra"
+        )
+      case "R2Unknown" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2Unavailable")
+      case "R2Excluded" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2Restricted")
+      case "R2StandaloneRequested" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2Standalone")
+      case "R2FreshHandled" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2FreshHandled")
+      case "R2MalformedOutput" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2Malformed")
+      case "R2MixedR1ThenR2" =>
+        InternalFurtherExpansionFixtureBridge.request(input, "r2B")
+        InternalStructuredR2FixtureBridge.directive(input, "r2C")
+      case "R2MixedR2ThenR1" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2B")
+        InternalFurtherExpansionFixtureBridge.request(input, "r2C")
+      case _ =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2B")
+    ExpansionHelpers.addStringMethodToClass(input, "r2AValue", "A")
+
+final class InternalR2BExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2B"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+  override val consumesExistingCompanion: Boolean = true
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    input.className match
+      case "R2FiniteABC" | "R2ChainedFifo" =>
+        InternalStructuredR2FixtureBridge.directive(input, "r2C")
+        ExpansionHelpers.addStringMethodToClass(input, "r2BValue", "B")
+      case "R2Arguments" =>
+        AnnotationApplication.fromInput(input) match
+          case Right(application)
+              if application.typeArguments match
+                case (identifier: untpd.Ident) :: Nil =>
+                  identifier.name.toString == "String"
+                case _ => false
+              =>
+            application.termArguments match
+              case AnnotationTermArgument.Positional(
+                    untpd.Literal(Constant(1)),
+                    _
+                  ) :: AnnotationTermArgument.Positional(
+                    untpd.Literal(Constant("a")),
+                    _
+                  ) :: AnnotationTermArgument.Named(
+                    "flag",
+                    untpd.Literal(Constant(true)),
+                    _
+                  ) :: Nil =>
+                ExpansionHelpers.addStringMethodToClass(
+                  input,
+                  "r2ArgumentsObserved",
+                  "String|1|a|true"
+                )
+              case other =>
+                InternalFurtherExpansionFixtureTrees.rejected(
+                  input,
+                  s"R2 raw term arguments changed: $other"
+                )
+          case Right(other) =>
+            InternalFurtherExpansionFixtureTrees.rejected(
+              input,
+              s"R2 raw type arguments changed: ${other.typeArguments}"
+            )
+          case Left(diagnostic) =>
+            InternalFurtherExpansionFixtureTrees.rejected(
+              input,
+              diagnostic.message
+            )
+      case "R2Companion" =>
+        if input.existingCompanion.isEmpty then
+          InternalFurtherExpansionFixtureTrees.rejected(
+            input,
+            "generated R2 B did not receive the latest companion"
+          )
+        else
+          ExpansionHelpers.addStringMethodToCompanion(
+            input,
+            "r2BCompanionValue",
+            "B"
+          )
+      case "R2Additional" =>
+        InternalFurtherExpansionFixtureTrees.withAdditional(input, "R2BExtra")
+      case _ =>
+        ExpansionHelpers.addStringMethodToClass(input, "r2BValue", "B")
+
+final class InternalR2CExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2C"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionHelpers.addStringMethodToClass(input, "r2CValue", "C")
+
+final class InternalR2SelfExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Self"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(input, "r2Self")
+    ExpansionHelpers.addStringMethodToClass(input, "r2SelfValue", "self")
+
+final class InternalR2MutualSeedExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2MutualSeed"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(input, "r2MutualA")
+    ExpansionHelpers.addStringMethodToClass(input, "r2MutualSeedValue", "seed")
+
+final class InternalR2MutualAExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2MutualA"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(input, "r2MutualB")
+    InternalFurtherExpansionFixtureTrees.unchanged(input)
+
+final class InternalR2MutualBExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2MutualB"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(input, "r2MutualA")
+    InternalFurtherExpansionFixtureTrees.unchanged(input)
+
+final class InternalR2ChangingSeedExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2ChangingSeed"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(
+      input,
+      "r2Changing",
+      termArguments = List(untpd.Literal(Constant(0)))
+    )
+    ExpansionHelpers.addStringMethodToClass(input, "r2ChangingSeedValue", "seed")
+
+final class InternalR2ChangingExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Changing"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalFurtherExpansionFixtureTrees.requiredIntArgument(input) match
+      case Right(index) =>
+        if index < 2 then
+          InternalStructuredR2FixtureBridge.directive(
+            input,
+            "r2Changing",
+            termArguments = List(untpd.Literal(Constant(index + 1)))
+          )
+        ExpansionHelpers.addStringMethodToClass(
+          input,
+          s"r2Changed$index",
+          index.toString
+        )
+      case Left(detail) =>
+        InternalFurtherExpansionFixtureTrees.rejected(input, detail)
+
+final class InternalR2BudgetSeedExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2BudgetSeed"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(
+      input,
+      "r2Budget",
+      termArguments = List(untpd.Literal(Constant(0)))
+    )
+    ExpansionHelpers.addStringMethodToClass(input, "r2BudgetSeedValue", "seed")
+
+final class InternalR2BudgetExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Budget"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalFurtherExpansionFixtureTrees.requiredIntArgument(input) match
+      case Right(index) =>
+        InternalStructuredR2FixtureBridge.directive(
+          input,
+          "r2Budget",
+          termArguments = List(untpd.Literal(Constant(index + 1)))
+        )
+        ExpansionHelpers.addStringMethodToClass(
+          input,
+          s"r2Budget$index",
+          index.toString
+        )
+      case Left(detail) =>
+        InternalFurtherExpansionFixtureTrees.rejected(input, detail)
+
+final class InternalR2LateFailureExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2LateFailure"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+  override val consumesExistingCompanion: Boolean = true
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    if input.existingCompanion.isEmpty then
+      InternalFurtherExpansionFixtureTrees.rejected(
+        input,
+        "late R2 handler did not receive tentative companion state"
+      )
+    else throw new IllegalStateException("intentional generated R2 late failure")
+
+final class InternalR2MalformedExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Malformed"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionOutcome.Expanded(Nil)
+
+final class InternalR2RestrictedExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Restricted"
+  override val targetProfile: ExpansionTargetProfile =
+    ExpansionTargetProfile.RestrictedGenericTraitApply
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalFurtherExpansionFixtureTrees.unchanged(input)
+
+final class InternalR2StandaloneExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2Standalone"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalFurtherExpansionFixtureTrees.unchanged(input)
+
+final class InternalR2StandaloneGeneratorExpander
+    extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2StandaloneGenerator"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalStructuredR2FixtureBridge.directive(input, "r2B")
+    ExpansionHelpers.addStringMethodToClass(
+      input,
+      "r2StandaloneGeneratorValue",
+      "standalone"
+    )
+
+final class InternalR2FreshHandledExpander extends ParadiseAnnotationExpander:
+  val annotationName: String = "r2FreshHandled"
+  override val compositionPolicy: ExpansionCompositionPolicy =
+    ExpansionCompositionPolicy.SourceOrdered
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    InternalFurtherExpansionFixtureTrees.withFreshHandledAnnotation(input, "r2B")

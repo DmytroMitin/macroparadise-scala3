@@ -1531,7 +1531,11 @@ private object ParadiseTreeRewrite:
       else (None, rest)
     val input =
       ExpansionInput(typeDef, existingCompanion, topLevel, Some(annotation))
-    expandAndValidate(expander, input) match
+    expandAndValidate(
+      expander,
+      input,
+      originalSourceAnnotations = List(annotation)
+    ) match
       case expanded @ ValidatedExpansionResult.Expanded(_, Nil) =>
         // Preserve the established single-annotation path exactly when no
         // coordinator-owned request exists, independent of the descriptor's
@@ -1615,7 +1619,8 @@ private object ParadiseTreeRewrite:
                 state,
                 lineage,
                 topLevel,
-                externalExpanders
+                externalExpanders,
+                originalSourceAnnotations = List(annotation)
               )
         result match
           case Right(state) =>
@@ -1679,7 +1684,8 @@ private object ParadiseTreeRewrite:
           expandAndValidate(
             matchingAnnotation.expander,
             input,
-            knownAdditionalTrees = state.additionalTopLevelTrees
+            knownAdditionalTrees = state.additionalTopLevelTrees,
+            originalSourceAnnotations = annotations.map(_.annotation)
           ) match
             case ValidatedExpansionResult.Expanded(trees, drafts) =>
               validateCompositionStep(
@@ -1728,7 +1734,8 @@ private object ParadiseTreeRewrite:
           state,
           lineage,
           topLevel,
-          externalExpanders
+          externalExpanders,
+          originalSourceAnnotations = annotations.map(_.annotation)
         )
 
     result match
@@ -1888,7 +1895,8 @@ private object ParadiseTreeRewrite:
       initialState: CompositionState,
       lineage: String,
       topLevel: TopLevelRewriteContext,
-      externalExpanders: List[AnnotationExpander]
+      externalExpanders: List[AnnotationExpander],
+      originalSourceAnnotations: List[Tree]
   )(using Context, ExplicitImportAnnotationIdentityResolver)
       : Either[(List[ExpansionDiagnostic], TypeDef), CompositionState] =
     val available = expanders(externalExpanders)
@@ -2022,7 +2030,8 @@ private object ParadiseTreeRewrite:
                     expandAndValidate(
                       expander,
                       input,
-                      knownAdditionalTrees = state.additionalTopLevelTrees
+                      knownAdditionalTrees = state.additionalTopLevelTrees,
+                      originalSourceAnnotations = originalSourceAnnotations
                     ) match
                       case ValidatedExpansionResult.Rejected(
                             diagnostics,
@@ -2152,11 +2161,69 @@ private object ParadiseTreeRewrite:
   private def expandAndValidate(
       expander: AnnotationExpander,
       input: ExpansionInput,
-      knownAdditionalTrees: List[Tree] = Nil
+      knownAdditionalTrees: List[Tree] = Nil,
+      originalSourceAnnotations: List[Tree] = Nil
   )(using Context): ValidatedExpansionResult =
     val captured =
       InternalFurtherExpansionRequests.capture(expander.expand(input))
-    captured.value match
+    val loweredStructuredDrafts =
+      if captured.drafts.nonEmpty && captured.structured.directives.nonEmpty then
+        Left(
+          InternalStructuredExpansionValidator.Violation(
+            InternalStructuredExpansionValidator.Category.MixedAuthoring,
+            "<mixed>",
+            captured.structured.directives.head.rawApplication,
+            "one handler invocation cannot mix direct R1 requests with structured R2 directives"
+          )
+        )
+      else
+        InternalStructuredExpansionValidator.lowerToR1(
+          captured.structured.directives,
+          originalSourceAnnotations
+        )
+    loweredStructuredDrafts match
+      case Left(violation) =>
+        val pos =
+          Option(violation.rawApplication)
+            .map(_.sourcePos)
+            .filter(_.span.exists)
+            .orElse(input.currentAnnotation.map(_.sourcePos).filter(_.span.exists))
+            .getOrElse(input.annotatedClass.sourcePos)
+        ValidatedExpansionResult.Rejected(
+          List(
+            ExpansionDiagnostic(
+              s"internal structured R2 failure: stage=structured-r2-validation " +
+                s"category=${violation.category match
+                    case InternalStructuredExpansionValidator.Category.MixedAuthoring =>
+                      "MIXED_INTERNAL_R1_R2_AUTHORING"
+                    case InternalStructuredExpansionValidator.Category.DirectiveRejected =>
+                      "STRUCTURED_R2_DIRECTIVE_REJECTED"
+                  } " +
+                s"handler=@${violation.annotationName} " +
+                s"requestedBy=${expander.canonicalHandlerIdentity} detail=${violation.detail}",
+              pos
+            )
+          ),
+          input.annotatedClass
+        )
+      case Right(lowered) =>
+        val capturedDrafts = captured.drafts ++ lowered
+        validateCapturedExpansion(
+          captured.value,
+          capturedDrafts,
+          expander,
+          input,
+          knownAdditionalTrees
+        )
+
+  private def validateCapturedExpansion(
+      result: ExpansionResult,
+      capturedDrafts: List[InternalFurtherExpansionRequests.Draft],
+      expander: AnnotationExpander,
+      input: ExpansionInput,
+      knownAdditionalTrees: List[Tree]
+  )(using Context): ValidatedExpansionResult =
+    result match
       case ExpansionResult.Expanded(trees) =>
         val knownAdditionalNames =
           knownAdditionalTrees.collect:
@@ -2192,7 +2259,7 @@ private object ParadiseTreeRewrite:
               input.annotatedClass
             )
           case None =>
-            ValidatedExpansionResult.Expanded(trees, captured.drafts)
+            ValidatedExpansionResult.Expanded(trees, capturedDrafts)
       case ExpansionResult.Structured(output) =>
         val knownAdditionalNames =
           knownAdditionalTrees.collect:
@@ -2230,7 +2297,7 @@ private object ParadiseTreeRewrite:
           case Right(canonicalTrees) =>
             ValidatedExpansionResult.Expanded(
               canonicalTrees,
-              captured.drafts
+              capturedDrafts
             )
       case ExpansionResult.Rejected(diagnostics, fallback) =>
         ValidatedExpansionResult.Rejected(diagnostics, fallback)
