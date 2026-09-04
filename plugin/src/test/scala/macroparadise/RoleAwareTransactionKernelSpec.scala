@@ -152,6 +152,346 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
     )
   }
 
+  test("object transaction discovers the exact existing class opposite") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+
+    val transaction = ObjectTransaction
+      .discover(
+        fixture.stats,
+        fixture.objectPrimary,
+        Vector("private-object-transform")
+      )
+      .fold(violation => fail(violation.render), identity)
+
+    assert(transaction.currentPrimary eq fixture.objectPrimary)
+    assert(
+      transaction.currentOpposite.exists:
+        case OppositeRole.ClassOpposite(value) => value eq fixture.objectClassOpposite
+        case _                                 => false
+    )
+    assertEquals(transaction.targetId.originalKind, TargetKind.Object)
+    assertEquals(transaction.targetId.originalName, "ObjectSubject")
+  }
+
+  test("object transaction represents no opposite without inventing a creation kind") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+
+    assert(transaction.currentPrimary eq fixture.loneObjectPrimary)
+    assertEquals(transaction.currentOpposite, None)
+  }
+
+  test("object transaction preserves an existing trait as a trait opposite") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectTraitPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+
+    assert(
+      transaction.currentOpposite.exists:
+        case OppositeRole.TraitOpposite(value) => value eq fixture.objectTraitOpposite
+        case _                                 => false
+    )
+  }
+
+  test("object transaction rejects ambiguous same-name class and trait topology") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+
+    assertEquals(
+      ObjectTransaction
+        .discover(fixture.stats, fixture.ambiguousObjectPrimary, Vector.empty)
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.AmbiguousOppositeTopology)
+    )
+  }
+
+  test("object no-op staging commits the exact original package-stat references in source order") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector("no-op"))
+      .fold(violation => fail(violation.render), identity)
+
+    val staged = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+          transaction.currentOpposite
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+    val committed = staged.commitPackageStats
+
+    assertEquals(committed.size, fixture.stats.size)
+    committed.zip(fixture.stats).foreach: (actual, original) =>
+      assert(actual eq original)
+  }
+
+  test("object no-op staging preserves an existing trait opposite by exact identity") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectTraitPrimary, Vector("trait-no-op"))
+      .fold(violation => fail(violation.render), identity)
+
+    val committed = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.objectTraitPrimary),
+          transaction.currentOpposite
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+
+    assert(
+      committed(fixture.stats.indexWhere(_ eq fixture.objectTraitOpposite)) eq
+        fixture.objectTraitOpposite
+    )
+    assert(
+      committed(fixture.stats.indexWhere(_ eq fixture.objectTraitPrimary)) eq
+        fixture.objectTraitPrimary
+    )
+  }
+
+  test("object primary edit commits at the original occurrence and preserves unrelated references") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector("primary-edit"))
+      .fold(violation => fail(violation.render), identity)
+    val rewrittenPrimary = copyModuleDef(fixture.loneObjectPrimary, "LoneObject")
+
+    val committed = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(rewrittenPrimary),
+          None
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+    val primaryIndex = fixture.stats.indexWhere(_ eq fixture.loneObjectPrimary)
+
+    assert(committed(primaryIndex) eq rewrittenPrimary)
+    committed.zip(fixture.stats).zipWithIndex.foreach:
+      case ((actual, original), index) if index != primaryIndex =>
+        assert(actual eq original)
+      case _ => ()
+  }
+
+  test("object transaction stages bounded edits to existing class and trait opposites without changing kind") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+
+    val classTransaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector("class-edit"))
+      .fold(violation => fail(violation.render), identity)
+    val rewrittenClass = copyTypeDef(fixture.objectClassOpposite, "ObjectSubject")
+    val classCommitted = classTransaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+          Some(OppositeRole.ClassOpposite(rewrittenClass))
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+    assert(
+      classCommitted(fixture.stats.indexWhere(_ eq fixture.objectClassOpposite)) eq rewrittenClass
+    )
+
+    val traitTransaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectTraitPrimary, Vector("trait-edit"))
+      .fold(violation => fail(violation.render), identity)
+    val rewrittenTrait = copyTypeDef(fixture.objectTraitOpposite, "ObjectTraitSubject")
+    val traitCommitted = traitTransaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.objectTraitPrimary),
+          Some(OppositeRole.TraitOpposite(rewrittenTrait))
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+    assert(
+      traitCommitted(fixture.stats.indexWhere(_ eq fixture.objectTraitOpposite)) eq rewrittenTrait
+    )
+  }
+
+  test("object staging rejects wrong primary name and primary kind replacement") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.secondAdditional),
+            None
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.PrimaryNameMismatch)
+    )
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ClassPrimary(
+              copyTypeDef(fixture.objectClassOpposite, "LoneObject")
+            ),
+            None
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.PrimaryKindMismatch)
+    )
+  }
+
+  test("object staging rejects opposite name, kind, creation, and removal changes") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+            Some(OppositeRole.ClassOpposite(fixture.wrongNameClass))
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositeNameMismatch)
+    )
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+            Some(
+              OppositeRole.TraitOpposite(
+                copyTypeDef(fixture.objectTraitOpposite, "ObjectSubject")
+              )
+            )
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositeKindMismatch)
+    )
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+            None
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositePresenceMismatch)
+    )
+
+    val noOpposite = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+    assertEquals(
+      noOpposite
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+            Some(
+              OppositeRole.ClassOpposite(
+                copyTypeDef(fixture.objectClassOpposite, "LoneObject")
+              )
+            )
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositePresenceMismatch)
+    )
+  }
+
+  test("object staging rejects a class opposite wrapper around a raw trait TypeDef") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+    val counterfeitClassRole =
+      OppositeRole.ClassOpposite(
+        copyTypeDef(fixture.objectTraitOpposite, "ObjectSubject")
+      )
+
+    assertEquals(
+      transaction
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+            Some(counterfeitClassRole)
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositeKindMismatch)
+    )
+  }
+
+  test("object rollback after staged primary and opposite edits restores exact original references") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector("late-failure"))
+      .fold(violation => fail(violation.render), identity)
+    val staged = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(
+            copyModuleDef(fixture.objectPrimary, "ObjectSubject")
+          ),
+          Some(
+            OppositeRole.ClassOpposite(
+              copyTypeDef(fixture.objectClassOpposite, "ObjectSubject")
+            )
+          )
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+
+    val rollback = staged.rollback
+    assert(rollback.packageStats.asInstanceOf[AnyRef] eq fixture.stats.asInstanceOf[AnyRef])
+    assert(rollback.primary.tree eq fixture.objectPrimary)
+    assert(rollback.opposite.exists(_.tree eq fixture.objectClassOpposite))
+  }
+
   test("legacy transaction adapter owns validated staging and refuses an object snapshot") {
     val fixture = parsedFixture()
     given Context = fixture.context
@@ -225,6 +565,10 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
       traitCompanion: ModuleDef,
       objectPrimary: ModuleDef,
       objectClassOpposite: TypeDef,
+      loneObjectPrimary: ModuleDef,
+      objectTraitPrimary: ModuleDef,
+      objectTraitOpposite: TypeDef,
+      ambiguousObjectPrimary: ModuleDef,
       rewrittenClass: TypeDef,
       rewrittenClassCompanion: ModuleDef,
       wrongNameClass: TypeDef,
@@ -242,6 +586,12 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
         |object TraitSubject
         |object ObjectSubject
         |class ObjectSubject
+        |object LoneObject
+        |trait ObjectTraitSubject
+        |object ObjectTraitSubject
+        |class AmbiguousObject
+        |trait AmbiguousObject
+        |object AmbiguousObject
         |class RewrittenSubject
         |object RewrittenSubject
         |class WrongName
@@ -263,6 +613,10 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
       traitCompanion = moduleDef(stats, "TraitSubject"),
       objectPrimary = moduleDef(stats, "ObjectSubject"),
       objectClassOpposite = typeDef(stats, "ObjectSubject"),
+      loneObjectPrimary = moduleDef(stats, "LoneObject"),
+      objectTraitPrimary = moduleDef(stats, "ObjectTraitSubject"),
+      objectTraitOpposite = typeDef(stats, "ObjectTraitSubject"),
+      ambiguousObjectPrimary = moduleDef(stats, "AmbiguousObject"),
       rewrittenClass = copyTypeDef(typeDef(stats, "RewrittenSubject"), "Subject"),
       rewrittenClassCompanion = copyModuleDef(moduleDef(stats, "RewrittenSubject"), "Subject"),
       wrongNameClass = typeDef(stats, "WrongName"),

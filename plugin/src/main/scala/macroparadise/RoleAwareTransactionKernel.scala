@@ -36,6 +36,9 @@ private[macroparadise] object RoleAwareTransactionKernel:
     case PrimaryNameMismatch
     case PrimaryKindMismatch
     case OppositeNameMismatch
+    case OppositeKindMismatch
+    case OppositePresenceMismatch
+    case AmbiguousOppositeTopology
     case LegacyObjectPrimaryUnsupported
     case MissingLegacyPrimary
 
@@ -106,6 +109,40 @@ private[macroparadise] object RoleAwareTransactionKernel:
       case ClassOpposite(value)  => value
       case TraitOpposite(value)  => value
 
+  object OppositeRole:
+    def fromTypeDef(typeDef: TypeDef)(using Context): Either[Violation, OppositeRole] =
+      PrimaryRole.fromLegacyTypeDef(typeDef).map:
+        case PrimaryRole.ClassPrimary(value) => OppositeRole.ClassOpposite(value)
+        case PrimaryRole.TraitPrimary(value) => OppositeRole.TraitOpposite(value)
+        case PrimaryRole.ObjectPrimary(_) =>
+          throw new IllegalStateException(
+            "legacy TypeDef classification produced an object primary"
+          )
+
+    def validate(value: OppositeRole)(using Context): Either[Violation, Unit] =
+      value match
+        case OppositeRole.ObjectOpposite(_) => Right(())
+        case OppositeRole.ClassOpposite(typeDef) =>
+          fromTypeDef(typeDef).flatMap:
+            case _: OppositeRole.ClassOpposite => Right(())
+            case found =>
+              Left(
+                Violation(
+                  ViolationCategory.OppositeKindMismatch,
+                  s"class opposite wrapper contains raw ${found.kind} TypeDef ${typeDef.name}"
+                )
+              )
+        case OppositeRole.TraitOpposite(typeDef) =>
+          fromTypeDef(typeDef).flatMap:
+            case _: OppositeRole.TraitOpposite => Right(())
+            case found =>
+              Left(
+                Violation(
+                  ViolationCategory.OppositeKindMismatch,
+                  s"trait opposite wrapper contains raw ${found.kind} TypeDef ${typeDef.name}"
+                )
+              )
+
   final case class TransactionTargetId(
       sourceStatsIdentity: Int,
       primaryIndex: Int,
@@ -139,36 +176,60 @@ private[macroparadise] object RoleAwareTransactionKernel:
           )
         )
       else
-        validatePair(primary, opposite).flatMap: _ =>
-          val oppositeIndex = opposite.map(value => originalPackageStats.indexWhere(_ eq value.tree))
-          oppositeIndex match
-            case Some(index) if index < 0 =>
-              Left(
-                Violation(
-                  ViolationCategory.OppositeOccurrenceMissing,
-                  s"opposite ${opposite.get.name} is not an exact member of the package-stat snapshot"
-                )
+        val oppositeIndex =
+          opposite.map(value => originalPackageStats.indexWhere(_ eq value.tree))
+        captureKnownOccurrences(
+          originalPackageStats,
+          primary,
+          opposite,
+          primaryIndex,
+          oppositeIndex,
+          sourceParticipants
+        )
+
+    private[macroparadise] def captureKnownOccurrences(
+        originalPackageStats: List[Tree],
+        primary: PrimaryRole,
+        opposite: Option[OppositeRole],
+        primaryIndex: Int,
+        oppositeIndex: Option[Int],
+        sourceParticipants: Vector[String]
+    ): Either[Violation, TransactionSnapshot] =
+      if primaryIndex < 0 then
+        Left(
+          Violation(
+            ViolationCategory.PrimaryOccurrenceMissing,
+            s"primary ${primary.name} is not an exact member of the package-stat snapshot"
+          )
+        )
+      else
+        oppositeIndex match
+          case Some(index) if index < 0 =>
+            Left(
+              Violation(
+                ViolationCategory.OppositeOccurrenceMissing,
+                s"opposite ${opposite.get.name} is not an exact member of the package-stat snapshot"
               )
-            case _ =>
+            )
+          case _ =>
+            validatePair(primary, opposite).map: _ =>
               val targetId = TransactionTargetId(
                 System.identityHashCode(originalPackageStats),
                 primaryIndex,
                 primary.name,
                 primary.kind
               )
-              Right(
-                TransactionSnapshot(
-                  targetId,
-                  originalPackageStats,
-                  primary,
-                  opposite,
-                  primaryIndex,
-                  oppositeIndex,
-                  sourceParticipants
-                )
+              TransactionSnapshot(
+                targetId,
+                originalPackageStats,
+                primary,
+                opposite,
+                primaryIndex,
+                oppositeIndex,
+                sourceParticipants
               )
 
-    private def validatePair(
+    private[macroparadise] def validatePair(
         primary: PrimaryRole,
         opposite: Option[OppositeRole]
     ): Either[Violation, Unit] =
@@ -207,6 +268,11 @@ private[macroparadise] object RoleAwareTransactionKernel:
       packageStats: List[Tree],
       primary: PrimaryRole,
       opposite: Option[OppositeRole]
+  )
+
+  final case class RoleAwareExpansionResult(
+      continuingPrimary: PrimaryRole,
+      continuingOpposite: Option[OppositeRole]
   )
 
   final case class Transaction private (
@@ -288,6 +354,74 @@ private[macroparadise] object RoleAwareTransactionKernel:
               s"validated legacy output lacks leading TypeDef ${targetId.originalName}"
             )
           )
+
+    def stageValidatedRoleAware(
+        result: RoleAwareExpansionResult
+    )(using Context): Either[Violation, Transaction] =
+      val nextPrimary = result.continuingPrimary
+      if nextPrimary.name != targetId.originalName then
+        Left(
+          Violation(
+            ViolationCategory.PrimaryNameMismatch,
+            s"expected primary ${targetId.originalName}, found ${nextPrimary.name}"
+          )
+        )
+      else if nextPrimary.kind != targetId.originalKind then
+        Left(
+          Violation(
+            ViolationCategory.PrimaryKindMismatch,
+            s"expected ${targetId.originalKind}, found ${nextPrimary.kind}"
+          )
+        )
+      else
+        val rawOppositeValidation =
+          result.continuingOpposite match
+            case Some(value) => OppositeRole.validate(value)
+            case None        => Right(())
+        rawOppositeValidation.flatMap: _ =>
+          (currentOpposite, result.continuingOpposite) match
+            case (None, Some(next)) =>
+              Left(
+                Violation(
+                  ViolationCategory.OppositePresenceMismatch,
+                  s"Stage 2 does not create an opposite ${next.kind} for ${targetId.originalName}"
+                )
+              )
+            case (Some(current), None) =>
+              Left(
+                Violation(
+                  ViolationCategory.OppositePresenceMismatch,
+                  s"Stage 2 does not remove the existing ${current.kind} opposite for ${targetId.originalName}"
+                )
+              )
+            case (Some(current), Some(next)) if current.kind != next.kind =>
+              Left(
+                Violation(
+                  ViolationCategory.OppositeKindMismatch,
+                  s"expected opposite ${current.kind}, found ${next.kind}"
+                )
+              )
+            case _ =>
+              TransactionSnapshot
+                .validatePair(nextPrimary, result.continuingOpposite)
+                .map: _ =>
+                  copy(
+                    currentPrimary = nextPrimary,
+                    currentOpposite = result.continuingOpposite
+                  )
+
+    def commitPackageStats: List[Tree] =
+      snapshot.originalPackageStats.zipWithIndex.map: (original, index) =>
+        if index == snapshot.primaryIndex then currentPrimary.tree
+        else if snapshot.oppositeIndex.contains(index) then
+          currentOpposite
+            .map(_.tree)
+            .getOrElse(
+              throw new IllegalStateException(
+                s"validated transaction lost opposite at source index $index"
+              )
+            )
+        else original
 
     def outputTrees: List[Tree] =
       currentPrimary.tree :: currentOpposite.toList.map(_.tree) ++ additionalTopLevelTrees
@@ -372,3 +506,85 @@ private[macroparadise] object RoleAwareTransactionKernel:
             )
           )
         case _ => Right(LegacyTransaction(transaction))
+
+  final case class ObjectTransaction private (
+      private val underlying: Transaction
+  ):
+    def snapshot: TransactionSnapshot = underlying.snapshot
+
+    def targetId: TransactionTargetId = underlying.targetId
+
+    def currentPrimary: ModuleDef = underlying.currentPrimary match
+      case PrimaryRole.ObjectPrimary(value) => value
+      case _ =>
+        throw new IllegalStateException(
+          "validated ObjectTransaction contained a non-object primary"
+        )
+
+    def currentOpposite: Option[OppositeRole] = underlying.currentOpposite
+
+    def stageValidatedOutput(
+        result: RoleAwareExpansionResult
+    )(using Context): Either[Violation, ObjectTransaction] =
+      underlying
+        .stageValidatedRoleAware(result)
+        .flatMap(ObjectTransaction.fromTransaction)
+
+    def commitPackageStats: List[Tree] = underlying.commitPackageStats
+
+    def rollback: Rollback = underlying.rollback
+
+  object ObjectTransaction:
+    def discover(
+        originalPackageStats: List[Tree],
+        primary: ModuleDef,
+        sourceParticipants: Vector[String]
+    )(using Context): Either[Violation, ObjectTransaction] =
+      val targetName = primary.name.toString
+      var primaryIndex = -1
+      val candidates = originalPackageStats.zipWithIndex.flatMap:
+        case (value, index) if value eq primary =>
+          primaryIndex = index
+          None
+        case (typeDef: TypeDef, index)
+            if typeDef.name.toString == targetName =>
+          OppositeRole.fromTypeDef(typeDef).toOption.map(_ -> index)
+        case _ => None
+
+      candidates match
+        case _ :: _ :: _ =>
+          Left(
+            Violation(
+              ViolationCategory.AmbiguousOppositeTopology,
+              s"object primary $targetName has ${candidates.size} same-name class/trait opposite candidates"
+            )
+          )
+        case candidate =>
+          val (opposite, oppositeIndex) =
+            candidate.headOption match
+              case Some((value, index)) => Some(value) -> Some(index)
+              case None                 => None -> None
+          TransactionSnapshot
+            .captureKnownOccurrences(
+              originalPackageStats,
+              PrimaryRole.ObjectPrimary(primary),
+              opposite,
+              primaryIndex,
+              oppositeIndex,
+              sourceParticipants
+            )
+            .flatMap(snapshot => fromTransaction(Transaction.start(snapshot)))
+
+    private def fromTransaction(
+        transaction: Transaction
+    ): Either[Violation, ObjectTransaction] =
+      transaction.currentPrimary match
+        case PrimaryRole.ObjectPrimary(_) =>
+          Right(ObjectTransaction(transaction))
+        case _ =>
+          Left(
+            Violation(
+              ViolationCategory.UnsupportedPrimaryRole,
+              s"object transaction requires an object primary, found ${transaction.currentPrimary.kind}"
+            )
+          )

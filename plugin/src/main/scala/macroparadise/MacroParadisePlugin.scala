@@ -534,6 +534,8 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
   import DeferredSameModuleHandlerSupport.*
 
   private var activeExternalHandlers: Option[ExternalHandlerLoading.LoadedHandlers] = None
+  private lazy val privateObjectParticipant =
+    PrivateObjectPrimaryTransform.fromOptions(options)
 
   override val phaseName = "paradiseGen"
   override val description =
@@ -568,7 +570,11 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
           ) =>
         handleDeferredConsumer(unit, deferred)
       case _ =>
-        unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(unit, externalHandlers)
+        unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
+          unit,
+          externalHandlers,
+          privateObjectParticipant
+        )
 
   private def handleDeferredConsumer(
       unit: CompilationUnit,
@@ -647,7 +653,11 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
                 externalHandlers.explicit :+ handler
               )
             )
-          unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(unit, loadedForUnit)
+          unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
+            unit,
+            loadedForUnit,
+            privateObjectParticipant
+          )
         case ExternalHandlerLoading.DeferredLoadResult.Unavailable =>
           logDeferredAttempt(unit, deferred, loader, null, reason, "unavailable")
           reason match
@@ -1377,7 +1387,8 @@ private object ParadiseTreeRewrite:
 
   def rewriteUnit(
       unit: CompilationUnit,
-      loadedExternalHandlers: ExternalHandlerLoading.LoadedHandlers
+      loadedExternalHandlers: ExternalHandlerLoading.LoadedHandlers,
+      privateObjectParticipant: Option[PrivateObjectPrimaryTransform.Participant]
   )(using Context): Tree =
     given identityResolver: ExplicitImportAnnotationIdentityResolver =
       ExplicitImportAnnotationIdentityResolver.fromUnitTree(unit.untpdTree)
@@ -1401,10 +1412,183 @@ private object ParadiseTreeRewrite:
 
     unit.untpdTree match
       case pkg: PackageDef =>
-        val rewrittenStats = rewritePackageStats(pkg.stats, externalExpanders)
+        val rewrittenStats =
+          privateObjectParticipant match
+            case None => rewritePackageStats(pkg.stats, externalExpanders)
+            case Some(participant) =>
+              rewritePrivateObjectTransactions(pkg.stats, participant) match
+                case Right(privateStats) =>
+                  rewritePackageStats(privateStats, externalExpanders)
+                case Left(originalStats) => originalStats
         cpy.PackageDef(pkg)(pkg.pid, rewrittenStats)
       case tree =>
         tree
+
+  private def rewritePrivateObjectTransactions(
+      originalStats: List[Tree],
+      participant: PrivateObjectPrimaryTransform.Participant
+  )(using Context): Either[List[Tree], List[Tree]] =
+    import PrivateObjectPrimaryTransform.*
+
+    var currentStats = originalStats
+    var failed = false
+
+    originalStats.indices.foreach: index =>
+      if !failed then
+        currentStats(index) match
+          case moduleDef: ModuleDef =>
+            val originalAnnotations = Trees.mods(moduleDef).annotations
+            val matchingAnnotations = originalAnnotations.filter: annotation =>
+              HandledAnnotations.annotationName(annotation).contains(
+                participant.annotationName
+              )
+            matchingAnnotations match
+              case Nil => ()
+              case currentAnnotation :: Nil =>
+                val transaction =
+                  ObjectTransaction
+                    .discover(
+                      currentStats,
+                      moduleDef,
+                      Vector(participant.getClass.getName)
+                    )
+                transaction match
+                  case Left(violation) =>
+                    reportPrivateObjectFailure(
+                      participant,
+                      moduleDef,
+                      currentAnnotation,
+                      "discovery",
+                      violation.category.toString,
+                      violation.detail
+                    )
+                    failed = true
+                  case Right(started) =>
+                    val input =
+                      Input(
+                        started.targetId,
+                        started.currentPrimary,
+                        started.currentOpposite,
+                        currentAnnotation,
+                        originalAnnotations,
+                        collectTopLevelNames(currentStats)
+                      )
+                    val transformed =
+                      try participant.transform(input)
+                      catch
+                        case NonFatal(error) =>
+                          Left(
+                            Failure(
+                              "NONFATAL_EXCEPTION",
+                              s"${error.getClass.getName}: ${Option(error.getMessage).getOrElse("")}"
+                            )
+                          )
+                    transformed match
+                      case Left(failure) =>
+                        reportPrivateObjectFailure(
+                          participant,
+                          moduleDef,
+                          currentAnnotation,
+                          "transform",
+                          failure.category,
+                          failure.detail
+                        )
+                        failed = true
+                      case Right(result) =>
+                        started.stageValidatedOutput(result) match
+                          case Left(violation) =>
+                            reportPrivateObjectFailure(
+                              participant,
+                              moduleDef,
+                              currentAnnotation,
+                              "role-validation",
+                              violation.category.toString,
+                              violation.detail
+                            )
+                            failed = true
+                          case Right(staged) =>
+                            validatePrivateObjectAnnotationIdentity(input, result) match
+                              case Left(failure) =>
+                                reportPrivateObjectFailure(
+                                  participant,
+                                  moduleDef,
+                                  currentAnnotation,
+                                  "annotation-identity",
+                                  failure.category,
+                                  failure.detail
+                                )
+                                failed = true
+                              case Right(_) =>
+                                val completion =
+                                  try participant.validateStaged(input, result)
+                                  catch
+                                    case NonFatal(error) =>
+                                      Left(
+                                        Failure(
+                                          "NONFATAL_EXCEPTION",
+                                          s"${error.getClass.getName}: ${Option(error.getMessage).getOrElse("")}"
+                                        )
+                                      )
+                                completion match
+                                  case Left(failure) =>
+                                    reportPrivateObjectFailure(
+                                      participant,
+                                      moduleDef,
+                                      currentAnnotation,
+                                      "late-validation",
+                                      failure.category,
+                                      failure.detail
+                                    )
+                                    failed = true
+                                  case Right(_) =>
+                                    currentStats = staged.commitPackageStats
+              case _ =>
+                reportPrivateObjectFailure(
+                  participant,
+                  moduleDef,
+                  matchingAnnotations.head,
+                  "admission",
+                  "DUPLICATE_PRIVATE_ANNOTATION",
+                  s"expected one exact @${participant.annotationName} occurrence, found ${matchingAnnotations.size}"
+                )
+                failed = true
+          case _ => ()
+
+    if failed then Left(originalStats) else Right(currentStats)
+
+  private def validatePrivateObjectAnnotationIdentity(
+      input: PrivateObjectPrimaryTransform.Input,
+      result: RoleAwareExpansionResult
+  )(using Context): Either[PrivateObjectPrimaryTransform.Failure, Unit] =
+    result.continuingPrimary match
+      case PrimaryRole.ObjectPrimary(moduleDef) =>
+        val returned = Trees.mods(moduleDef).annotations
+        val sameIdentityAndOrder =
+          returned.size == input.originalAnnotations.size &&
+            returned.zip(input.originalAnnotations).forall:
+              case (actual, original) => actual eq original
+        if sameIdentityAndOrder then Right(())
+        else
+          Left(
+            PrivateObjectPrimaryTransform.Failure(
+              "ANNOTATION_IDENTITY_MISMATCH",
+              "private object transformation must preserve all source annotation nodes in exact order"
+            )
+          )
+      case _ => Right(())
+
+  private def reportPrivateObjectFailure(
+      participant: PrivateObjectPrimaryTransform.Participant,
+      primary: ModuleDef,
+      annotation: Tree,
+      stage: String,
+      category: String,
+      detail: String
+  )(using Context): Unit =
+    report.error(
+      s"private object transaction failure: stage=$stage category=$category annotation=@${participant.annotationName} object=${primary.name} detail=$detail",
+      annotation.sourcePos
+    )
 
   private def dedupeHandlersByClass(
       handlers: List[LoadedExternalHandler]
