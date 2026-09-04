@@ -706,14 +706,14 @@ private[macroparadise] object DiagnosticPositionPolicy:
 
 private object ParadiseTreeRewrite:
   import untpd.*
+  import RoleAwareTransactionKernel.*
 
   private final case class TopLevelRewriteContext(names: Set[String])
 
   private final case class MatchingAnnotation(annotation: Tree, expander: AnnotationExpander)
 
-  private enum TargetAdmissionProfile:
-    case CommonClassOnly, RestrictedGenericTraitApply, TwoUpperBoundedGenericTrait,
-      PlainZeroParameterTrait, RestrictedOrTwoUpperBoundedGenericTrait
+  private type TargetAdmissionProfile = LegacyShapeProfile
+  private val TargetAdmissionProfile = LegacyShapeProfile
 
   private enum CompositionPolicy:
     case StandaloneOnly, SourceOrdered
@@ -770,23 +770,27 @@ private object ParadiseTreeRewrite:
 
   private final case class ExpansionDiagnostic(message: String, pos: SrcPos)
 
-  // The coordinator owns these three output lanes while annotations are applied
-  // in source order. Raw annotations stay on `currentClass`; after each step the
+  // The coordinator owns these output lanes while annotations are applied in
+  // source order. Raw annotations stay on the transaction's current primary;
+  // after each step the
   // shared matching authority filters the complete currently handled sequence
   // and proves it equals the expected original remainder. Unhandled annotations
   // remain outside that closure and continue to typer/later phases unchanged.
   private final case class CompositionState(
-      currentClass: TypeDef,
-      currentCompanion: Option[ModuleDef],
-      additionalTopLevelTrees: List[Tree],
+      transaction: LegacyTransaction,
       generatedQueue: List[FurtherExpansionRequest],
       seenGeneratedStates: List[FurtherExpansionEffectiveState],
       generatedSteps: Int,
       recentTrace: Vector[FurtherExpansionTraceEntry],
       nextTraceStep: Int
   ):
+    def currentClass: TypeDef = transaction.currentPrimary
+    def currentCompanion: Option[ModuleDef] = transaction.currentCompanion
+    def additionalTopLevelTrees: List[Tree] =
+      transaction.additionalTopLevelTrees
+
     def outputTrees: List[Tree] =
-      List(currentClass) ++ currentCompanion.toList ++ additionalTopLevelTrees
+      transaction.outputTrees
 
     def appendTrace(entry: FurtherExpansionTraceEntry): CompositionState =
       copy(
@@ -804,7 +808,7 @@ private object ParadiseTreeRewrite:
       PositionIndependentStructure.tree(rawApplication)
 
   private final case class FurtherExpansionEffectiveState(
-      lineage: String,
+      lineage: TransactionTargetId,
       canonicalHandlerIdentity: String,
       requestSyntax: PositionIndependentStructure,
       targetState: PositionIndependentStructure
@@ -1461,7 +1465,7 @@ private object ParadiseTreeRewrite:
   )(using Context, ExplicitImportAnnotationIdentityResolver): List[Tree] =
     stats match
       case Nil => Nil
-      case (typeDef: TypeDef) :: rest =>
+      case originalStats @ ((typeDef: TypeDef) :: rest) =>
         val matchingAnnotations = HandledAnnotations.matchingAnnotationsInSourceOrder(typeDef, externalExpanders)
         val matching = matchingAnnotations.map(_.expander)
         if matchingAnnotations.nonEmpty then
@@ -1477,7 +1481,14 @@ private object ParadiseTreeRewrite:
                   HandledAnnotations.strip(typeDef, externalExpanders) ::
                     rewritePackageStats(rest, topLevel, externalExpanders)
                 case None =>
-                  rewriteAnnotatedTopLevelClass(typeDef, rest, topLevel, matchingAnnotations, externalExpanders)
+                  rewriteAnnotatedTopLevelClass(
+                    originalStats,
+                    typeDef,
+                    rest,
+                    topLevel,
+                    matchingAnnotations,
+                    externalExpanders
+                  )
             case None =>
               rejectUnsupportedTarget(typeDef, unsupportedTypeDefTarget(typeDef), matching, externalExpanders) ::
                 rewritePackageStats(rest, topLevel, externalExpanders)
@@ -1493,6 +1504,7 @@ private object ParadiseTreeRewrite:
         stripNestedHandledAnnotations(stat, externalExpanders) :: rewritePackageStats(rest, topLevel, externalExpanders)
 
   private def rewriteAnnotatedTopLevelClass(
+      originalStats: List[Tree],
       typeDef: TypeDef,
       rest: List[Tree],
       topLevel: TopLevelRewriteContext,
@@ -1502,6 +1514,7 @@ private object ParadiseTreeRewrite:
     matchingAnnotations match
       case matching :: Nil =>
         rewriteSingleTopLevelClass(
+          originalStats,
           typeDef,
           rest,
           topLevel,
@@ -1510,6 +1523,7 @@ private object ParadiseTreeRewrite:
         )
       case sourceOrdered =>
         rewriteComposedTopLevelClass(
+          originalStats,
           typeDef,
           rest,
           topLevel,
@@ -1517,7 +1531,46 @@ private object ParadiseTreeRewrite:
           externalExpanders
         )
 
+  private def startLegacyTransaction(
+      originalStats: List[Tree],
+      typeDef: TypeDef,
+      existingCompanion: Option[ModuleDef],
+      sourceParticipants: Vector[String]
+  )(using Context): LegacyTransaction =
+    val transaction =
+      for
+        primary <- PrimaryRole.fromLegacyTypeDef(typeDef)
+        snapshot <- TransactionSnapshot.capture(
+          originalStats,
+          primary,
+          existingCompanion.map(OppositeRole.ObjectOpposite(_)),
+          sourceParticipants
+        )
+        legacy <- LegacyTransaction.start(snapshot)
+      yield legacy
+    transaction.fold(
+      violation =>
+        throw new IllegalStateException(
+          s"role-aware transaction invariant failed before legacy invocation: ${violation.render}"
+        ),
+      identity
+    )
+
+  private def stageValidatedLegacy(
+      transaction: LegacyTransaction,
+      trees: List[Tree],
+      oppositeOmission: LegacyOppositeOmissionPolicy
+  )(using Context): LegacyTransaction =
+    transaction.stageValidatedOutput(trees, oppositeOmission).fold(
+      violation =>
+        throw new IllegalStateException(
+          s"role-aware transaction invariant failed after legacy validation: ${violation.render}"
+        ),
+      identity
+    )
+
   private def rewriteSingleTopLevelClass(
+      originalStats: List[Tree],
       typeDef: TypeDef,
       rest: List[Tree],
       topLevel: TopLevelRewriteContext,
@@ -1529,24 +1582,37 @@ private object ParadiseTreeRewrite:
       if expander.consumesExistingCompanion then
         takeExistingCompanion(typeDef.name, rest)
       else (None, rest)
+    val inputTransaction =
+      startLegacyTransaction(
+        originalStats,
+        typeDef,
+        existingCompanion,
+        Vector(expander.canonicalHandlerIdentity)
+      )
+    val inputProjection =
+      inputTransaction.projection(expander.consumesExistingCompanion)
     val input =
-      ExpansionInput(typeDef, existingCompanion, topLevel, Some(annotation))
+      ExpansionInput(
+        inputProjection.primary,
+        inputProjection.companion,
+        topLevel,
+        Some(annotation)
+      )
     expandAndValidate(
       expander,
       input,
       originalSourceAnnotations = List(annotation)
     ) match
-      case expanded @ ValidatedExpansionResult.Expanded(_, Nil) =>
+      case ValidatedExpansionResult.Expanded(trees, Nil) =>
         // Preserve the established single-annotation path exactly when no
         // coordinator-owned request exists, independent of the descriptor's
         // captured composition declaration.
-        spliceExpansionResult(
-          expanded,
-          remainingStats,
-          topLevel,
-          externalExpanders,
-          restoredCompanionOnRejection = existingCompanion
-        )
+        stageValidatedLegacy(
+          inputTransaction,
+          trees,
+          LegacyOppositeOmissionPolicy.DropCurrent
+        ).outputTrees ++
+          rewritePackageStats(remainingStats, topLevel, externalExpanders)
       case rejected: ValidatedExpansionResult.Rejected =>
         spliceExpansionResult(
           rejected,
@@ -1560,13 +1626,19 @@ private object ParadiseTreeRewrite:
           if expander.consumesExistingCompanion then
             (existingCompanion, remainingStats)
           else takeExistingCompanion(typeDef.name, remainingStats)
-        val lineage =
-          s"${typeDef.name.toString}@${System.identityHashCode(typeDef).toHexString}"
+        val transaction =
+          if expander.consumesExistingCompanion then inputTransaction
+          else
+            startLegacyTransaction(
+              originalStats,
+              typeDef,
+              transactionCompanion,
+              Vector(expander.canonicalHandlerIdentity)
+            )
+        val lineage = transaction.targetId
         val initialState =
           CompositionState(
-            currentClass = typeDef,
-            currentCompanion = transactionCompanion,
-            additionalTopLevelTrees = Nil,
+            transaction = transaction,
             generatedQueue = Nil,
             seenGeneratedStates = Nil,
             generatedSteps = 0,
@@ -1630,16 +1702,27 @@ private object ParadiseTreeRewrite:
                 topLevel,
                 externalExpanders
               )
-          case Left((diagnostics, fallback)) =>
+          case Left((diagnostics, _)) =>
+            val rollback = transaction.rollback
+            val rollbackPrimary =
+              rollback.primary.legacyTypeDefOption.getOrElse(
+                throw new IllegalStateException(
+                  "legacy transaction rollback contained an object primary"
+                )
+              )
+            val rollbackCompanion =
+              rollback.opposite.collect:
+                case OppositeRole.ObjectOpposite(value) => value
             spliceExpansionResult(
-              ValidatedExpansionResult.Rejected(diagnostics, fallback),
+              ValidatedExpansionResult.Rejected(diagnostics, rollbackPrimary),
               postTransactionStats,
               topLevel,
               externalExpanders,
-              restoredCompanionOnRejection = transactionCompanion
+              restoredCompanionOnRejection = rollbackCompanion
             )
 
   private def rewriteComposedTopLevelClass(
+      originalStats: List[Tree],
       typeDef: TypeDef,
       rest: List[Tree],
       topLevel: TopLevelRewriteContext,
@@ -1653,13 +1736,17 @@ private object ParadiseTreeRewrite:
       // it only when their captured descriptor requests companion consumption.
       takeExistingCompanion(typeDef.name, rest)
 
-    val lineage =
-      s"${typeDef.name.toString}@${System.identityHashCode(typeDef).toHexString}"
+    val transaction =
+      startLegacyTransaction(
+        originalStats,
+        typeDef,
+        existingCompanion,
+        annotations.map(_.expander.canonicalHandlerIdentity).toVector
+      )
+    val lineage = transaction.targetId
     val initialState =
       CompositionState(
-        currentClass = typeDef,
-        currentCompanion = existingCompanion,
-        additionalTopLevelTrees = Nil,
+        transaction = transaction,
         generatedQueue = Nil,
         seenGeneratedStates = Nil,
         generatedSteps = 0,
@@ -1671,12 +1758,16 @@ private object ParadiseTreeRewrite:
         case (Left(rejected), _) =>
           Left(rejected)
         case (Right(state), (matchingAnnotation, index)) =>
+          val projection =
+            state.transaction.projection(
+              matchingAnnotation.expander.consumesExistingCompanion
+            )
           val input =
             ExpansionInput(
-              annotatedClass = state.currentClass,
+              annotatedClass = projection.primary,
               // Each opt-in expander receives the latest companion produced or
               // merged by the preceding source-ordered expansion step.
-              existingCompanion = if matchingAnnotation.expander.consumesExistingCompanion then state.currentCompanion else None,
+              existingCompanion = projection.companion,
               topLevel = topLevel,
               currentAnnotation = Some(matchingAnnotation.annotation)
             )
@@ -1744,12 +1835,22 @@ private object ParadiseTreeRewrite:
       case Left((diagnostics, _)) =>
         // Composition is transactional. A later failed step must not commit
         // class, companion, or additional output from any earlier step.
+        val rollback = transaction.rollback
+        val rollbackPrimary =
+          rollback.primary.legacyTypeDefOption.getOrElse(
+            throw new IllegalStateException(
+              "legacy transaction rollback contained an object primary"
+            )
+          )
+        val rollbackCompanion =
+          rollback.opposite.collect:
+            case OppositeRole.ObjectOpposite(value) => value
         spliceExpansionResult(
-          ValidatedExpansionResult.Rejected(diagnostics, typeDef),
+          ValidatedExpansionResult.Rejected(diagnostics, rollbackPrimary),
           remainingStats,
           topLevel,
           externalExpanders,
-          restoredCompanionOnRejection = existingCompanion
+          restoredCompanionOnRejection = rollbackCompanion
         )
 
   private def resolveFurtherExpansionDrafts(
@@ -1893,7 +1994,7 @@ private object ParadiseTreeRewrite:
 
   private def drainFurtherExpansionQueue(
       initialState: CompositionState,
-      lineage: String,
+      lineage: TransactionTargetId,
       topLevel: TopLevelRewriteContext,
       externalExpanders: List[AnnotationExpander],
       originalSourceAnnotations: List[Tree]
@@ -2306,34 +2407,12 @@ private object ParadiseTreeRewrite:
       state: CompositionState,
       trees: List[Tree]
   )(using Context): CompositionState =
-    val expandedClass =
-      trees.collectFirst:
-        case typeDef: TypeDef if typeDef.name == state.currentClass.name =>
-          typeDef
-    val nextClass =
-      expandedClass.getOrElse(state.currentClass)
-
-    val expandedCompanion =
-      trees.collectFirst:
-        case moduleDef: ModuleDef if moduleDef.name == state.currentClass.name.toTermName =>
-          moduleDef
-    val nextCompanion =
-      expandedCompanion.orElse(state.currentCompanion)
-
-    // ASSUMPTION
-    // Additional outputs retain production order across expansion steps and are
-    // emitted after the current class and companion. The @gen fixture currently
-    // exercises this lane with its generated sibling class.
-    val additionalTopLevelTrees =
-      state.additionalTopLevelTrees ++ trees.filterNot:
-        case typeDef: TypeDef if typeDef.name == state.currentClass.name => true
-        case moduleDef: ModuleDef if moduleDef.name == state.currentClass.name.toTermName => true
-        case _ => false
-
     state.copy(
-      currentClass = nextClass,
-      currentCompanion = nextCompanion,
-      additionalTopLevelTrees = additionalTopLevelTrees
+      transaction = stageValidatedLegacy(
+        state.transaction,
+        trees,
+        LegacyOppositeOmissionPolicy.RetainCurrent
+      )
     )
 
   private def validateGeneratedStep(
@@ -2562,14 +2641,15 @@ private object ParadiseTreeRewrite:
       typeDef: TypeDef,
       matching: List[AnnotationExpander]
   )(using Context): Boolean =
-    val mods = Trees.mods(typeDef)
-    val isOrdinaryClass = typeDef.isClassDef && !mods.is(Trait) && !mods.is(Enum)
-    val isRestrictedTrait =
-      typeDef.isClassDef && mods.is(Trait) && !mods.is(Enum) &&
-        matching.nonEmpty && matching.forall(
-          _.targetAdmissionProfile != TargetAdmissionProfile.CommonClassOnly
-        )
-    isOrdinaryClass || isRestrictedTrait
+    PrimaryRole.fromLegacyTypeDef(typeDef).toOption.exists:
+      case _: PrimaryRole.ClassPrimary => true
+      case _: PrimaryRole.TraitPrimary =>
+        matching.nonEmpty && matching.forall: expander =>
+          LegacyAdmission
+            .forProfile(expander.targetAdmissionProfile)
+            .kinds
+            .contains(TargetKind.Trait)
+      case _: PrimaryRole.ObjectPrimary => false
 
   private def preExpansionAdmission(
       typeDef: TypeDef,

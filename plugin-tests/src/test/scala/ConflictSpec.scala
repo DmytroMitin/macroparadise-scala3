@@ -542,8 +542,8 @@ class ConflictSpec extends munit.FunSuite:
   }
 
   test("external companion annotation on a top-level object reports a graceful diagnostic") {
-    val outcome =
-      compileSnippet(
+    val (outcome, invocations) =
+      compileSnippetWithInvocationTrace(
         """package conflicts
           |
           |import paradise3.externalCompanionDebug
@@ -561,6 +561,7 @@ class ConflictSpec extends munit.FunSuite:
       "@externalCompanionDebug currently supports only top-level classes",
       "unsupported target `object User`"
     )
+    assertEquals(invocations, Nil)
   }
 
   test("annotated top-level trait reports a graceful diagnostic") {
