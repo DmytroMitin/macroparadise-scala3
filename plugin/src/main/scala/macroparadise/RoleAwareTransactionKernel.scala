@@ -38,6 +38,10 @@ private[macroparadise] object RoleAwareTransactionKernel:
     case OppositeNameMismatch
     case OppositeKindMismatch
     case OppositePresenceMismatch
+    case MissingOppositeIntent
+    case InvalidOppositeCreationKind
+    case InvalidOppositePlacement
+    case OppositeAlreadyExists
     case AmbiguousOppositeTopology
     case LegacyObjectPrimaryUnsupported
     case MissingLegacyPrimary
@@ -132,6 +136,7 @@ private[macroparadise] object RoleAwareTransactionKernel:
                   s"class opposite wrapper contains raw ${found.kind} TypeDef ${typeDef.name}"
                 )
               )
+
         case OppositeRole.TraitOpposite(typeDef) =>
           fromTypeDef(typeDef).flatMap:
             case _: OppositeRole.TraitOpposite => Right(())
@@ -142,6 +147,21 @@ private[macroparadise] object RoleAwareTransactionKernel:
                   s"trait opposite wrapper contains raw ${found.kind} TypeDef ${typeDef.name}"
                 )
               )
+
+  enum OppositeCreationKind:
+    case Class, Trait
+
+  enum OppositePlacement:
+    case BeforePrimary, AfterPrimary
+
+  enum OppositeIntent:
+    case Preserve
+    case Replace(value: OppositeRole)
+    case Create(
+        kind: OppositeCreationKind,
+        placement: OppositePlacement,
+        value: OppositeRole
+    )
 
   final case class TransactionTargetId(
       sourceStatsIdentity: Int,
@@ -272,13 +292,26 @@ private[macroparadise] object RoleAwareTransactionKernel:
 
   final case class RoleAwareExpansionResult(
       continuingPrimary: PrimaryRole,
-      continuingOpposite: Option[OppositeRole]
+      oppositeIntent: OppositeIntent
   )
+
+  object RoleAwareExpansionResult:
+    def apply(
+        continuingPrimary: PrimaryRole,
+        continuingOpposite: Option[OppositeRole]
+    ): RoleAwareExpansionResult =
+      RoleAwareExpansionResult(
+        continuingPrimary,
+        continuingOpposite.fold[OppositeIntent](OppositeIntent.Preserve)(
+          OppositeIntent.Replace(_)
+        )
+      )
 
   final case class Transaction private (
       snapshot: TransactionSnapshot,
       currentPrimary: PrimaryRole,
       currentOpposite: Option[OppositeRole],
+      createdOppositePlacement: Option[OppositePlacement],
       additionalTopLevelTrees: List[Tree]
   ):
     def targetId: TransactionTargetId = snapshot.targetId
@@ -374,44 +407,105 @@ private[macroparadise] object RoleAwareTransactionKernel:
           )
         )
       else
-        val rawOppositeValidation =
-          result.continuingOpposite match
-            case Some(value) => OppositeRole.validate(value)
-            case None        => Right(())
-        rawOppositeValidation.flatMap: _ =>
-          (currentOpposite, result.continuingOpposite) match
-            case (None, Some(next)) =>
+        Option(result.oppositeIntent) match
+          case None =>
+            Left(
+              Violation(
+                ViolationCategory.MissingOppositeIntent,
+                s"missing opposite intent for ${targetId.originalName}"
+              )
+            )
+          case Some(OppositeIntent.Preserve) =>
+            Right(copy(currentPrimary = nextPrimary))
+          case Some(OppositeIntent.Replace(next)) =>
+            currentOpposite match
+              case None =>
+                Left(
+                  Violation(
+                    ViolationCategory.OppositePresenceMismatch,
+                    s"replacement cannot create an opposite for ${targetId.originalName}"
+                  )
+                )
+              case Some(current) if next == null =>
+                Left(
+                  Violation(
+                    ViolationCategory.OppositeKindMismatch,
+                    s"replacement opposite for ${targetId.originalName} is null"
+                  )
+                )
+              case Some(current) =>
+                OppositeRole.validate(next).flatMap: _ =>
+                  if current.kind != next.kind then
+                    Left(
+                      Violation(
+                        ViolationCategory.OppositeKindMismatch,
+                        s"expected opposite ${current.kind}, found ${next.kind}"
+                      )
+                    )
+                  else
+                    TransactionSnapshot
+                      .validatePair(nextPrimary, Some(next))
+                      .map: _ =>
+                        copy(
+                          currentPrimary = nextPrimary,
+                          currentOpposite = Some(next)
+                        )
+          case Some(OppositeIntent.Create(kind, placement, next)) =>
+            if currentOpposite.nonEmpty then
               Left(
                 Violation(
-                  ViolationCategory.OppositePresenceMismatch,
-                  s"Stage 2 does not create an opposite ${next.kind} for ${targetId.originalName}"
+                  ViolationCategory.OppositeAlreadyExists,
+                  s"cannot create a second opposite for ${targetId.originalName}"
                 )
               )
-            case (Some(current), None) =>
+            else if kind == null then
               Left(
                 Violation(
-                  ViolationCategory.OppositePresenceMismatch,
-                  s"Stage 2 does not remove the existing ${current.kind} opposite for ${targetId.originalName}"
+                  ViolationCategory.InvalidOppositeCreationKind,
+                  s"missing opposite creation kind for ${targetId.originalName}"
                 )
               )
-            case (Some(current), Some(next)) if current.kind != next.kind =>
+            else if placement == null then
+              Left(
+                Violation(
+                  ViolationCategory.InvalidOppositePlacement,
+                  s"missing opposite placement for ${targetId.originalName}"
+                )
+              )
+            else if next == null then
               Left(
                 Violation(
                   ViolationCategory.OppositeKindMismatch,
-                  s"expected opposite ${current.kind}, found ${next.kind}"
+                  s"created opposite for ${targetId.originalName} is null"
                 )
               )
-            case _ =>
-              TransactionSnapshot
-                .validatePair(nextPrimary, result.continuingOpposite)
-                .map: _ =>
-                  copy(
-                    currentPrimary = nextPrimary,
-                    currentOpposite = result.continuingOpposite
+            else
+              val declaredKindMatches = (kind, next) match
+                case (OppositeCreationKind.Class, _: OppositeRole.ClassOpposite) =>
+                  true
+                case (OppositeCreationKind.Trait, _: OppositeRole.TraitOpposite) =>
+                  true
+                case _ => false
+              if !declaredKindMatches then
+                Left(
+                  Violation(
+                    ViolationCategory.OppositeKindMismatch,
+                    s"declared creation kind $kind does not match raw opposite ${next.kind}"
                   )
+                )
+              else
+                OppositeRole.validate(next).flatMap: _ =>
+                  TransactionSnapshot
+                    .validatePair(nextPrimary, Some(next))
+                    .map: _ =>
+                      copy(
+                        currentPrimary = nextPrimary,
+                        currentOpposite = Some(next),
+                        createdOppositePlacement = Some(placement)
+                      )
 
     def commitPackageStats: List[Tree] =
-      snapshot.originalPackageStats.zipWithIndex.map: (original, index) =>
+      val replaced = snapshot.originalPackageStats.zipWithIndex.map: (original, index) =>
         if index == snapshot.primaryIndex then currentPrimary.tree
         else if snapshot.oppositeIndex.contains(index) then
           currentOpposite
@@ -422,6 +516,12 @@ private[macroparadise] object RoleAwareTransactionKernel:
               )
             )
         else original
+      (snapshot.oppositeIndex, currentOpposite, createdOppositePlacement) match
+        case (None, Some(created), Some(OppositePlacement.BeforePrimary)) =>
+          replaced.patch(snapshot.primaryIndex, created.tree :: Nil, 0)
+        case (None, Some(created), Some(OppositePlacement.AfterPrimary)) =>
+          replaced.patch(snapshot.primaryIndex + 1, created.tree :: Nil, 0)
+        case _ => replaced
 
     def outputTrees: List[Tree] =
       currentPrimary.tree :: currentOpposite.toList.map(_.tree) ++ additionalTopLevelTrees
@@ -439,6 +539,7 @@ private[macroparadise] object RoleAwareTransactionKernel:
         snapshot,
         snapshot.originalPrimary,
         snapshot.originalOpposite,
+        None,
         Nil
       )
 

@@ -1433,9 +1433,9 @@ private object ParadiseTreeRewrite:
     var currentStats = originalStats
     var failed = false
 
-    originalStats.indices.foreach: index =>
+    originalStats.foreach: original =>
       if !failed then
-        currentStats(index) match
+        original match
           case moduleDef: ModuleDef =>
             val originalAnnotations = Trees.mods(moduleDef).annotations
             val matchingAnnotations = originalAnnotations.filter: annotation =>

@@ -290,6 +290,177 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
       case _ => ()
   }
 
+  test("object transaction inserts an explicitly created class before the primary") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector("create-class"))
+      .fold(violation => fail(violation.render), identity)
+    val createdClass = copyTypeDef(fixture.objectClassOpposite, "LoneObject")
+
+    val committed = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+          OppositeIntent.Create(
+            OppositeCreationKind.Class,
+            OppositePlacement.BeforePrimary,
+            OppositeRole.ClassOpposite(createdClass)
+          )
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+    val primaryIndex = fixture.stats.indexWhere(_ eq fixture.loneObjectPrimary)
+
+    assertEquals(committed.size, fixture.stats.size + 1)
+    assert(committed(primaryIndex) eq createdClass)
+    assert(committed(primaryIndex + 1) eq fixture.loneObjectPrimary)
+    fixture.stats.indices.foreach: index =>
+      val committedIndex = if index < primaryIndex then index else index + 1
+      assert(committed(committedIndex) eq fixture.stats(index))
+  }
+
+  test("object transaction inserts an explicitly created trait after the primary") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector("create-trait"))
+      .fold(violation => fail(violation.render), identity)
+    val createdTrait = copyTypeDef(fixture.objectTraitOpposite, "LoneObject")
+
+    val committed = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+          OppositeIntent.Create(
+            OppositeCreationKind.Trait,
+            OppositePlacement.AfterPrimary,
+            OppositeRole.TraitOpposite(createdTrait)
+          )
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+      .commitPackageStats
+    val primaryIndex = fixture.stats.indexWhere(_ eq fixture.loneObjectPrimary)
+
+    assertEquals(committed.size, fixture.stats.size + 1)
+    assert(committed(primaryIndex) eq fixture.loneObjectPrimary)
+    assert(committed(primaryIndex + 1) eq createdTrait)
+    fixture.stats.indices.foreach: index =>
+      val committedIndex = if index <= primaryIndex then index else index + 1
+      assert(committed(committedIndex) eq fixture.stats(index))
+  }
+
+  test("object creation rejects raw-kind mismatch, wrong name, missing placement, and an existing opposite") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val noOpposite = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+    val classNamedLoneObject = copyTypeDef(fixture.objectClassOpposite, "LoneObject")
+    val traitNamedLoneObject = copyTypeDef(fixture.objectTraitOpposite, "LoneObject")
+
+    val cases = List(
+      OppositeIntent.Create(
+        OppositeCreationKind.Class,
+        OppositePlacement.BeforePrimary,
+        OppositeRole.TraitOpposite(traitNamedLoneObject)
+      ) -> ViolationCategory.OppositeKindMismatch,
+      OppositeIntent.Create(
+        OppositeCreationKind.Trait,
+        OppositePlacement.BeforePrimary,
+        OppositeRole.ClassOpposite(classNamedLoneObject)
+      ) -> ViolationCategory.OppositeKindMismatch,
+      OppositeIntent.Create(
+        OppositeCreationKind.Class,
+        OppositePlacement.BeforePrimary,
+        OppositeRole.ClassOpposite(fixture.wrongNameClass)
+      ) -> ViolationCategory.OppositeNameMismatch,
+      OppositeIntent.Create(
+        OppositeCreationKind.Class,
+        null.asInstanceOf[OppositePlacement],
+        OppositeRole.ClassOpposite(classNamedLoneObject)
+      ) -> ViolationCategory.InvalidOppositePlacement
+    )
+
+    cases.foreach: (intent, expected) =>
+      assertEquals(
+        noOpposite
+          .stageValidatedOutput(
+            RoleAwareExpansionResult(
+              PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+              intent
+            )
+          )
+          .left
+          .toOption
+          .map(_.category),
+        Some(expected)
+      )
+
+    val existing = ObjectTransaction
+      .discover(fixture.stats, fixture.objectPrimary, Vector.empty)
+      .fold(violation => fail(violation.render), identity)
+    assertEquals(
+      existing
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
+            OppositeIntent.Create(
+              OppositeCreationKind.Class,
+              OppositePlacement.BeforePrimary,
+              OppositeRole.ClassOpposite(fixture.objectClassOpposite)
+            )
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositeAlreadyExists)
+    )
+  }
+
+  test("second creation is rejected and rollback restores the exact no-opposite snapshot") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val transaction = ObjectTransaction
+      .discover(fixture.stats, fixture.loneObjectPrimary, Vector("create-once"))
+      .fold(violation => fail(violation.render), identity)
+    val createdClass = copyTypeDef(fixture.objectClassOpposite, "LoneObject")
+    val create = OppositeIntent.Create(
+      OppositeCreationKind.Class,
+      OppositePlacement.BeforePrimary,
+      OppositeRole.ClassOpposite(createdClass)
+    )
+    val staged = transaction
+      .stageValidatedOutput(
+        RoleAwareExpansionResult(
+          PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+          create
+        )
+      )
+      .fold(violation => fail(violation.render), identity)
+
+    assertEquals(
+      staged
+        .stageValidatedOutput(
+          RoleAwareExpansionResult(
+            PrimaryRole.ObjectPrimary(fixture.loneObjectPrimary),
+            create
+          )
+        )
+        .left
+        .toOption
+        .map(_.category),
+      Some(ViolationCategory.OppositeAlreadyExists)
+    )
+    val rollback = staged.rollback
+    assert(rollback.packageStats.asInstanceOf[AnyRef] eq fixture.stats.asInstanceOf[AnyRef])
+    assert(rollback.primary.tree eq fixture.loneObjectPrimary)
+    assertEquals(rollback.opposite, None)
+  }
+
   test("object transaction stages bounded edits to existing class and trait opposites without changing kind") {
     val fixture = parsedFixture()
     given Context = fixture.context
@@ -366,7 +537,7 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
     )
   }
 
-  test("object staging rejects opposite name, kind, creation, and removal changes") {
+  test("object staging rejects opposite name, kind, and implicit insertion changes") {
     val fixture = parsedFixture()
     given Context = fixture.context
     val transaction = ObjectTransaction
@@ -403,20 +574,6 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
         .map(_.category),
       Some(ViolationCategory.OppositeKindMismatch)
     )
-    assertEquals(
-      transaction
-        .stageValidatedOutput(
-          RoleAwareExpansionResult(
-            PrimaryRole.ObjectPrimary(fixture.objectPrimary),
-            None
-          )
-        )
-        .left
-        .toOption
-        .map(_.category),
-      Some(ViolationCategory.OppositePresenceMismatch)
-    )
-
     val noOpposite = ObjectTransaction
       .discover(fixture.stats, fixture.loneObjectPrimary, Vector.empty)
       .fold(violation => fail(violation.render), identity)

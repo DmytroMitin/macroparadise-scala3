@@ -5,6 +5,7 @@ import dotty.tools.dotc.ast.Trees
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Flags.Trait
 import dotty.tools.dotc.core.Names.*
 import dotty.tools.dotc.interfaces.{Diagnostic, SimpleReporter}
 
@@ -201,6 +202,270 @@ class PrivateObjectPrimaryCompilerSpec extends munit.FunSuite:
       outcome,
       "privateobject/NoOpClass.class",
       "privateobject/NoOpTrait.class"
+    )
+  }
+
+  test("private participant explicitly creates class and trait opposites before object primaries") {
+    val participant = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        val createTrait = input.primary.name.toString == "CreatedTrait"
+        val kind =
+          if createTrait then OppositeCreationKind.Trait
+          else OppositeCreationKind.Class
+        Right(
+          creationResult(
+            input,
+            kind,
+            OppositePlacement.BeforePrimary,
+            rawTrait = createTrait,
+            methodResult = input.primary.name.toString
+          )
+        )
+
+    val outcome =
+      withParticipant(participant): pluginOption =>
+        compileSnippet(
+          """package privateobject
+            |
+            |import scala.annotation.StaticAnnotation
+            |final class privateObjectFixture extends StaticAnnotation
+            |
+            |@privateObjectFixture object CreatedClass
+            |@privateObjectFixture object CreatedTrait
+            |
+            |object CreatedOppositeWitness:
+            |  val fromClass: String = new CreatedClass().foo
+            |  val fromTrait: String = new CreatedTrait {}.foo
+            |""".stripMargin,
+          pluginOption
+        )
+
+    assertSucceeded(
+      outcome,
+      "privateobject/CreatedClass.class",
+      "privateobject/CreatedTrait.class",
+      "privateobject/CreatedOppositeWitness$.class"
+    )
+  }
+
+  test("private participant explicitly creates a class opposite after the object primary") {
+    val participant = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        Right(
+          creationResult(
+            input,
+            OppositeCreationKind.Class,
+            OppositePlacement.AfterPrimary,
+            rawTrait = false,
+            methodResult = "after-primary"
+          )
+        )
+
+    val outcome =
+      withParticipant(participant): pluginOption =>
+        compileSnippet(
+          """package privateobject
+            |import scala.annotation.StaticAnnotation
+            |final class privateObjectFixture extends StaticAnnotation
+            |@privateObjectFixture object CreatedAfter
+            |object CreatedAfterWitness:
+            |  val value: String = new CreatedAfter().foo
+            |""".stripMargin,
+          pluginOption
+        )
+
+    assertSucceeded(
+      outcome,
+      "privateobject/CreatedAfter.class",
+      "privateobject/CreatedAfterWitness$.class"
+    )
+  }
+
+  test("malformed or conflicting explicit opposite creation rejects before commit") {
+    def participantFor(
+        declaredKind: OppositeCreationKind,
+        placement: OppositePlacement,
+        rawTrait: Boolean,
+        oppositeName: Option[String] = None,
+        rewritePrimaryName: Boolean = false
+    ): Participant = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        val base = creationResult(
+          input,
+          declaredKind,
+          placement,
+          rawTrait,
+          "invalid",
+          oppositeName
+        )
+        Right(
+          if rewritePrimaryName then
+            base.copy(
+              continuingPrimary = PrimaryRole.ObjectPrimary(
+                cpy.ModuleDef(input.primary)(termName("WrongPrimary"), input.primary.impl)
+              )
+            )
+          else base
+        )
+
+    val cases = List(
+      (
+        compileWithoutOpposite(
+          participantFor(OppositeCreationKind.Class, OppositePlacement.BeforePrimary, true),
+          "DeclaredClassRawTrait"
+        ),
+        "category=OppositeKindMismatch"
+      ),
+      (
+        compileWithoutOpposite(
+          participantFor(OppositeCreationKind.Trait, OppositePlacement.BeforePrimary, false),
+          "DeclaredTraitRawClass"
+        ),
+        "category=OppositeKindMismatch"
+      ),
+      (
+        compileWithoutOpposite(
+          participantFor(
+            OppositeCreationKind.Class,
+            OppositePlacement.BeforePrimary,
+            false,
+            oppositeName = Some("WrongOpposite")
+          ),
+          "WrongCreatedName"
+        ),
+        "category=OppositeNameMismatch"
+      ),
+      (
+        compileWithoutOpposite(
+          participantFor(
+            OppositeCreationKind.Class,
+            null.asInstanceOf[OppositePlacement],
+            false
+          ),
+          "MissingPlacement"
+        ),
+        "category=InvalidOppositePlacement"
+      ),
+      (
+        compileWithoutOpposite(
+          participantFor(
+            null.asInstanceOf[OppositeCreationKind],
+            OppositePlacement.BeforePrimary,
+            false
+          ),
+          "MissingCreationKind"
+        ),
+        "category=InvalidOppositeCreationKind"
+      ),
+      (
+        compileWithoutOpposite(
+          participantFor(
+            OppositeCreationKind.Class,
+            OppositePlacement.BeforePrimary,
+            false,
+            rewritePrimaryName = true
+          ),
+          "CreationWithWrongPrimary"
+        ),
+        "category=PrimaryNameMismatch"
+      )
+    )
+
+    cases.foreach: (outcome, category) =>
+      assertPrivateFailure(outcome, "stage=role-validation", category)
+
+    val existingOutcome = compileWithClassOpposite(
+      participantFor(OppositeCreationKind.Class, OppositePlacement.BeforePrimary, false),
+      "ExistingCreationConflict"
+    )
+    assertPrivateFailure(
+      existingOutcome,
+      "stage=role-validation",
+      "category=OppositeAlreadyExists"
+    )
+
+    val wrongPrimaryKind = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        val base = creationResult(
+          input,
+          OppositeCreationKind.Class,
+          OppositePlacement.BeforePrimary,
+          rawTrait = false,
+          methodResult = "wrong-primary-kind"
+        )
+        val created = base.oppositeIntent match
+          case OppositeIntent.Create(_, _, OppositeRole.ClassOpposite(value)) => value
+          case other => fail(s"unexpected creation result $other")
+        Right(base.copy(continuingPrimary = PrimaryRole.ClassPrimary(created)))
+
+    assertPrivateFailure(
+      compileWithoutOpposite(wrongPrimaryKind, "CreationWithWrongPrimaryKind"),
+      "stage=role-validation",
+      "category=PrimaryKindMismatch"
+    )
+  }
+
+  test("late failure or exception after explicit creation rolls back with zero class or Tasty output") {
+    val participant = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        Right(
+          creationResult(
+            input,
+            OppositeCreationKind.Class,
+            OppositePlacement.BeforePrimary,
+            rawTrait = false,
+            methodResult = "must-rollback"
+          )
+        )
+
+      override def validateStaged(
+          input: Input,
+          result: RoleAwareExpansionResult
+      )(using Context): Either[Failure, Unit] =
+        Left(Failure("LATE_CREATION_FAILURE", "created opposite must roll back"))
+
+    val outcome = compileWithoutOpposite(participant, "CreationLateFailure")
+    assertPrivateFailure(
+      outcome,
+      "stage=late-validation",
+      "category=LATE_CREATION_FAILURE"
+    )
+
+    val throwingParticipant = new Participant:
+      val annotationName = "privateObjectFixture"
+
+      def transform(input: Input)(using Context): Either[Failure, RoleAwareExpansionResult] =
+        Right(
+          creationResult(
+            input,
+            OppositeCreationKind.Class,
+            OppositePlacement.AfterPrimary,
+            rawTrait = false,
+            methodResult = "must-also-rollback"
+          )
+        )
+
+      override def validateStaged(
+          input: Input,
+          result: RoleAwareExpansionResult
+      )(using Context): Either[Failure, Unit] =
+        throw IllegalStateException("controlled exception after tentative creation")
+
+    assertPrivateFailure(
+      compileWithoutOpposite(throwingParticipant, "CreationExceptionFailure"),
+      "stage=late-validation",
+      "category=NONFATAL_EXCEPTION",
+      "controlled exception after tentative creation"
     )
   }
 
@@ -414,6 +679,49 @@ class PrivateObjectPrimaryCompilerSpec extends munit.FunSuite:
       template.self,
       template.body :+ method
     )
+
+  private def creationResult(
+      input: Input,
+      declaredKind: OppositeCreationKind,
+      placement: OppositePlacement,
+      rawTrait: Boolean,
+      methodResult: String,
+      oppositeName: Option[String] = None
+  )(using Context): RoleAwareExpansionResult =
+    val created = freshOpposite(
+      oppositeName.getOrElse(input.primary.name.toString),
+      input.primary.source,
+      rawTrait,
+      methodResult
+    )
+    val role =
+      if rawTrait then OppositeRole.TraitOpposite(created)
+      else OppositeRole.ClassOpposite(created)
+    RoleAwareExpansionResult(
+      PrimaryRole.ObjectPrimary(input.primary),
+      OppositeIntent.Create(declaredKind, placement, role)
+    )
+
+  private def freshOpposite(
+      name: String,
+      source: dotty.tools.dotc.util.SourceFile,
+      asTrait: Boolean,
+      methodResult: String
+  )(using Context): TypeDef =
+    given dotty.tools.dotc.util.SourceFile = source
+    val method =
+      DefDef(
+        termName("foo"),
+        Nil,
+        Ident(typeName("String")),
+        Literal(Constant(methodResult))
+      )
+    val raw = TypeDef(
+      typeName(name),
+      Template(emptyConstructor, Nil, Nil, EmptyValDef, method :: Nil)
+    )
+    if asTrait then raw.withMods(Modifiers(Trait)).asInstanceOf[TypeDef]
+    else raw
 
   private def compileWithClassOpposite(
       participant: Participant,
