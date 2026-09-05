@@ -155,6 +155,86 @@ object ExpansionHelpers:
       case _ =>
         ExpansionOutcome.NotApplicable
 
+  /** Place an already-authored batch of concrete definitions in the current
+    * primary Template.
+    *
+    * The caller owns authoring and lowering. This helper appends the exact
+    * supplied raw members after the existing direct body while preserving the
+    * primary constructor, parents, self, modifiers, source position, and
+    * unrelated annotations. The admitted batch consists only of non-null
+    * `DefDef` and `ValDef` values with usable non-constructor term names. A
+    * direct same-term-name conflict against the original body or an earlier
+    * generated batch member rejects the whole operation before any copy is
+    * formed. This deliberately rejects pre-typer method overloading rather
+    * than attempting typed signature resolution. Target admission and
+    * ordinary typing remain plugin-owned.
+    */
+  def placeMembersInPrimary(
+      input: ExpansionInput,
+      generatedMembers: List[untpd.MemberDef]
+  )(using Context): ExpansionOutcome =
+    input.annotatedClass.rhs match
+      case template: Template =>
+        val originalBody = template.body(using summon[Context])
+        validateGeneratedTermMembers(input, generatedMembers, originalBody, "primary") match
+          case Left(diagnostic) => rejected(diagnostic, input.annotatedClass)
+          case Right(validatedMembers) =>
+            val strippedPrimary = stripCurrentAnnotation(input)
+            val rewrittenTemplate =
+              untpd.cpy.Template(template)(
+                template.constr,
+                template.parentsOrDerived(using summon[Context]),
+                template.derived,
+                template.self,
+                originalBody ++ validatedMembers
+              )
+            structured(
+              untpd.cpy.TypeDef(strippedPrimary)(
+                strippedPrimary.name,
+                rewrittenTemplate
+              )
+            )
+      case _ => ExpansionOutcome.NotApplicable
+
+  /** Place an already-authored batch of concrete definitions in the object
+    * companion selected by the current plugin lease.
+    *
+    * This is the generic `DefDef`/`ValDef` counterpart to the existing narrow
+    * companion conveniences. It validates the whole batch before creating or
+    * copying a companion, rejects direct term-name conflicts and pre-typer
+    * overloads atomically, preserves an existing companion's complete Template
+    * shape and body order, and appends the exact supplied members. The caller
+    * owns authoring/lowering; the plugin continues to own companion selection,
+    * leasing, output validation, and rollback.
+    */
+  def placeMembersInCompanion(
+      input: ExpansionInput,
+      generatedMembers: List[untpd.MemberDef]
+  )(using Context): ExpansionOutcome =
+    input.annotatedClass.rhs match
+      case _: Template =>
+        val existingBody =
+          input.existingCompanion
+            .map(_.impl.body(using summon[Context]))
+            .getOrElse(Nil)
+        validateGeneratedTermMembers(input, generatedMembers, existingBody, "companion") match
+          case Left(diagnostic) => rejected(diagnostic, input.annotatedClass)
+          case Right(validatedMembers) =>
+            val companion = input.existingCompanion match
+              case Some(existingCompanion) =>
+                mergeMembersIntoCompanion(existingCompanion, validatedMembers)
+              case None =>
+                makeCompanionWithMembers(
+                  input.annotatedClass.name,
+                  validatedMembers,
+                  input.annotatedClass.source
+                )
+            structured(
+              stripCurrentAnnotation(input),
+              companion = Some(companion)
+            )
+      case _ => ExpansionOutcome.NotApplicable
+
   /** Add a parameterless string-returning method to a companion object.
     *
     * This helper supports the current top-level class fixture shape. It creates
@@ -483,6 +563,117 @@ object ExpansionHelpers:
       case _ =>
         ExpansionOutcome.NotApplicable
 
+  private def validateGeneratedTermMembers(
+      input: ExpansionInput,
+      generatedMembers: List[MemberDef] | Null,
+      existingBody: List[Tree],
+      targetRole: String
+  )(using Context): Either[ExpansionDiagnostic, List[MemberDef]] =
+    val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
+    Option(generatedMembers) match
+      case None =>
+        Left(
+          ExpansionDiagnostic(
+            s"generated member batch for `${input.className}` must be a non-null List",
+            rejectionPosition
+          )
+        )
+      case Some(members) =>
+        if members.isEmpty then
+          Left(
+            ExpansionDiagnostic(
+              s"generated member batch for `${input.className}` must contain at least one untpd.DefDef or untpd.ValDef",
+              rejectionPosition
+            )
+          )
+        else
+          def loop(
+            remaining: List[MemberDef],
+            index: Int,
+            generatedNames: Set[TermName]
+          ): Either[ExpansionDiagnostic, List[MemberDef]] =
+            remaining match
+              case Nil => Right(members)
+              case rawMember :: tail =>
+                Option(rawMember) match
+                  case Some(member: DefDef) =>
+                    validateGeneratedTermMember(
+                      input,
+                      member,
+                      member.name,
+                      index,
+                      existingBody,
+                      generatedNames,
+                      targetRole
+                    ).flatMap: _ =>
+                      loop(tail, index + 1, generatedNames + member.name)
+                  case Some(member: ValDef) =>
+                    validateGeneratedTermMember(
+                      input,
+                      member,
+                      member.name,
+                      index,
+                      existingBody,
+                      generatedNames,
+                      targetRole
+                    ).flatMap: _ =>
+                      loop(tail, index + 1, generatedNames + member.name)
+                  case Some(other) =>
+                    Left(
+                      ExpansionDiagnostic(
+                        s"generated member batch entry $index for `${input.className}` has unsupported raw kind `${other.getClass.getName}`; only untpd.DefDef and untpd.ValDef are admitted",
+                        usableTreePosition(other, rejectionPosition)
+                      )
+                    )
+                  case None =>
+                    Left(
+                      ExpansionDiagnostic(
+                        s"generated member batch entry $index for `${input.className}` is null; only untpd.DefDef and untpd.ValDef are admitted",
+                        rejectionPosition
+                      )
+                    )
+
+          loop(members, 0, Set.empty)
+
+  private def validateGeneratedTermMember(
+      input: ExpansionInput,
+      member: MemberDef,
+      name: TermName,
+      index: Int,
+      existingBody: List[Tree],
+      generatedNames: Set[TermName],
+      targetRole: String
+  )(using Context): Either[ExpansionDiagnostic, Unit] =
+    val decodedName = name.toString
+    val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
+    if decodedName.isEmpty || decodedName == "<init>" || decodedName == "<clinit>" then
+      Left(
+        ExpansionDiagnostic(
+          s"generated member batch entry $index for `${input.className}` has unusable direct term name `$decodedName`",
+          usableTreePosition(member, rejectionPosition)
+        )
+      )
+    else if existingBody.exists:
+        case direct: DefDef => direct.name == name
+        case direct: ValDef => direct.name == name
+        case direct: ModuleDef => direct.name == name
+        case _ => false
+    then
+      Left(
+        ExpansionDiagnostic(
+          s"generated $targetRole member `$decodedName` conflicts with existing direct $targetRole term member `$decodedName` for `${input.className}`",
+          rejectionPosition
+        )
+      )
+    else if generatedNames.contains(name) then
+      Left(
+        ExpansionDiagnostic(
+          s"generated member batch for `${input.className}` contains duplicate direct term name `$decodedName`; pre-typer overload resolution is not attempted",
+          usableTreePosition(member, rejectionPosition)
+        )
+      )
+    else Right(())
+
   private def stripCurrentAnnotation(input: ExpansionInput)(using Context): TypeDef =
     input.currentAnnotation match
       case Some(currentAnnotation) =>
@@ -619,17 +810,30 @@ object ExpansionHelpers:
       generatedMember: MemberDef,
       source: dotty.tools.dotc.util.SourceFile
   )(using Context): ModuleDef =
+    makeCompanionWithMembers(className, List(generatedMember), source)
+
+  private def makeCompanionWithMembers(
+      className: TypeName,
+      generatedMembers: List[MemberDef],
+      source: dotty.tools.dotc.util.SourceFile
+  )(using Context): ModuleDef =
     given dotty.tools.dotc.util.SourceFile = source
 
     // ASSUMPTION
     // This mirrors the internal built-in companion generation shape: an untyped
     // companion with no explicit parents is enough for current top-level test
     // fixtures, and typer supplies the ordinary object parents.
-    ModuleDef(className.toTermName, makeTemplate(source, List(generatedMember)))
+    ModuleDef(className.toTermName, makeTemplate(source, generatedMembers))
 
   private def mergeMemberIntoCompanion(
       existingCompanion: ModuleDef,
       generatedMember: MemberDef
+  )(using Context): ModuleDef =
+    mergeMembersIntoCompanion(existingCompanion, List(generatedMember))
+
+  private def mergeMembersIntoCompanion(
+      existingCompanion: ModuleDef,
+      generatedMembers: List[MemberDef]
   )(using Context): ModuleDef =
     val existingTemplate = existingCompanion.impl
     val existingBody = existingTemplate.body(using summon[Context])
@@ -640,7 +844,7 @@ object ExpansionHelpers:
         existingTemplate.parentsOrDerived(using summon[Context]),
         existingTemplate.derived,
         existingTemplate.self,
-        existingBody :+ generatedMember
+        existingBody ++ generatedMembers
       )
 
     untpd.cpy.ModuleDef(existingCompanion)(existingCompanion.name, mergedTemplate)

@@ -14,25 +14,27 @@ definition-authoring representation. Scalameta describes source-like syntax;
 it does not pretend to supply Dotty owners, resolved symbols, compiler context,
 or other post-typer facts.
 
-[AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is a real,
-independent downstream consumer. Its `@apply` integration follows this bounded
-pipeline:
+[AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is one real,
+independent downstream consumer. Quasiquotes also exposes an exact-version
+generated-origin bridge for four ordinary concrete Definition families. The
+bounded downstream pipeline is:
 
 ```text
 Scalameta definition or quasiquote
   -> Quasiquotes exact-compiler lowering bridge
-  -> positioned Dotty untpd.DefDef
-  -> Macro-Paradise companion-placement helper
+  -> positioned Dotty untpd.DefDef or untpd.ValDef
+  -> Macro-Paradise primary/companion placement helper
   -> Macro-Paradise pre-typer insertion
   -> ordinary Dotty typer
 ```
 
-That path proves separation of responsibilities for one selected definition
-shape. Quasiquotes owns neutral construction and exact lowering;
+That path proves separation of responsibilities for the admitted generated
+method/value families. Quasiquotes owns neutral construction and exact lowering;
 Macro-Paradise owns target admission, placement, conflicts, rollback, and phase
-timing; Dotty remains authoritative for typing. It does not establish arbitrary
-Scalameta lowering, a stable adapter API, or a Macro-Paradise product dependency
-on either related project.
+timing; Dotty remains authoritative for typing. The Macro placement helper
+knows only the returned raw `MemberDef`, so neither Macro production artifact
+acquires a Scalameta or Quasiquotes dependency. This does not establish
+arbitrary Scalameta lowering or a stable compiler-independent adapter API.
 
 ## Current Scala 3 quoted-reflection quasiquotes
 
@@ -89,10 +91,10 @@ typer so generated definitions participate in ordinary typing.
 ## Status boundary
 
 - **current and proven in related projects:** Scalameta neutral definition
-  authoring, one exact lowering to a positioned contextual `untpd.DefDef`, and
-  downstream Macro-Paradise placement in AUXify;
+  authoring and exact generated-origin lowering for the bounded ordinary
+  `DefDef`/`ValDef` families;
 - **current in Macro-Paradise:** the raw untyped handler contract and bounded
-  placement helpers;
+  primary/companion concrete-member placement helpers;
 - **current in Quasiquotes:** typed quoted-reflection `q*` families;
 - **provisional:** public neutral `n*` naming and broader backend coverage;
 - **hypothetical:** a public raw-untyped `u*` family.

@@ -152,7 +152,8 @@ Precompiled handlers remain the supported experimental path.
 - general owner or position repair;
 - arbitrary local/nested/object/enum targets;
 - general constructor, method, type, companion, or sibling synthesis;
-- arbitrary `MemberDef` placement or semantic companion namespace resolution;
+- arbitrary `MemberDef` placement beyond the bounded exact `DefDef`/`ValDef`
+  primary/companion batch, or semantic companion namespace resolution;
 - semantic import/name resolution;
 - automatic remote dependency or handler discovery;
 - public artifact coordinates, tags, or releases;

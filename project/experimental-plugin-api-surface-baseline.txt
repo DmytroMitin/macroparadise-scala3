@@ -1720,6 +1720,8 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToCla
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addStringMethodToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|addTypeToCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$TypeDef;Lparadise3/api/helpers/CompanionTypeConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|expanded|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|placeMembersInCompanion|0|public|-|(Lparadise3/api/ExpansionInput;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|placeMembersInPrimary|0|public|-|(Lparadise3/api/ExpansionInput;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|rejected|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|rejected|1|public|-|(Lparadise3/api/ExpansionDiagnostic;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers$.class|METHOD|stringReturningMethod|0|public|-|(Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/util/SourceFile;Ldotty/tools/dotc/core/Contexts$Context;)Ldotty/tools/dotc/ast/Trees$DefDef;
@@ -1736,6 +1738,8 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToClas
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addStringMethodToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|addTypeToCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/ast/Trees$TypeDef;Lparadise3/api/helpers/CompanionTypeConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|expanded|0|public|static|(Lscala/collection/immutable/List;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|placeMembersInCompanion|0|public|static|(Lparadise3/api/ExpansionInput;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
+MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|placeMembersInPrimary|0|public|static|(Lparadise3/api/ExpansionInput;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|rejected|0|public|static|(Ljava/lang/String;Ldotty/tools/dotc/ast/Trees$TypeDef;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|rejected|1|public|static|(Lparadise3/api/ExpansionDiagnostic;Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|stringReturningMethod|0|public|static|(Ljava/lang/String;Ljava/lang/String;Ldotty/tools/dotc/util/SourceFile;Ldotty/tools/dotc/core/Contexts$Context;)Ldotty/tools/dotc/ast/Trees$DefDef;
@@ -1870,4 +1874,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=9360edfb1ee568cd7fe4fd93f07214fc4592f4e1da7ecaec8afd1d2924a62ed8
+normalized-sha256=f6994fc5acf8e20860c032a69e30226e31eacf9d65be7540fa726b2bc7bbd2de

@@ -249,10 +249,12 @@ handlers retain raw `ExpansionInput.annotatedClass` as the explicit escape
 hatch. Released `0.1.0` does not contain these body-view or type-structure APIs.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
-for the common class shape. Helper methods can add one bounded method to a class
-or companion, place one already-created type definition or module in a
-companion, or create one sibling class. Advanced exact-compiler handlers may still use
-`ExpansionInput.annotatedClass` as the separate raw-tree escape hatch.
+for the common class shape. Helper methods can place an already-authored batch
+of concrete methods and immutable values in the current primary or companion,
+add one bounded string method, place one already-created type definition or
+module in a companion, or create one sibling class. Advanced exact-compiler
+handlers may still use `ExpansionInput.annotatedClass` as the separate raw-tree
+escape hatch.
 
 Successful handlers may return structured output with explicit primary,
 companion, and additional-definition roles. The ordered raw-tree outcome
@@ -262,6 +264,42 @@ plugin-owned conflicts, composition rules, or rollback.
 The contract is exact-compiler experimental API. It does not promise typed
 trees, stable owners, semantic names, a general compiler-independent AST,
 cross-version binary compatibility, or general definition builders.
+
+### Placing authored concrete definitions
+
+Unreleased `0.1.1-SNAPSHOT` development sources provide the generic bounded
+placement pair:
+
+```scala
+ExpansionHelpers.placeMembersInPrimary(input, generatedMembers)
+ExpansionHelpers.placeMembersInCompanion(input, generatedMembers)
+```
+
+`generatedMembers` must be a non-empty `List[untpd.MemberDef]` whose entries
+are all non-null `untpd.DefDef` or `untpd.ValDef` trees with usable
+non-constructor term names. The helper never parses, lowers, rebuilds, or
+repairs those members. A handler can therefore author definitions in a
+separate library, obtain insertion-ready raw trees, and hand those exact trees
+to Macro-Paradise for placement.
+
+Primary placement appends the complete batch to the current admitted class or
+plain zero-parameter trait Template. Companion placement reuses the plugin's
+existing companion lease: it creates a same-name object when absent or copies
+the leased companion and appends the batch after all existing body members.
+Both helpers preserve original constructor, parents, self, modifiers, source
+position, body order, and unrelated annotations.
+
+Validation completes before any Template copy is formed. A direct existing
+`DefDef`, `ValDef`, or `ModuleDef` with the same raw term name rejects the whole
+batch, as does a duplicate generated name or unsupported member kind. Method
+overloading is intentionally rejected by raw name: this pre-typer helper does
+not attempt typed signature resolution. Rejection returns the exact original
+annotated primary fallback, so plugin-owned companion leasing and transaction
+rollback cannot expose a partial insertion.
+
+The Macro-Paradise plugin and plugin API retain no Scalameta or Quasiquotes
+runtime dependency. Those tools are optional authoring layers used by a
+separate handler build against the exact matching Scala line.
 
 ### Preparing one trait self alias and primary `Self` member
 
@@ -364,10 +402,11 @@ spelling does not conflict, and nested/non-direct members are not searched.
 
 `CompanionTypeConflictPolicy.PreserveExisting` returns the exact existing
 companion unchanged; `Reject` returns the original annotated primary and no
-partial companion. There is no public arbitrary-`MemberDef` placement API, no
-semantic companion or name resolution, and no alias/refinement semantics in
-Macro-Paradise. The raw-tree escape hatch remains available. Released `0.1.0`
-does not contain this helper, policy, or the two-upper-bounded trait profile.
+partial companion. The generic concrete-definition helpers do not admit
+`TypeDef`; there is no public arbitrary-`MemberDef` placement API, semantic
+companion or name resolution, or alias/refinement semantics in Macro-Paradise.
+The raw-tree escape hatch remains available. Released `0.1.0` does not contain
+this helper, policy, or the two-upper-bounded trait profile.
 
 ### Placing an already-created companion module
 
@@ -396,10 +435,10 @@ and nested/non-direct members are not searched.
 `CompanionModuleConflictPolicy.PreserveExisting` returns the exact existing
 companion unchanged; `Reject` returns the original annotated primary and no
 partial companion. Macro-Paradise does not construct extension methods, search
-semantic companions or inherited members, or expose arbitrary `MemberDef`
-placement. Released `0.1.0` does not contain this helper or policy; it is only
-an unreleased source-built `0.1.1-SNAPSHOT` API on the matching exact Scala
-line.
+semantic companions or inherited members, or admit modules through the generic
+concrete-definition placement pair. Released `0.1.0` does not contain this
+helper or policy; it is only an unreleased source-built `0.1.1-SNAPSHOT` API on
+the matching exact Scala line.
 
 ## Local coordinate for marker and handler authors
 
