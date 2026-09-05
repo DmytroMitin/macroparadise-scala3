@@ -162,12 +162,13 @@ object ExpansionHelpers:
     * supplied raw members after the existing direct body while preserving the
     * primary constructor, parents, self, modifiers, source position, and
     * unrelated annotations. The admitted batch consists only of non-null
-    * `DefDef` and `ValDef` values with usable non-constructor term names. A
-    * direct same-term-name conflict against the original body or an earlier
-    * generated batch member rejects the whole operation before any copy is
-    * formed. This deliberately rejects pre-typer method overloading rather
-    * than attempting typed signature resolution. Target admission and
-    * ordinary typing remain plugin-owned.
+    * `DefDef` and `ValDef` values with usable non-constructor term names and a
+    * root source attachment or span suitable for direct insertion. A direct
+    * same-term-name conflict against the original body or an earlier generated
+    * batch member, or a member without that position, rejects the whole
+    * operation before any copy is formed. This deliberately rejects pre-typer
+    * method overloading rather than attempting typed signature resolution.
+    * Target admission and ordinary typing remain plugin-owned.
     */
   def placeMembersInPrimary(
       input: ExpansionInput,
@@ -201,10 +202,11 @@ object ExpansionHelpers:
     *
     * This is the generic `DefDef`/`ValDef` counterpart to the existing narrow
     * companion conveniences. It validates the whole batch before creating or
-    * copying a companion, rejects direct term-name conflicts and pre-typer
-    * overloads atomically, preserves an existing companion's complete Template
-    * shape and body order, and appends the exact supplied members. The caller
-    * owns authoring/lowering; the plugin continues to own companion selection,
+    * copying a companion, rejects members without a usable root source
+    * attachment or span, direct term-name conflicts, and pre-typer overloads
+    * atomically, preserves an existing companion's complete Template shape and
+    * body order, and appends the exact supplied members. The caller owns
+    * authoring/lowering; the plugin continues to own companion selection,
     * leasing, output validation, and rollback.
     */
   def placeMembersInCompanion(
@@ -369,6 +371,9 @@ object ExpansionHelpers:
     * only `input.currentAnnotation` when present and otherwise retains the
     * established direct-caller fallback that clears all raw annotations.
     *
+    * A method that would actually be inserted must already carry a usable root
+    * source attachment or span; Macro-Paradise rejects rather than positions or
+    * repairs it.
     * This compiler-version-sensitive experimental helper accepts only
     * `untpd.DefDef`; it is not arbitrary member placement or a general
     * annotation-authoring facade.
@@ -386,7 +391,8 @@ object ExpansionHelpers:
       ExpansionDiagnostic(
         s"generated companion method `${generatedMethod.name}` conflicts with existing direct companion member `${generatedMethod.name}` for `${input.className}`",
         mostSpecificCurrentAnnotationPosition(input)
-      )
+      ),
+      generatedMemberInsertionDiagnostic(input, generatedMethod)
     )
 
   /** Place an already-created raw type definition in the annotated class's companion.
@@ -468,7 +474,8 @@ object ExpansionHelpers:
       generatedMember: MemberDef,
       hasDirectConflict: ModuleDef => Boolean,
       preserveExisting: Boolean,
-      conflictDiagnostic: => ExpansionDiagnostic
+      conflictDiagnostic: => ExpansionDiagnostic,
+      insertionDiagnostic: => Option[ExpansionDiagnostic] = None
   )(using Context): ExpansionOutcome =
     input.annotatedClass.rhs match
       case _: Template =>
@@ -482,23 +489,29 @@ object ExpansionHelpers:
             else
               rejected(conflictDiagnostic, input.annotatedClass)
           case Some(existingCompanion) =>
-            structured(
-              stripCurrentAnnotation(input),
-              companion = Some(
-                mergeMemberIntoCompanion(existingCompanion, generatedMember)
-              )
-            )
-          case None =>
-            structured(
-              stripCurrentAnnotation(input),
-              companion = Some(
-                makeCompanionWithMember(
-                  input.annotatedClass.name,
-                  generatedMember,
-                  input.annotatedClass.source
+            insertionDiagnostic match
+              case Some(diagnostic) => rejected(diagnostic, input.annotatedClass)
+              case None =>
+                structured(
+                  stripCurrentAnnotation(input),
+                  companion = Some(
+                    mergeMemberIntoCompanion(existingCompanion, generatedMember)
+                  )
                 )
-              )
-            )
+          case None =>
+            insertionDiagnostic match
+              case Some(diagnostic) => rejected(diagnostic, input.annotatedClass)
+              case None =>
+                structured(
+                  stripCurrentAnnotation(input),
+                  companion = Some(
+                    makeCompanionWithMember(
+                      input.annotatedClass.name,
+                      generatedMember,
+                      input.annotatedClass.source
+                    )
+                  )
+                )
       case _ =>
         ExpansionOutcome.NotApplicable
 
@@ -646,7 +659,9 @@ object ExpansionHelpers:
   )(using Context): Either[ExpansionDiagnostic, Unit] =
     val decodedName = name.toString
     val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
-    if decodedName.isEmpty || decodedName == "<init>" || decodedName == "<clinit>" then
+    if !member.source.exists && !member.span.exists then
+      Left(generatedMemberPositionDiagnostic(input, member))
+    else if decodedName.isEmpty || decodedName == "<init>" || decodedName == "<clinit>" then
       Left(
         ExpansionDiagnostic(
           s"generated member batch entry $index for `${input.className}` has unusable direct term name `$decodedName`",
@@ -673,6 +688,23 @@ object ExpansionHelpers:
         )
       )
     else Right(())
+
+  private def generatedMemberInsertionDiagnostic(
+      input: ExpansionInput,
+      member: MemberDef
+  )(using Context): Option[ExpansionDiagnostic] =
+    Option.when(!member.source.exists && !member.span.exists)(
+      generatedMemberPositionDiagnostic(input, member)
+    )
+
+  private def generatedMemberPositionDiagnostic(
+      input: ExpansionInput,
+      member: MemberDef
+  )(using Context): ExpansionDiagnostic =
+    ExpansionDiagnostic(
+      s"generated member `${member.name}` for `${input.className}` has no usable source position; direct placement requires an insertion-ready positioned DefDef or ValDef",
+      mostSpecificCurrentAnnotationPosition(input)
+    )
 
   private def stripCurrentAnnotation(input: ExpansionInput)(using Context): TypeDef =
     input.currentAnnotation match

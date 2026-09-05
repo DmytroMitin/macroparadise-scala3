@@ -3,8 +3,11 @@ package macroparadise
 import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.ast.Trees
 import dotty.tools.dotc.ast.untpd.*
+import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
+import dotty.tools.dotc.core.Names.{termName, typeName}
 import dotty.tools.dotc.parsing.Parsers
+import dotty.tools.dotc.util.{NoSource, SourceFile}
 import paradise3.api.{ExpansionInput, ExpansionOutcome, StructuredExpansionOutput}
 import paradise3.api.helpers.ExpansionHelpers
 
@@ -334,6 +337,58 @@ class GeneratedMemberPlacementHelperSpec extends munit.FunSuite:
       case other => fail(s"expected Rejected, found $other")
   }
 
+  test("primary placement rejects a source-free generated DefDef before copying the primary") {
+    val fixture = parsedFixture("class PlacementSubject", "val before: Int = 1")
+    given Context = fixture.context
+    val sourceFree = sourceFreeMethod()
+    val originalBody = fixture.primary.rhs.asInstanceOf[Template].body
+
+    assert(!sourceFree.source.exists, clue(sourceFree.source))
+    assert(!sourceFree.span.exists, clue(sourceFree.span))
+
+    ExpansionHelpers.placeMembersInPrimary(
+      fixture.input(None),
+      List(sourceFree)
+    ) match
+      case ExpansionOutcome.Rejected(diagnostics, fallback) =>
+        assert(fallback.eq(fixture.primary), clue(fallback))
+        assertEquals(diagnostics.size, 1)
+        assertEquals(
+          diagnostics.head.message,
+          "generated member `foo` for `PlacementSubject` has no usable source position; direct placement requires an insertion-ready positioned DefDef or ValDef"
+        )
+        assertEquals(diagnostics.head.pos, fixture.currentAnnotation.sourcePos)
+      case other => fail(s"expected Rejected, found $other")
+
+    assertEquals(fixture.primary.rhs.asInstanceOf[Template].body, originalBody)
+    assert(Trees.mods(fixture.primary).annotations.contains(fixture.currentAnnotation))
+  }
+
+  test("companion placement rejects a later source-free ValDef atomically before companion creation") {
+    val fixture = parsedFixture("class PlacementSubject")
+    given Context = fixture.context
+    val sourceFree = sourceFreeValue()
+
+    assert(!sourceFree.source.exists, clue(sourceFree.source))
+    assert(!sourceFree.span.exists, clue(sourceFree.span))
+
+    ExpansionHelpers.placeMembersInCompanion(
+      fixture.input(None),
+      List(fixture.generatedMethod, sourceFree)
+    ) match
+      case ExpansionOutcome.Rejected(diagnostics, fallback) =>
+        assert(fallback.eq(fixture.primary), clue(fallback))
+        assertEquals(diagnostics.size, 1)
+        assertEquals(
+          diagnostics.head.message,
+          "generated member `answer` for `PlacementSubject` has no usable source position; direct placement requires an insertion-ready positioned DefDef or ValDef"
+        )
+        assertEquals(diagnostics.head.pos, fixture.currentAnnotation.sourcePos)
+      case other => fail(s"expected Rejected, found $other")
+
+    assert(Trees.mods(fixture.primary).annotations.contains(fixture.currentAnnotation))
+  }
+
   private final case class Fixture(
       primary: TypeDef,
       companion: Option[ModuleDef],
@@ -413,6 +468,25 @@ class GeneratedMemberPlacementHelperSpec extends munit.FunSuite:
 
   private def indent(value: String): String =
     value.linesIterator.map(line => s"  $line").mkString("\n")
+
+  private def sourceFreeMethod()(using Context): DefDef =
+    given SourceFile = NoSource
+    val parameter =
+      ValDef(termName("x"), Ident(typeName("Int")), EmptyTree)
+    DefDef(
+      termName("foo"),
+      List(List(parameter)),
+      Ident(typeName("String")),
+      Select(Ident(termName("x")), termName("toString"))
+    )
+
+  private def sourceFreeValue()(using Context): ValDef =
+    given SourceFile = NoSource
+    ValDef(
+      termName("answer"),
+      Ident(typeName("Int")),
+      Literal(Constant(42))
+    )
 
   private def structured(outcome: ExpansionOutcome): StructuredExpansionOutput =
     outcome match

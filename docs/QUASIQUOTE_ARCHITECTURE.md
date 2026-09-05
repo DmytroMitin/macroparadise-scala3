@@ -36,6 +36,24 @@ knows only the returned raw `MemberDef`, so neither Macro production artifact
 acquires a Scalameta or Quasiquotes dependency. This does not establish
 arbitrary Scalameta lowering or a stable compiler-independent adapter API.
 
+Quasiquotes exposes two deliberately different exact Definition bridges:
+
+```text
+ScalametaDefinitionUntypedBridge
+  -> fresh source-free raw representation
+  -> not directly insertion-ready
+
+ScalametaDefinitionGeneratedOriginBridge
+  -> positioned generated-origin definition
+  -> intended input for direct Macro placement
+```
+
+Macro-Paradise checks the inserted `DefDef`/`ValDef` root source attachment and
+span before copying a primary or companion and rejects a member when both are
+absent. It does not repair the member, invent a source, or copy a position from
+the annotated target. The generated-origin bridge owns the deterministic
+virtual source and the complete positioning step.
+
 ## Current Scala 3 quoted-reflection quasiquotes
 
 The existing Quasiquotes typed families are:

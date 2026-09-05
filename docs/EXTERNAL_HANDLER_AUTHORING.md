@@ -277,10 +277,11 @@ ExpansionHelpers.placeMembersInCompanion(input, generatedMembers)
 
 `generatedMembers` must be a non-empty `List[untpd.MemberDef]` whose entries
 are all non-null `untpd.DefDef` or `untpd.ValDef` trees with usable
-non-constructor term names. The helper never parses, lowers, rebuilds, or
-repairs those members. A handler can therefore author definitions in a
-separate library, obtain insertion-ready raw trees, and hand those exact trees
-to Macro-Paradise for placement.
+non-constructor term names and a usable root source attachment or span. The
+helper never parses, lowers, rebuilds, positions, re-sources, or repairs those
+members. A handler can therefore author definitions in a separate library,
+obtain insertion-ready raw trees, and hand those exact trees to Macro-Paradise
+for placement.
 
 Primary placement appends the complete batch to the current admitted class or
 plain zero-parameter trait Template. Companion placement reuses the plugin's
@@ -289,17 +290,54 @@ the leased companion and appends the batch after all existing body members.
 Both helpers preserve original constructor, parents, self, modifiers, source
 position, body order, and unrelated annotations.
 
-Validation completes before any Template copy is formed. A direct existing
-`DefDef`, `ValDef`, or `ModuleDef` with the same raw term name rejects the whole
-batch, as does a duplicate generated name or unsupported member kind. Method
-overloading is intentionally rejected by raw name: this pre-typer helper does
-not attempt typed signature resolution. Rejection returns the exact original
-annotated primary fallback, so plugin-owned companion leasing and transaction
-rollback cannot expose a partial insertion.
+Validation completes before any Template copy is formed. A missing usable root
+source attachment and span, a direct existing `DefDef`, `ValDef`, or
+`ModuleDef` with the same raw term name, a duplicate generated name, or an
+unsupported member kind rejects the whole batch. Method overloading is
+intentionally rejected by raw name: this pre-typer helper does not attempt
+typed signature resolution. Rejection returns the exact original annotated
+primary fallback, so plugin-owned companion leasing and transaction rollback
+cannot expose a partial insertion.
 
 The Macro-Paradise plugin and plugin API retain no Scalameta or Quasiquotes
 runtime dependency. Those tools are optional authoring layers used by a
 separate handler build against the exact matching Scala line.
+
+For direct insertion from the optional Quasiquotes authoring library, use its
+generated-origin bridge rather than its source-free representation bridge:
+
+```scala
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+import paradise3.api.helpers.ExpansionHelpers
+import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
+import scala.meta.*
+import scala.meta.dialects.Scala3
+
+final class AddFooHandler extends ParadiseAnnotationExpander:
+  override def annotationName: String =
+    "com.example.macros.annotations.addFoo"
+
+  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ScalametaDefinitionGeneratedOriginBridge.lower(
+      q"def foo(x: Int): String = x.toString",
+      "addFoo.generated.scala"
+    ) match
+      case Right(lowered) =>
+        ExpansionHelpers.placeMembersInPrimary(input, List(lowered.tree))
+      case Left(problem) =>
+        ExpansionHelpers.rejected(
+          s"${problem.code}: ${problem.detail}",
+          input.annotatedClass
+        )
+```
+
+The deterministic virtual source name belongs to generated-origin provenance;
+it does not reuse or imitate the annotated target's source. In contrast,
+`ScalametaDefinitionUntypedBridge.lower` intentionally returns a fresh
+source-free raw representation. That representation is useful for structural
+work but is **not** directly insertion-ready for Macro-Paradise placement and
+is rejected before ordinary typer.
 
 ### Preparing one trait self alias and primary `Self` member
 

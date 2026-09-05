@@ -154,6 +154,9 @@ Precompiled handlers remain the supported experimental path.
 - general constructor, method, type, companion, or sibling synthesis;
 - arbitrary `MemberDef` placement beyond the bounded exact `DefDef`/`ValDef`
   primary/companion batch, or semantic companion namespace resolution;
+- position or source repair for caller-authored members; direct placement
+  requires an insertion-ready `DefDef`/`ValDef` with a usable root source
+  attachment or span and rejects a source-free member before target copying;
 - semantic import/name resolution;
 - automatic remote dependency or handler discovery;
 - public artifact coordinates, tags, or releases;

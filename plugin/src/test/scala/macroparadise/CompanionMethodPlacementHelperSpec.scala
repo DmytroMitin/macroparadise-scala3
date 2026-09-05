@@ -4,7 +4,9 @@ import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.ast.Trees
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
+import dotty.tools.dotc.core.Names.{termName, typeName}
 import dotty.tools.dotc.parsing.Parsers
+import dotty.tools.dotc.util.{NoSource, SourceFile}
 import paradise3.api.{ExpansionInput, ExpansionOutcome, StructuredExpansionOutput}
 import paradise3.api.helpers.{CompanionMethodConflictPolicy, ExpansionHelpers}
 
@@ -224,6 +226,32 @@ class CompanionMethodPlacementHelperSpec extends munit.FunSuite:
     assert(inserted.asInstanceOf[DefDef].rhs.eq(fixture.generatedMethod.rhs), clue(inserted))
   }
 
+  test("narrow method placement rejects a source-free DefDef before creating a companion") {
+    val fixture = parsedFixture()
+    given Context = fixture.context
+    val sourceFree = sourceFreeMethod()
+
+    assert(!sourceFree.source.exists, clue(sourceFree.source))
+    assert(!sourceFree.span.exists, clue(sourceFree.span))
+
+    ExpansionHelpers.addMethodToCompanion(
+      fixture.input(None),
+      sourceFree,
+      CompanionMethodConflictPolicy.PreserveExisting
+    ) match
+      case ExpansionOutcome.Rejected(diagnostics, fallback) =>
+        assert(fallback.eq(fixture.primary), clue(fallback))
+        assertEquals(diagnostics.size, 1)
+        assertEquals(
+          diagnostics.head.message,
+          "generated member `apply` for `PlacementSubject` has no usable source position; direct placement requires an insertion-ready positioned DefDef or ValDef"
+        )
+        assertEquals(diagnostics.head.pos, fixture.currentAnnotation.sourcePos)
+      case other => fail(s"expected Rejected, found $other")
+
+    assert(Trees.mods(fixture.primary).annotations.contains(fixture.currentAnnotation))
+  }
+
   private final case class Fixture(
       primary: TypeDef,
       companion: Option[ModuleDef],
@@ -276,6 +304,17 @@ class CompanionMethodPlacementHelperSpec extends munit.FunSuite:
     val currentAnnotation = Trees.mods(primary).annotations.headOption
       .getOrElse(fail("missing current annotation"))
     Fixture(primary, existingCompanion, generatedMethod, currentAnnotation, context)
+
+  private def sourceFreeMethod()(using Context): DefDef =
+    given SourceFile = NoSource
+    val parameter =
+      ValDef(termName("value"), Ident(typeName("Int")), EmptyTree)
+    DefDef(
+      termName("apply"),
+      List(List(parameter)),
+      Ident(typeName("Int")),
+      Ident(termName("value"))
+    )
 
   private def directMembersNamed(
       companion: ModuleDef,
