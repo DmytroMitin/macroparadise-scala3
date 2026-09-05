@@ -306,8 +306,11 @@ for the detailed boundary.
   lowering adapters. It is independent, optional research rather than a
   Macro-Paradise product dependency.
 - [AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is an
-  independent downstream consumer. Its user-authored `@apply` demonstrates a
-  richer integration of Macro-Paradise placement with Quasiquotes construction.
+  independent downstream consumer. Its current source-built development slices
+  include bounded `@apply`, `@aux`, `@instance`, `@delegated`, and default
+  `@self` handlers; `@syntax` is characterized but not implemented. See the
+  [real downstream examples](docs/EXTERNAL_HANDLER_AUTHORING.md#real-downstream-examples)
+  for exact status and ownership boundaries.
 
 ## Documentation
 

@@ -46,6 +46,11 @@ ScalametaDefinitionUntypedBridge
 ScalametaDefinitionGeneratedOriginBridge
   -> positioned generated-origin definition
   -> intended input for direct Macro placement
+
+ScalametaDefinitionClassMemberAppendBridge
+  -> one positioned generated Definition plus one admitted existing class
+  -> fresh same-site class/Template shells, exact old-member identity, and the
+     exact new member appended last
 ```
 
 Macro-Paradise checks the inserted `DefDef`/`ValDef` root source attachment and
@@ -87,13 +92,31 @@ claiming typer knowledge. A tightly versioned backend may attach the exact
 compiler details required by its target phase. Raw compiler construction stays
 available as an experimental escape hatch when neutral coverage is incomplete.
 
-## Hypothetical raw-untyped quasiquotes
+## Existing-tree transformations: accepted direction, future API
 
-A separate raw family could be imagined under names such as `uqr` / `uqq`,
-`utqr` / `utqq`, and `udqr` / `udqq`. It is not planned public API. Scalameta
-authoring plus exact backend lowering is the narrower current direction: it
-avoids creating a second public source language tied directly to `untpd` while
-retaining a compiler-coupled escape hatch for advanced handlers.
+There is no current public exact transformation API for matching and rebuilding
+an existing Dotty owner. A whole-definition Scalameta before/after sketch is
+useful conceptual pseudocode, but it must not be presented as a compile-ready
+way to transform an existing `untpd.DefDef`.
+
+Accepted Quasiquotes C024 selected the programmatic foundation:
+
+```text
+existing untpd
+  -> bounded exact capture/view
+  -> exact preserved raw handles + selected decoded semantic fields
+  -> validated replacement/reconstruction plan
+  -> untpd
+```
+
+Fresh changed fragments compose from public project/N semantic authoring and
+exact lowering. The complete existing owner is never laundered through
+Scalameta. The current `ScalametaDefinitionClassMemberAppendBridge` proves only
+the simpler hybrid append case; it is not a general rewrite layer.
+
+Possible future `uqr` / `uqq`, `utqr` / `utqq`, and `udqr` / `udqq` syntax is
+optional sugar over that accepted programmatic algebra, not an independently
+selected language or current public API.
 
 ## Why Scala 2 felt like one world
 
@@ -113,10 +136,15 @@ typer so generated definitions participate in ordinary typing.
   `DefDef`/`ValDef` families;
 - **current in Macro-Paradise:** the raw untyped handler contract and bounded
   primary/companion concrete-member placement helpers;
+- **current in Quasiquotes:** a bounded public exact hybrid bridge that appends
+  one generated Definition to one admitted existing class while preserving old
+  direct-member identity;
 - **current in Quasiquotes:** typed quoted-reflection `q*` families;
 - **provisional:** public neutral `n*` naming and broader backend coverage;
-- **hypothetical:** a public raw-untyped `u*` family.
+- **accepted architecture but not current public API:** programmatic exact
+  existing-tree capture/view/rewrite, with optional future `u*` syntax sugar.
 
 See [Architecture](ARCHITECTURE.md) for the plugin phase and
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the current
-experimental author-facing contract.
+experimental author-facing contract, bridge/helper inventory, conflict-policy
+audit, and virtual-source-name guidance.

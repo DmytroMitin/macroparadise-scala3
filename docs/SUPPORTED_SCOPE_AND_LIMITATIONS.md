@@ -154,6 +154,10 @@ Precompiled handlers remain the supported experimental path.
 - general constructor, method, type, companion, or sibling synthesis;
 - arbitrary `MemberDef` placement beyond the bounded exact `DefDef`/`ValDef`
   primary/companion batch, or semantic companion namespace resolution;
+- partial generic-batch conflict recovery: any direct raw term-name conflict or
+  duplicate generated name rejects the complete batch before target copying;
+  the narrow single-member companion helpers retain their separate explicit
+  preserve/reject policies;
 - position or source repair for caller-authored members; direct placement
   requires an insertion-ready `DefDef`/`ValDef` with a usable root source
   attachment or span and rejects a source-free member before target copying;
@@ -164,4 +168,8 @@ Precompiled handlers remain the supported experimental path.
 
 Quasiquotes adapters may appear in isolated tests, but the product build has no
 dependency on another checkout and makes no general quasiquote integration
-promise.
+promise. The optional generated-origin bridge currently requires the caller to
+provide a valid virtual source name; that name is observable provenance rather
+than Definition semantics, and Macro-Paradise neither generates nor repairs it.
+See [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md#virtual-generated-source-names)
+for the current contract and non-blocking Quasiquotes ergonomics recommendation.

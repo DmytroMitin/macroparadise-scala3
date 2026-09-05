@@ -212,6 +212,31 @@ and invocation.
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
+## Practical handler-authoring progression
+
+Use the public surface in layers, adding only one new responsibility at a
+time:
+
+1. Start with the [`@identity`](#handler) handler. It proves discovery,
+   metadata binding, loading, and invocation while returning the primary
+   unchanged.
+2. Move to the user-authored [`@gen`](#generated-output-follow-on) example. It
+   proves one narrow Macro-Paradise-generated method and ordinary downstream
+   typing.
+3. For ordinary new concrete `def`/`val` syntax, author with Scalameta, lower
+   with Quasiquotes' generated-origin bridge, and place the exact result with
+   [`placeMembersInPrimary`](#placing-authored-concrete-definitions).
+4. Change only the placement call to `placeMembersInCompanion` when the same
+   generated definition belongs in the companion.
+5. Study the [real downstream AUXify examples](#real-downstream-examples) for
+   bounded source decoding, specialized lowering, lifecycle, placement, and
+   source-ordered composition.
+
+`@addFoo` below is a user-defined teaching example, not an annotation shipped
+by Macro-Paradise. Macro-Paradise supplies the handler contract and placement
+helpers; the marker, handler policy, and annotation semantics belong to the
+author.
+
 ## API boundary
 
 `ExpansionInput` exposes compiler-sensitive untyped trees and bounded decoded
@@ -332,12 +357,197 @@ final class AddFooHandler extends ParadiseAnnotationExpander:
         )
 ```
 
-The deterministic virtual source name belongs to generated-origin provenance;
+To put the same generated method in the companion, keep the handler and
+lowering code unchanged and replace only the successful placement call:
+
+```scala
+ExpansionHelpers.placeMembersInCompanion(input, List(lowered.tree))
+```
+
+For a single method, the older narrow helper remains available:
+
+```scala
+import dotty.tools.dotc.ast.untpd
+import paradise3.api.helpers.CompanionMethodConflictPolicy
+
+lowered.tree match
+  case method: untpd.DefDef =>
+    ExpansionHelpers.addMethodToCompanion(
+      input,
+      method,
+      CompanionMethodConflictPolicy.PreserveExisting
+    )
+  case _ =>
+    ExpansionHelpers.rejected(
+      "addFoo requires a generated method",
+      input.annotatedClass
+    )
+```
+
+Prefer the generic primary/companion pair for ordinary new concrete
+`def`/`val` authoring: the same complete-batch contract works for either
+location and validates every member before copying a target. Use the narrow
+method/type/module helpers when their specialized member kind, namespace, and
+explicit conflict policy are the contract you actually want.
+
+The caller-supplied virtual source name belongs to generated-origin provenance;
 it does not reuse or imitate the annotated target's source. In contrast,
 `ScalametaDefinitionUntypedBridge.lower` intentionally returns a fresh
 source-free raw representation. That representation is useful for structural
 work but is **not** directly insertion-ready for Macro-Paradise placement and
 is rejected before ordinary typer.
+
+### Bridge and helper inventory
+
+Use the narrowest operation whose ownership matches the work:
+
+| Operation | Use it for | Do not infer |
+| --- | --- | --- |
+| `ScalametaDefinitionUntypedBridge.lower` (Quasiquotes) | A fresh, source-free exact `MemberDef` for structural/intermediate work | Direct insertion readiness; Macro-Paradise rejects a result with neither root source nor span |
+| `ScalametaDefinitionGeneratedOriginBridge.lower` (Quasiquotes) | A positioned generated-origin concrete `DefDef`/`ValDef` ready to hand to Macro placement | Target admission, placement, conflict handling, or rollback |
+| `ScalametaDefinitionClassMemberAppendBridge.append` (Quasiquotes) | The accepted request-074 hybrid: rebuild one admitted existing class while preserving exact old-member identity and appending one generated Scalameta Definition | General class editing, multi-member transactions, or Macro lifecycle replacement |
+| `ExpansionHelpers.placeMembersInPrimary` | Atomically append a non-empty concrete `DefDef`/`ValDef` batch to an admitted primary | Object-primary support, overload resolution, or source repair |
+| `ExpansionHelpers.placeMembersInCompanion` | Atomically create/merge the leased companion and append the same batch | Semantic companion lookup or partial success |
+| `ExpansionHelpers.addMethodToCompanion` | Place one `DefDef` with explicit `PreserveExisting` or `Reject` behavior | Generic batch semantics or typed overload matching |
+| `ExpansionHelpers.addTypeToCompanion` | Place one already-lowered `TypeDef` in the type namespace | Generic Definition lowering or arbitrary `MemberDef` placement |
+| `ExpansionHelpers.addModuleToCompanion` | Place one already-lowered `ModuleDef` in the term namespace | Module authoring or semantic namespace resolution |
+| `ExpansionHelpers.addPreparedSelfTypeToTrait` | Lease/prepare a collision-safe self alias and atomically install one caller-lowered direct `Self` type member on the admitted plain-trait slice | General Template editing or interpretation of `@self` semantics |
+| `ExpansionHelpers.withAnnotatedClassView` | Decode the bounded read-only source view and fail closed with the original fallback | Symbols, owners, typing, or arbitrary source shapes |
+| `ExpansionHelpers.addStringMethodToClass` / `addStringMethodToCompanion` / `addStringMethodSiblingClass` | Small built-in string-method fixtures and starter examples | A general definition-authoring language |
+
+The ownership rule is stable:
+
+```text
+Quasiquotes  = author / match / project / lower / attach generated origin
+Macro-Paradise = target admission / placement / companion lifecycle /
+                 composition / conflicts / rollback
+Dotty Typer  = ordinary typing after pre-typer expansion
+```
+
+### Real downstream examples
+
+[AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) demonstrates
+that this stack is general infrastructure rather than an `@apply`-specific
+path. At the current peer baseline its public development status is:
+
+| Annotation | Current peer status | Bounded role exercised |
+| --- | --- | --- |
+| `@apply` | Implemented and qualified development slices | Companion contextual materializers for the simple `Show[A]` and bounded refined `Add.Out` families |
+| `@aux` | Implemented and qualified first slice | An already-lowered companion `Aux` type alias |
+| `@instance` | Implemented and qualified first slice | A generated companion factory for one exact two-abstract-method trait family |
+| `@delegated` | Implemented and qualified first slice | One generated companion forwarding method |
+| `@self` | Implemented and qualified default first slice | Prepared primary self alias plus one generated `Self` type member; historical boolean options remain research |
+| `@syntax` | Characterized, not implemented | A future native-extension-module design; it is not current product behavior |
+
+The implemented rows are local/source-built experimental milestones, not
+stable or remotely published AUXify coordinates. Each admits only the source
+families stated by AUXify; the names do not imply general historical Scala 2
+parity. Accepted bounded composition currently includes both source orders for
+selected `@apply + @delegated`, `@apply + @aux`, and `@apply + @instance`
+families, not arbitrary annotation stacks.
+
+### Conflict-policy audit
+
+The narrow single-member companion helpers and the generic batch helpers have
+different, intentional contracts:
+
+- `addMethodToCompanion` can apply `PreserveExisting` or `Reject` to one known
+  method. On a conflict, preserving the existing companion is unambiguous.
+- `placeMembersInPrimary` and `placeMembersInCompanion` reject the entire batch
+  when any generated raw term name conflicts with an existing direct term name
+  or another generated name. Validation precedes all copying, so there is no
+  partial prefix insertion.
+
+For `0.1.1`, the generic behavior remains whole-batch rejection. Reusing the
+name `PreserveExisting` for multiple generated members would not say whether
+non-conflicting members are still inserted. A future generic policy, if user
+evidence justifies one, should name its batch semantics explicitly:
+
+| Possible policy | Exact meaning |
+| --- | --- |
+| `RejectBatch` | Any conflict rejects the operation and preserves the original transaction state |
+| `SkipConflictingGenerated` | Drop only conflicting generated members and atomically insert the remaining validated batch |
+| `NoOpWholeBatchOnAnyConflict` | Treat any conflict as successful no-op for the complete batch |
+
+Those are post-release design alternatives, not current symbols. No generic
+conflict-policy enum is added by this documentation audit.
+
+### Virtual generated-source names
+
+`ScalametaDefinitionGeneratedOriginBridge.lower(definition,
+virtualSourceName)` passes the validated name to Dotty's `SourceFile.virtual`.
+The returned `SourceFile` is attached to the generated root and its material
+descendants, and `Lowered.virtualSourceName` reports the compiler-represented
+path. Spans are offsets into Quasiquotes' deterministic generated source text.
+
+The name does not change the admitted Definition shape or ordinary Scala
+meaning; it is provenance. It is nevertheless observable source identity:
+diagnostics and tooling can display or compare the path. The current bridge
+rejects empty names, surrounding whitespace, NUL/CR/LF, and names the compiler
+would represent differently. It does not require a `.scala` suffix, prescribe
+a path layout, or enforce uniqueness across calls. Reusing one name for
+different generated text can therefore make diagnostics ambiguous even though
+each returned tree retains its own `SourceFile` and content.
+
+Ordinary users currently must choose the name manually. A non-blocking
+Quasiquotes follow-up is recommended:
+
+- add a no-name overload that renders the admitted generated source first and
+  derives a Quasiquotes-owned namespaced, content-addressed name, for example
+  `<quasiquotes-generated:definition:sha256:<lowercase-64-hex>>` from the UTF-8
+  generated-source bytes;
+- guarantee that identical generated source receives the same default name and
+  different content is collision-resistant rather than claiming global
+  uniqueness; and
+- retain the current explicit-name overload unchanged for advanced callers
+  that need controlled diagnostic/source identity.
+
+Name generation belongs in Quasiquotes because it owns generated-source and
+origin construction. Macro-Paradise intentionally has no Quasiquotes product
+dependency and should not generate these names. This recommendation does not
+block the Macro-Paradise `0.1.1` freeze and has not allocated or sent a peer
+request.
+
+### Existing-definition transformation: current versus future
+
+This Scalameta sketch is a useful statement of intent:
+
+```scala
+// Conceptual pseudocode, not a compile-ready exact-U transformation API.
+q"..$mods def $ename[..$tparams] (...$paramss): $tpe = $expr"
+// desired transformation
+q"..$mods def $ename[..$tparams] (...$paramss): Option[$tpe] = Option($expr)"
+```
+
+It is not the selected implementation for transforming an existing Dotty tree.
+Round-tripping a whole existing owner through Scalameta would lose exact raw
+identity, provenance, and opaque compiler topology. Accepted Quasiquotes C024
+instead selects this programmatic layering:
+
+```text
+existing untpd
+  -> bounded exact capture/view
+  -> exact preserved raw handles + selected decoded semantic fields
+  -> validated replacement/reconstruction plan
+  -> untpd
+```
+
+Conceptually, a future handler will select one exact existing `DefDef`, capture
+unchanged header/opaque islands plus the selected parameter, result, and body
+fields, replace only those fields through validated public semantic fragments,
+and ask Quasiquotes to reconstruct the exact owner. Fresh changed fragments
+compose from public project/N semantic authoring; the whole existing owner does
+not travel through Scalameta.
+
+The accepted request-074
+`ScalametaDefinitionClassMemberAppendBridge` proves the simpler hybrid case:
+preserve one existing class's direct members exactly and append one fresh
+generated Definition. It does not expose the public exact transformation layer
+needed for the sketch above. C024 chose
+`B_BOUNDED_PROGRAMMATIC_U_GRAMMAR_IS_BETTER_THAN_U_STAR_INTERPOLATORS`;
+possible future `uqr`/`uqq`/`utqr`/`utqq`/`udqr`/`udqq` syntax would be optional
+sugar over accepted programmatic semantics. There is no current public
+compile-ready U tutorial or API.
 
 ### Preparing one trait self alias and primary `Self` member
 
