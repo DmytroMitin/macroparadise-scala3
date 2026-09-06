@@ -160,6 +160,7 @@ object PublicProductBoundary {
     else if (
       path == "build.sbt" ||
       path == ".gitignore" ||
+      path == ".java-version" ||
       path == ".github/workflows/test.yml" ||
       path == ".public-product-source-manifest.tsv" ||
       PublicProjectFiles.contains(path)

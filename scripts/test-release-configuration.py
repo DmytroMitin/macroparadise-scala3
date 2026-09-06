@@ -113,8 +113,19 @@ class ReleaseConfigurationTest(unittest.TestCase):
         )
         self.assertIn(".cross(CrossVersion.full)", authoring)
         self.assertIn(f"-P:{PLUGIN_ID}:handlerClasspath=", authoring)
-        self.assertNotIn("macroparadise-scala3.g8", readme)
-        self.assertNotIn("sbt new", readme)
+        quick_start = readme.split("## Quick start with the released template", 1)[1].split(
+            "\n## ", 1
+        )[0]
+        getting_started_quick_start = getting_started.split("## Fastest released starter", 1)[1].split(
+            "\n## ", 1
+        )[0]
+        for text in (quick_start, getting_started_quick_start):
+            self.assertIn("https://github.com/DmytroMitin/macroparadise-scala3.g8", text)
+            self.assertIn("sbt new DmytroMitin/macroparadise-scala3.g8", text)
+            self.assertIn('sbt "core/run"', text)
+            self.assertIn("Hello, Greeter!", text)
+            self.assertIn(RELEASE_VERSION, text)
+            self.assertNotIn(DEVELOPMENT_VERSION, text)
 
     def test_release_rehearsal_targets_the_0_1_1_three_line_identity(self) -> None:
         rehearsal = (ROOT / "scripts/rehearse-local-release.sh").read_text(encoding="utf-8")

@@ -12,6 +12,31 @@ immutable `0.1.1` release supports exact Scala `3.3.8`, `3.8.4`, and stable
 `3.9.0` and is available from Maven Central. Current `main` continues on the
 experimental `0.2.0-SNAPSHOT` development line.
 
+## Quick start with the released template
+
+The fastest verified released setup is the public
+[`macroparadise-scala3.g8`](https://github.com/DmytroMitin/macroparadise-scala3.g8)
+template:
+
+```sh
+sbt new DmytroMitin/macroparadise-scala3.g8
+cd <generated-project>
+sbt "core/run"
+```
+
+Expected output:
+
+```text
+Hello, Greeter!
+```
+
+The generated build requires JDK feature 25 and sbt 1.12.15. It defaults to
+exact Scala 3.9.0, with exact 3.3.8 and 3.8.4 also selectable, and resolves the
+immutable Macro-Paradise 0.1.1 release. Its `macro-annotations`,
+`macro-handlers`, and `core` projects demonstrate a user-owned marker,
+precompiled external handler, and ordinary consumer. Macro-Paradise remains
+experimental and exact-compiler-specific.
+
 ## A small user-authored example
 
 A user can define an annotation marker, its precompiled handler, and an
@@ -83,6 +108,12 @@ The build rejects other JDK feature versions before normal tasks run. The
 plugin and handler contract expose Scala compiler internals, so a nearby Scala
 version is not an interchangeable substitute.
 
+The JDK contract is feature version 25, not one vendor or `25.0.x` patch. The
+root `.java-version` contains `25` as a convenient local version-manager hint;
+the build-time verifier remains authoritative. See
+[Getting started](docs/GETTING_STARTED.md#select-jdk-25-with-a-version-manager)
+for concise jenv and SDKMAN setup guidance.
+
 ### IntelliJ IDEA import
 
 IntelliJ must launch **sbt itself** on JDK 25; setting only the source language
@@ -100,7 +131,8 @@ helpers compile.
 
 For packaged external-handler projects, delegate build and run actions to sbt.
 The sbt-imported workflow is qualified; IntelliJ's native JPS compiler path is
-not currently part of the supported boundary.
+not currently part of the supported boundary. The `.java-version` hint does
+not automatically configure IntelliJ's project SDK or sbt JVM.
 
 Run the complete product gate from the repository root:
 

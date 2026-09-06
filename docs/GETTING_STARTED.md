@@ -4,6 +4,32 @@ Macro-Paradise `0.1.1` is available from Maven Central for exact Scala `3.3.8`,
 `3.8.4`, and stable `3.9.0`. Current `main` uses `0.2.0-SNAPSHOT` and can be
 built or installed locally for the same separate exact lanes.
 
+## Fastest released starter
+
+Use the verified public Giter8 template for the shortest released setup:
+
+```sh
+sbt new DmytroMitin/macroparadise-scala3.g8
+cd <generated-project>
+sbt "core/run"
+```
+
+Expected output:
+
+```text
+Hello, Greeter!
+```
+
+The [template repository](https://github.com/DmytroMitin/macroparadise-scala3.g8)
+defaults to JDK feature 25, sbt 1.12.15, exact Scala 3.9.0, and released
+Macro-Paradise 0.1.1. Exact Scala 3.3.8 and 3.8.4 are also selectable. The
+generated `macro-annotations`, `macro-handlers`, and `core` projects retain the
+normal marker/handler/consumer topology.
+
+The detailed setup below remains the reference for users who need to inspect
+or customize the sbt integration or wire the compiler plugin and handler
+classpath manually.
+
 ## Requirements
 
 - JDK feature version 25
@@ -15,11 +41,45 @@ The build accepts only exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`; select 
 explicitly for cross-line qualification. The global load check rejects other
 JDK feature versions before normal tasks execute.
 
+The JDK requirement is deliberately vendor- and patch-neutral: any suitable
+JDK whose Java feature version is 25 satisfies this part of the contract. The
+build verifier, not a version-manager file, enforces that requirement.
+
 Confirm the active JVM before loading sbt:
 
 ```sh
 java -version
 ```
+
+## Select JDK 25 with a version manager
+
+The checked-in `.java-version` contains only `25`. With jenv, first register a
+JDK 25 installation and confirm that a `25` alias exists:
+
+```sh
+jenv add /path/to/jdk-25
+jenv versions
+```
+
+When that alias is available, entering the repository lets jenv select it.
+`jenv enable-plugin export` is an optional shell convenience, not a project
+requirement.
+
+SDKMAN is an alternative. Choose an available JDK 25 candidate and use the same
+identifier for installation and the current shell:
+
+```sh
+sdk list java
+sdk install java <a-JDK-25-candidate>
+sdk use java <the-same-JDK-25-candidate>
+```
+
+No `.sdkmanrc` is checked in because SDKMAN candidate identifiers normally pin
+one concrete vendor and patch while Macro-Paradise requires only Java feature
+25. Users who prefer SDKMAN auto-environment behavior may run `sdk env init`
+locally. asdf, mise, and other managers can likewise select JDK 25; the project
+does not add overlapping `.tool-versions` or `.mise.toml` pins that could drift
+from `.java-version` or the build verifier.
 
 ## Import into IntelliJ IDEA
 
@@ -37,6 +97,8 @@ before compiling the ordinary meta-build helpers and tells you to select JDK
 
 Delegate packaged external-handler build and run actions to sbt. The
 sbt-imported workflow is qualified; IntelliJ's native JPS compiler path is not.
+The shell-oriented `.java-version` hint does not reliably configure IntelliJ;
+select JDK 25 explicitly for both the project SDK and the JVM launching sbt.
 
 ## Run the product gate
 
