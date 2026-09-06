@@ -5,10 +5,12 @@ import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Flags.{
+  Erased,
   Final,
   Given,
   Implicit,
   Inline,
+  Infix,
   Local,
   Mutable,
   Override,
@@ -307,7 +309,9 @@ object AnnotatedClassBodyView:
               Option.when(mods.is(Override))("override"),
               Option.when(mods.is(Inline))("inline"),
               Option.when(mods.is(Implicit))("implicit"),
-              Option.when(mods.is(Given))("given")
+              Option.when(mods.is(Given))("given"),
+              Option.when(mods.is(Infix))("infix"),
+              Option.when(mods.is(Erased))("erased")
             ).flatten
           ),
           pos = methodPos,

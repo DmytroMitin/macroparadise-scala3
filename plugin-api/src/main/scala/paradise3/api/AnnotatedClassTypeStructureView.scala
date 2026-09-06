@@ -4,7 +4,7 @@ import dotty.tools.dotc.ast.Trees
 import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
-import dotty.tools.dotc.core.Flags.{Contravariant, Covariant, Final, Opaque, Override, Private, Protected}
+import dotty.tools.dotc.core.Flags.{Contravariant, Covariant, Final, Infix, Opaque, Override, Private, Protected}
 import dotty.tools.dotc.util.{NoSourcePosition, SrcPos}
 
 import scala.util.control.NonFatal
@@ -386,7 +386,8 @@ object AnnotatedClassTypeStructureView:
         Option.when(mods.is(Protected))("protected"),
         Option.when(mods.is(Final))("final"),
         Option.when(mods.is(Override))("override"),
-        Option.when(mods.is(Opaque))("opaque")
+        Option.when(mods.is(Opaque))("opaque"),
+        Option.when(mods.is(Infix))("infix")
       ).flatten
     )
 

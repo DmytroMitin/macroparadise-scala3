@@ -68,6 +68,49 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     assertEquals(unsupportedKind(typeShape(applied.upperBound).get), "applied-type")
   }
 
+  test("distinguishes plain and infix aliases without changing normalized type-member structure") {
+    val plain = only(structure("trait Plain[A]:\n  type Item = A").directTypeMembers)
+    val infix = only(structure("trait Infix[A]:\n  infix type Item = A").directTypeMembers)
+
+    assertEquals(plain.modifiers.unsupportedFlags, Nil)
+    assertEquals(infix.modifiers.unsupportedFlags, List("infix"))
+    assertEquals(infix.name, plain.name)
+    assertEquals(infix.bodyIndex, plain.bodyIndex)
+    assertEquals(infix.kind, plain.kind)
+    assertEquals(infix.typeParameters, plain.typeParameters)
+    assertEquals(infix.lowerBound, plain.lowerBound)
+    assertEquals(infix.upperBound, plain.upperBound)
+    assertEquals(infix.aliasTarget.map(enclosingTypeParameter), plain.aliasTarget.map(enclosingTypeParameter))
+    assertEquals(infix.modifiers.visibility, plain.modifiers.visibility)
+    assertEquals(infix.modifiers.hasAnnotations, plain.modifiers.hasAnnotations)
+    assertEquals(infix.modifiers.annotationCount, plain.modifiers.annotationCount)
+    assert(infix.pos.span.exists)
+    assert(infix.aliasTarget.exists(shapePosition(_).span.exists))
+  }
+
+  test("retains established type-member modifier and annotation evidence beside infix") {
+    val members = structure(
+      """trait ModifierMatrix[A]:
+        |  @deprecated private type PrivateItem = A
+        |  protected type ProtectedItem = A
+        |  final type FinalItem = A
+        |  override type OverrideItem = A
+        |  opaque type OpaqueItem = A
+        |  infix type InfixItem = A
+        |""".stripMargin
+    ).directTypeMembers.map(member => member.name -> member).toMap
+
+    assertEquals(members("PrivateItem").modifiers.visibility, AnnotatedClassBodyView.DirectVisibility.Private)
+    assertEquals(members("PrivateItem").modifiers.annotationCount, 1)
+    assert(members("PrivateItem").modifiers.hasAnnotations)
+    assertEquals(members("PrivateItem").modifiers.unsupportedFlags, List("private"))
+    assertEquals(members("ProtectedItem").modifiers.unsupportedFlags, List("protected"))
+    assertEquals(members("FinalItem").modifiers.unsupportedFlags, List("final"))
+    assertEquals(members("OverrideItem").modifiers.unsupportedFlags, List("override"))
+    assertEquals(members("OpaqueItem").modifiers.unsupportedFlags, List("opaque"))
+    assertEquals(members("InfixItem").modifiers.unsupportedFlags, List("infix"))
+  }
+
   test("preserves type-member body indices while the existing inventory exposes extra direct members") {
     val code =
       """trait Nat
@@ -161,6 +204,10 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
   private def namedType(shape: DirectTypeShape): String = shape match
     case DirectTypeShape.NamedType(name, _) => name
     case other => fail(s"expected named type, found $other")
+
+  private def enclosingTypeParameter(shape: DirectTypeShape): String = shape match
+    case DirectTypeShape.EnclosingTypeParameter(name, _) => name
+    case other => fail(s"expected enclosing type parameter, found $other")
 
   private def unsupportedKind(shape: DirectTypeShape): String = shape match
     case DirectTypeShape.Unsupported(kind, _, _) => kind

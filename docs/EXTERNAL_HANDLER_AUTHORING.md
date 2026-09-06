@@ -375,7 +375,11 @@ These are syntactic,
 pre-typer, read-only views. The body view distinguishes absent, empty, ordinary, and
 contextual parameter clauses; retains parameter order, defaults, visibility,
 annotations, positions, and abstract/concrete status; and classifies vals,
-vars, type members, nested definitions, and other direct members.
+vars, type members, nested definitions, and other direct members. Its normalized
+unsupported-modifier evidence distinguishes an `infix` direct method from a
+modifier-free method on every supported exact Scala line. On exact Scala 3.3.8
+it also reports `erased` for an accepted experimental erased method; Scala
+3.8.4 and 3.9.0 continue to reject that source form.
 
 `AnnotatedClassTypeStructureView.Bound` distinguishes an absent source bound
 from a present bound. A present bound contains the shared `DirectTypeShape`, so
@@ -384,7 +388,10 @@ a supported simple source bound such as `Nat` is
 other broader present forms remain `Present(Unsupported(...))`. Direct type
 members retain their body index and distinguish abstract bounds from aliases;
 their type parameters, meaningful lower bounds, visibility, annotations, and
-unsupported modifiers remain explicit for consumer-owned rejection.
+unsupported modifiers remain explicit for consumer-owned rejection. In
+particular, an `infix` direct type member reports normalized `infix` evidence on
+all supported exact Scala lines. These flag names describe syntactic pre-typer
+facts only; they do not provide semantic modifier resolution.
 
 `AnnotatedClassBodyView.DirectTypeShape.EnclosingTypeParameter` is only a
 syntactic reference to an enclosing class type parameter. The separate

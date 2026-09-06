@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 142
+  val CaseCount = 153
 
   def run(repositoryRoot: File): Unit = {
     val independentRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/positive")
@@ -11,6 +11,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val bodyViewHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/body-view")
     val bodyViewConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view")
     val bodyViewNegativeRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view-negative")
+    val bodyViewInfixTypeNegativeRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view-infix-type-negative")
+    val bodyViewInfixMethodNegativeRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view-infix-method-negative")
+    val bodyViewErasedMethodNegativeRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-body-view-erased-method-negative")
     val typePlacementHandlerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/type-placement")
     val typePlacementConsumerRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement")
     val typePlacementRejectRoot = new File(repositoryRoot, "plugin-api-handler-contract-probe/e2e-type-placement-reject")
@@ -28,6 +31,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val bodyViewHandlerSource = new File(bodyViewHandlerRoot, "IndependentBodyViewMarkerAndHandler.scala")
     val bodyViewConsumerSource = new File(bodyViewConsumerRoot, "IndependentBodyViewConsumer.scala")
     val bodyViewNegativeSource = new File(bodyViewNegativeRoot, "UnsupportedBodyViewConsumer.scala")
+    val bodyViewInfixTypeNegativeSource = new File(bodyViewInfixTypeNegativeRoot, "InfixTypeAliasBodyViewConsumer.scala")
+    val bodyViewInfixMethodNegativeSource = new File(bodyViewInfixMethodNegativeRoot, "InfixMethodBodyViewConsumer.scala")
+    val bodyViewErasedMethodNegativeSource = new File(bodyViewErasedMethodNegativeRoot, "ErasedMethodBodyViewConsumer.scala")
     val typePlacementHandlerSource = new File(typePlacementHandlerRoot, "IndependentTypePlacementMarkerAndHandler.scala")
     val typePlacementConsumerSource = new File(typePlacementConsumerRoot, "IndependentTypePlacementConsumer.scala")
     val typePlacementRejectSource = new File(typePlacementRejectRoot, "IndependentTypePlacementRejectConsumer.scala")
@@ -45,6 +51,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val bodyViewHandler = read(bodyViewHandlerSource)
     val bodyViewConsumer = read(bodyViewConsumerSource)
     val bodyViewNegative = read(bodyViewNegativeSource)
+    val bodyViewInfixTypeNegative = read(bodyViewInfixTypeNegativeSource)
+    val bodyViewInfixMethodNegative = read(bodyViewInfixMethodNegativeSource)
+    val bodyViewErasedMethodNegative = read(bodyViewErasedMethodNegativeSource)
     val typePlacementHandler = read(typePlacementHandlerSource)
     val typePlacementConsumer = read(typePlacementConsumerSource)
     val typePlacementReject = read(typePlacementRejectSource)
@@ -69,6 +78,9 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(scalaSources(bodyViewHandlerRoot) == Vector(bodyViewHandlerSource.getCanonicalFile), "body-view handler source inventory changed")
     check(scalaSources(bodyViewConsumerRoot) == Vector(bodyViewConsumerSource.getCanonicalFile), "body-view consumer source inventory changed")
     check(scalaSources(bodyViewNegativeRoot) == Vector(bodyViewNegativeSource.getCanonicalFile), "body-view negative source inventory changed")
+    check(scalaSources(bodyViewInfixTypeNegativeRoot) == Vector(bodyViewInfixTypeNegativeSource.getCanonicalFile), "body-view infix-type negative source inventory changed")
+    check(scalaSources(bodyViewInfixMethodNegativeRoot) == Vector(bodyViewInfixMethodNegativeSource.getCanonicalFile), "body-view infix-method negative source inventory changed")
+    check(scalaSources(bodyViewErasedMethodNegativeRoot) == Vector(bodyViewErasedMethodNegativeSource.getCanonicalFile), "body-view erased-method negative source inventory changed")
     check(scalaSources(typePlacementHandlerRoot) == Vector(typePlacementHandlerSource.getCanonicalFile), "type-placement handler source inventory changed")
     check(scalaSources(typePlacementConsumerRoot) == Vector(typePlacementConsumerSource.getCanonicalFile), "type-placement consumer source inventory changed")
     check(scalaSources(typePlacementRejectRoot) == Vector(typePlacementRejectSource.getCanonicalFile), "type-placement reject source inventory changed")
@@ -110,6 +122,8 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(bodyViewHandler.contains("DirectTypeShape.NamedType"), "shared simple named type shape is not used")
     check(!bodyViewHandler.contains(".summary"), "type-structure handler parses Unsupported.summary")
     check(!bodyViewHandler.contains("untpd."), "type-structure handler raw-matches untyped trees")
+    check(bodyViewHandler.contains("unsupportedFlags"), "body-view handler does not consume normalized unsupported modifier evidence")
+    check(bodyViewHandler.contains("Set(\"infix\", \"erased\")"), "body-view handler rejected modifier set changed")
     check(bodyViewHandler.contains("ExpansionHelpers.addStringMethodToCompanion("), "bounded companion method helper is not used")
     check(bodyViewConsumer.contains("trait IndependentAdd[N <: Nat, M <: Nat]"), "type-structure consumer lacks the canonical two-bounded trait")
     check(bodyViewConsumer.contains("type Out <: Nat"), "type-structure consumer lacks the canonical abstract bounded type member")
@@ -117,6 +131,12 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     check(!bodyViewConsumer.contains("paradise3."), "type-structure consumer imports repository API")
     check(bodyViewNegative.contains("@IndependentBodyViewMarker"), "type-structure negative is not ordinarily annotated")
     check(bodyViewNegative.contains("type Out = Nat"), "type-structure negative does not isolate the alias mismatch")
+    check(bodyViewInfixTypeNegative.contains("@IndependentBodyViewMarker"), "infix-type negative is not ordinarily annotated")
+    check(bodyViewInfixTypeNegative.contains("infix type Out = Nat"), "infix-type negative does not isolate the normalized modifier")
+    check(bodyViewInfixMethodNegative.contains("@IndependentBodyViewMarker"), "infix-method negative is not ordinarily annotated")
+    check(bodyViewInfixMethodNegative.contains("infix def zero: Int = 0"), "infix-method negative does not isolate the normalized modifier")
+    check(bodyViewErasedMethodNegative.contains("@IndependentBodyViewMarker"), "erased-method negative is not ordinarily annotated")
+    check(bodyViewErasedMethodNegative.contains("erased def zero: Int = 0"), "erased-method negative does not isolate the normalized modifier")
     check(typePlacementHandler.contains("package contractprobetype"), "type-placement handler package changed")
     check(typePlacementHandler.contains("ExpansionTargetProfile.TwoUpperBoundedGenericTrait"), "type-placement handler does not request two-bounded-trait admission")
     check(typePlacementHandler.contains("override val consumesExistingCompanion: Boolean = true"), "type-placement handler does not lease existing companions")

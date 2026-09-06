@@ -4,6 +4,7 @@ import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{Name, typeName}
+import dotty.tools.dotc.config.Properties
 import dotty.tools.dotc.parsing.Parsers
 import paradise3.api.{AnnotatedClassBodyView, ExpansionInput}
 import paradise3.api.AnnotatedClassBodyView.*
@@ -259,6 +260,95 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     assertEquals(methods("hidden").modifiers.visibility, DirectVisibility.Private)
     assertEquals(methods("guarded").modifiers.visibility, DirectVisibility.Protected)
     assert(methods("concrete").modifiers.unsupportedFlags.contains("final"))
+  }
+
+  test("distinguishes plain and infix parameterless methods without changing their normalized shape") {
+    val plain = methodMap(body("trait Plain[A]:\n  def zero: Int = 0"))("zero")
+    val infix = methodMap(body("trait Infix[A]:\n  infix def zero: Int = 0"))("zero")
+
+    assertEquals(plain.modifiers.unsupportedFlags, Nil)
+    assertEquals(infix.modifiers.unsupportedFlags, List("infix"))
+    assertEquals(infix.name, plain.name)
+    assertEquals(infix.typeParameters, plain.typeParameters)
+    assertEquals(infix.parameterClauses, plain.parameterClauses)
+    assertEquals(namedType(infix.resultType), namedType(plain.resultType))
+    assertEquals(infix.status, plain.status)
+    assertEquals(infix.modifiers.visibility, plain.modifiers.visibility)
+    assertEquals(infix.modifiers.hasAnnotations, plain.modifiers.hasAnnotations)
+    assertEquals(infix.modifiers.annotationCount, plain.modifiers.annotationCount)
+    assert(infix.pos.span.exists)
+    assert(infix.resultTypePos.span.exists)
+    assertEquals(typePosition(infix.resultType), infix.resultTypePos)
+  }
+
+  test("retains the established method modifier evidence beside infix") {
+    val methods = methodMap(
+      body(
+        """trait ModifierMatrix[A]:
+          |  @deprecated private def hidden: A
+          |  protected def guarded: A
+          |  final def finalMethod: A = ???
+          |  override def overridden: A = ???
+          |  inline def inlineMethod: Int = 0
+          |  transparent inline def transparentMethod: Int = 0
+          |  implicit def implicitMethod: Int = 0
+          |  infix def infixMethod: Int = 0
+          |""".stripMargin
+      )
+    )
+
+    assertEquals(methods("hidden").modifiers.visibility, DirectVisibility.Private)
+    assertEquals(methods("hidden").modifiers.annotationCount, 1)
+    assert(methods("hidden").modifiers.hasAnnotations)
+    assertEquals(methods("guarded").modifiers.visibility, DirectVisibility.Protected)
+    assertEquals(methods("finalMethod").modifiers.unsupportedFlags, List("final"))
+    assertEquals(methods("overridden").modifiers.unsupportedFlags, List("override"))
+    assertEquals(methods("inlineMethod").modifiers.unsupportedFlags, List("inline"))
+    assertEquals(methods("transparentMethod").modifiers.unsupportedFlags, List("inline"))
+    assertEquals(methods("implicitMethod").modifiers.unsupportedFlags, List("implicit"))
+    assertEquals(methods("infixMethod").modifiers.unsupportedFlags, List("infix"))
+  }
+
+  test("exposes erased method evidence only on the exact compiler line that accepts the source form") {
+    if Properties.versionNumberString == "3.3.8" then
+      val methods = methodMap(
+        body(
+          """import scala.language.experimental.erasedDefinitions
+            |trait ErasedMethod:
+            |  def plain: Int = 0
+            |  erased def erasedMethod: Int = 0
+            |""".stripMargin
+        )
+      )
+
+      assertEquals(methods("plain").modifiers.unsupportedFlags, Nil)
+      assertEquals(methods("erasedMethod").modifiers.unsupportedFlags, List("erased"))
+      assertEquals(methods("erasedMethod").parameterClauses, methods("plain").parameterClauses)
+      assertEquals(namedType(methods("erasedMethod").resultType), namedType(methods("plain").resultType))
+      assertEquals(methods("erasedMethod").status, methods("plain").status)
+      assert(methods("erasedMethod").pos.span.exists)
+      assert(methods("erasedMethod").resultTypePos.span.exists)
+  }
+
+  test("retains parameter-clause arity polymorphism and result-shape distinctions with modifier normalization") {
+    val methods = methodMap(
+      body(
+        """trait MethodShapes[A]:
+          |  def noClause: A
+          |  def emptyClause(): A
+          |  def unary(value: A): A
+          |  def polymorphic[B](value: B): B
+          |  def wrongResult: List[A]
+          |""".stripMargin
+      )
+    )
+
+    assertEquals(methods("noClause").parameterClauses, Nil)
+    assertEquals(methods("emptyClause").parameterClauses.map(_.parameters), List(Nil))
+    assertEquals(methods("unary").parameterClauses.map(_.parameters.map(_.name)), List(List("value")))
+    assertEquals(methods("polymorphic").typeParameters.map(_.name), List("B"))
+    assertEquals(unsupportedKind(methods("wrongResult").resultType), "applied-type")
+    assert(methods.values.forall(_.modifiers.unsupportedFlags.isEmpty))
   }
 
   test("retains method parameter and type positions when source spans exist") {

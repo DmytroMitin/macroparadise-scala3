@@ -335,6 +335,18 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-body-view-negative/UnsupportedBodyViewConsumer.scala"
     )
+    val bodyViewInfixTypeNegativeSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-body-view-infix-type-negative/InfixTypeAliasBodyViewConsumer.scala"
+    )
+    val bodyViewInfixMethodNegativeSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-body-view-infix-method-negative/InfixMethodBodyViewConsumer.scala"
+    )
+    val bodyViewErasedMethodNegativeSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-body-view-erased-method-negative/ErasedMethodBodyViewConsumer.scala"
+    )
     val typePlacementHandlerSource = new File(
       repositoryRoot,
       "plugin-api-handler-contract-probe/type-placement/IndependentTypePlacementMarkerAndHandler.scala"
@@ -386,6 +398,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
+    require(bodyViewInfixTypeNegativeSource.isFile, s"missing body-view infix-type negative source: $bodyViewInfixTypeNegativeSource")
+    require(bodyViewInfixMethodNegativeSource.isFile, s"missing body-view infix-method negative source: $bodyViewInfixMethodNegativeSource")
+    require(bodyViewErasedMethodNegativeSource.isFile, s"missing body-view erased-method negative source: $bodyViewErasedMethodNegativeSource")
     require(typePlacementHandlerSource.isFile, s"missing type-placement handler source: $typePlacementHandlerSource")
     require(typePlacementConsumerSource.isFile, s"missing type-placement consumer source: $typePlacementConsumerSource")
     require(typePlacementRejectSource.isFile, s"missing type-placement reject source: $typePlacementRejectSource")
@@ -690,6 +705,42 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         bodyIndependentIdentity.path,
         bodyViewNegativeSource,
         evidenceDirectory
+      ),
+      compileUnsupportedModifierBodyView(
+        repositoryRoot,
+        compilerJars,
+        apiArtifact,
+        pluginArtifact,
+        bodyIndependentIdentity.path,
+        bodyViewInfixTypeNegativeSource,
+        evidenceDirectory,
+        "infix-type-alias",
+        "infix",
+        compilerAcceptsSource = true
+      ),
+      compileUnsupportedModifierBodyView(
+        repositoryRoot,
+        compilerJars,
+        apiArtifact,
+        pluginArtifact,
+        bodyIndependentIdentity.path,
+        bodyViewInfixMethodNegativeSource,
+        evidenceDirectory,
+        "infix-method",
+        "infix",
+        compilerAcceptsSource = true
+      ),
+      compileUnsupportedModifierBodyView(
+        repositoryRoot,
+        compilerJars,
+        apiArtifact,
+        pluginArtifact,
+        bodyIndependentIdentity.path,
+        bodyViewErasedMethodNegativeSource,
+        evidenceDirectory,
+        "erased-method",
+        "erased",
+        compilerAcceptsSource = config.scalaVersion == "3.3.8"
       ),
       typePlacementReject,
       modulePlacementReject,
@@ -1297,6 +1348,66 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val outputs = regularRelativeFiles(output)
     require(outputs.isEmpty, s"unsupported body-view lane emitted partial output: ${outputs.mkString(", ")}")
     NegativeEvidence("alias-direct-type-member", exit, diagnostic, outputs.size)
+  }
+
+  private def compileUnsupportedModifierBodyView(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File,
+      id: String,
+      modifier: String,
+      compilerAcceptsSource: Boolean
+  ): NegativeEvidence = {
+    val laneDirectory = new File(evidenceDirectory, s"body-view-$id-negative")
+    val output = new File(laneDirectory, "classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(laneDirectory, "invocation.trace")
+    val command =
+      if (compilerAcceptsSource) {
+        val value = pluginCompileCommand(
+          compilerJars,
+          apiArtifact,
+          pluginArtifact,
+          Some(independentArtifact),
+          Some(independentArtifact),
+          source,
+          output,
+          Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+        )
+        validatePluginCommand(value, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+        value
+      } else {
+        Vector(
+          javaTool("java"), "-cp", classpath(compilerJars), "dotty.tools.dotc.Main",
+          "-classpath", classpath(compilerJars ++ Vector(apiArtifact, independentArtifact)),
+          "-d", output.getAbsolutePath,
+          source.getAbsolutePath
+        )
+      }
+    val (exit, log) = runProcess(command, repositoryRoot, new File(laneDirectory, "compile.log"))
+    val controlledDiagnostic = s"unsupported normalized modifier `$modifier` for IndependentBodyViewMarker"
+    require(exit != 0, s"$id body-view lane unexpectedly compiled")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"$id body-view lane exposed an uncontrolled failure: $log")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobebody.IndependentBodyViewHandler"))
+    val diagnostic =
+      if (compilerAcceptsSource) {
+        require(log.contains(controlledDiagnostic), s"$id body-view lane lacked controlled modifier diagnostic: $log")
+        require(invocationLines.size == 1, s"expected one rejecting $id body-view invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+        controlledDiagnostic
+      } else {
+        require(modifier == "erased", s"only erased source has a compiler-rejected exact-line classification, found $modifier")
+        require(log.toLowerCase.contains("erased"), s"later-line erased-method rejection lacked erased-source evidence: $log")
+        require(!log.contains(controlledDiagnostic), s"later-line erased method reached normalized handler rejection instead of compiler rejection: $log")
+        require(invocationLines.isEmpty, s"later-line erased method unexpectedly invoked the handler: ${invocationLines.mkString(" | ")}")
+        "compiler-rejected-erased-method-source"
+      }
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"$id body-view lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence(id, exit, diagnostic, outputs.size)
   }
 
   private def compileMissingHandler(

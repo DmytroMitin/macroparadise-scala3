@@ -22,17 +22,40 @@ final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
         ExpansionOutcome.Rejected(List(diagnostic), input.annotatedClass)
       case (_, Left(diagnostic)) =>
         ExpansionOutcome.Rejected(List(diagnostic), input.annotatedClass)
-      case (Right(structure), Right(body)) if isRepresentativeAdd(structure, body) =>
-        ExpansionHelpers.addStringMethodToCompanion(
-          input,
-          methodName = "independentBodyView",
-          value = (structure.typeParameters.map(_.name) ::: structure.directTypeMembers.map(_.name)).mkString(",")
-        )
-      case (Right(structure), Right(_)) =>
-        ExpansionOutcome.Rejected(
-          List(ExpansionDiagnostic("unsupported normalized type structure for IndependentBodyViewMarker", structure.pos)),
-          input.annotatedClass
-        )
+      case (Right(structure), Right(body)) =>
+        firstRejectedModifier(structure, body) match
+          case Some((modifier, pos)) =>
+            ExpansionOutcome.Rejected(
+              List(ExpansionDiagnostic(s"unsupported normalized modifier `$modifier` for IndependentBodyViewMarker", pos)),
+              input.annotatedClass
+            )
+          case None if isRepresentativeAdd(structure, body) =>
+            ExpansionHelpers.addStringMethodToCompanion(
+              input,
+              methodName = "independentBodyView",
+              value = (structure.typeParameters.map(_.name) ::: structure.directTypeMembers.map(_.name)).mkString(",")
+            )
+          case None =>
+            ExpansionOutcome.Rejected(
+              List(ExpansionDiagnostic("unsupported normalized type structure for IndependentBodyViewMarker", structure.pos)),
+              input.annotatedClass
+            )
+
+  private val rejectedModifierFlags = Set("infix", "erased")
+
+  private def firstRejectedModifier(
+      structure: AnnotatedClassTypeStructureView,
+      body: AnnotatedClassBodyView
+  ) =
+    structure.directTypeMembers
+      .flatMap(member => member.modifiers.unsupportedFlags.filter(rejectedModifierFlags).map(_ -> member.pos))
+      .headOption
+      .orElse(
+        body.members
+          .flatMap(member => member.method.toList)
+          .flatMap(method => method.modifiers.unsupportedFlags.filter(rejectedModifierFlags).map(_ -> method.pos))
+          .headOption
+      )
 
   private def isRepresentativeAdd(
       structure: AnnotatedClassTypeStructureView,
