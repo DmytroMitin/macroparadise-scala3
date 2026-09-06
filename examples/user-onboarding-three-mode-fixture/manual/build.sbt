@@ -29,7 +29,7 @@ lazy val macroHandlers = (project in file("macro-handlers"))
   )
 
 lazy val core = (project in file("core"))
-  .dependsOn(macroAnnotations)
+  .dependsOn(macroAnnotations % "provided->compile")
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
@@ -65,6 +65,7 @@ lazy val root = (project in file("."))
       val handlerJar = (macroHandlers / Compile / packageBin).value.getCanonicalFile
       val options = (core / Compile / scalacOptions).value
       require(compileClasspath.contains(markerClasses), "marker classes missing from consumer compile classpath")
+      require(!runtimeClasspath.contains(markerClasses), "marker-only classes leaked onto consumer runtime classpath")
       require(!runtimeClasspath.contains(handlerClasses) && !runtimeClasspath.contains(handlerJar), "handler leaked onto consumer runtime classpath")
       require(options.count(_.startsWith("-P:macroparadise:handlerClasspath=")) == 1, "handler classpath option missing")
       require(options.count(_.matches("-P:macroparadise:externalArtifactIdentity=sha256:[0-9a-f]{64}")) == 1, "identity option missing")

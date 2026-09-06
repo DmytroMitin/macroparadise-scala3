@@ -1,5 +1,5 @@
 object SbtPrecompiledIntegrationExternalMatrixSpec {
-  val CaseCount = 8
+  val CaseCount = 10
 
   def run(): Unit = {
     import SbtPrecompiledIntegrationExternalMatrix._
@@ -30,5 +30,22 @@ object SbtPrecompiledIntegrationExternalMatrixSpec {
     assert(validateTransition(valid.copy(oldPrimaryOnlyAfter = "changed")).contains("old primary-only control changed"))
     assert(validateTransition(valid.copy(consumerAfter = valid.consumerBefore)).contains("consumer output did not regenerate"))
     assert(validateTransition(valid.copy(noOpMtimeStable = false)).contains("no-op consumer output churned"))
+
+    val multiBaseline = MultiLocalSnapshot(
+      markerA = "marker-a-v1",
+      markerB = "marker-b-v1",
+      handlerA = "handler-a-v1",
+      handlerB = "handler-b-v1",
+      sharedRuntime = "runtime-v1",
+      identity = "identity-v1",
+      consumerMtime = 1L
+    )
+    assert(
+      changedOnly(multiBaseline, multiBaseline.copy(markerA = "marker-a-v2", identity = "identity-v2", consumerMtime = 2L), "markerA").isEmpty
+    )
+    assert(
+      changedOnly(multiBaseline, multiBaseline.copy(markerA = "marker-a-v2", handlerB = "wrong", identity = "identity-v2", consumerMtime = 2L), "markerA")
+        .contains("unexpected input changed: handlerB")
+    )
   }
 }

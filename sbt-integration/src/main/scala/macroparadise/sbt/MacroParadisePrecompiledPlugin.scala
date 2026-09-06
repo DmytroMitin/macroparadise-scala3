@@ -4,6 +4,8 @@ import java.io.File
 import java.util.Properties
 import java.util.jar.JarFile
 
+import scala.collection.mutable
+
 import sbt._
 import sbt.Keys._
 
@@ -254,4 +256,56 @@ object MacroParadiseIntegration {
       LabelledArtifact(handlerLabel, primary) +: dependencies
     }
   )
+
+  def precompiledProjects(
+      markers: Seq[ProjectReference],
+      handlers: Seq[ProjectReference]
+  ): Seq[Def.Setting[_]] = {
+    val reset = Seq(
+      macroParadiseMarkerArtifacts := Seq.empty,
+      macroParadiseHandlerClasspath := Seq.empty
+    )
+    val markerContributions = markers.zipWithIndex.map { case (marker, index) =>
+      macroParadiseMarkerArtifacts += LabelledArtifact(
+        f"local-marker-$index%04d",
+        (marker / Compile / packageBin).value
+      )
+    }
+    val handlerPrimaries = handlers.zipWithIndex.map { case (handler, index) =>
+      macroParadiseHandlerClasspath += LabelledArtifact(
+        f"local-handler-$index%04d",
+        (handler / Compile / packageBin).value
+      )
+    }
+    val handlerDependencies = handlers.zipWithIndex.map { case (handler, handlerIndex) =>
+      macroParadiseHandlerClasspath ++= {
+        val primary = (handler / Compile / packageBin).value.getCanonicalFile
+        val ownClasses = (handler / Compile / classDirectory).value.getCanonicalFile
+        (handler / Runtime / dependencyClasspath).value
+          .filterNot { attributed =>
+            val canonical = attributed.data.getCanonicalFile
+            canonical == ownClasses || canonical == primary
+          }
+          .zipWithIndex
+          .map { case (attributed, runtimeIndex) =>
+            val coordinate = attributed.get(moduleID.key).map { module =>
+              s"${module.organization}:${module.name}:${module.revision}"
+            }.getOrElse(attributed.data.getName)
+            LabelledArtifact(
+              f"local-handler-$handlerIndex%04d-runtime-$runtimeIndex%04d:$coordinate",
+              attributed.data
+            )
+          }
+      }
+    }
+    val canonicalDeduplication = Seq(
+      macroParadiseHandlerClasspath ~= canonicalFileDistinct
+    )
+    reset ++ markerContributions ++ handlerPrimaries ++ handlerDependencies ++ canonicalDeduplication
+  }
+
+  private def canonicalFileDistinct(artifacts: Seq[LabelledArtifact]): Seq[LabelledArtifact] = {
+    val seen = mutable.LinkedHashSet.empty[File]
+    artifacts.filter(artifact => seen.add(artifact.file.getCanonicalFile))
+  }
 }

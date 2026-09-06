@@ -4,7 +4,8 @@ object UserOnboardingThreeModeSetup {
   val supportedModes: Vector[Mode] = Vector(
     Mode("manual"),
     Mode("local-project"),
-    Mode("published-module")
+    Mode("published-module"),
+    Mode("manual-published")
   )
 
   final case class ProjectBase(

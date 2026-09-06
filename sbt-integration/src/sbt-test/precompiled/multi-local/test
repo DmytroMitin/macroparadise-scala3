@@ -1,0 +1,11 @@
+> verifyMultiLocal
+> verifyOldSinglePair
+> verifyRepeatedOldHelperOverwrite
+> set core / macroParadiseMarkerArtifacts := Seq.empty
+-> core / macroParadiseValidate
+> reload
+> set core / macroParadiseHandlerClasspath := Seq.empty
+-> core / macroParadiseValidate
+> reload
+> set core / macroParadiseMarkerArtifacts := Seq(macroParadiseLabelled("collision-marker", (handlerA / Compile / packageBin).value))
+-> core / macroParadiseValidate

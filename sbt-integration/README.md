@@ -76,7 +76,7 @@ lazy val macroHandlers = (project in file("macro-handlers"))
   )
 
 lazy val core = (project in file("core"))
-  .dependsOn(macroAnnotations)
+  .dependsOn(macroAnnotations % "provided->compile")
   .settings(
     MacroParadiseIntegration.precompiledProjects(
       macroAnnotations,
@@ -90,9 +90,33 @@ lazy val core = (project in file("core"))
 `precompiledProjects` accepts static `ProjectReference` values. It packages the
 marker and handler, puts the marker in the explicit marker role, and builds the
 ordered handler expansion classpath from the primary handler plus its runtime
-dependencies. It deliberately does not infer `.dependsOn(macroAnnotations)`.
-That edge is what puts marker classes on the consumer compile/runtime
-classpath; the handler implementation remains a compile-time expansion tool.
+dependencies. It deliberately does not infer the marker dependency. For a
+marker-only project, `provided->compile` is the normal mapping: consumer
+`provided` receives producer `compile`, so the marker is available while the
+consumer compiles and remains available to the integration's packaged-marker
+identity/precheck tasks, but is absent from the ordinary runtime classpath.
+Use plain `.dependsOn(macroAnnotations)` instead when that producer deliberately
+contains runtime API or classes the application needs. The handler remains a
+compile-time tool and is never an ordinary `core` dependency.
+
+For multiple local producer projects, current `0.2.0-SNAPSHOT` adds this
+source-compatible overload:
+
+```scala
+MacroParadiseIntegration.precompiledProjects(
+  markers = Seq(markerA, markerB),
+  handlers = Seq(handlerA, handlerB)
+)
+```
+
+It creates static `packageBin` and runtime-classpath task edges for every
+reference. Marker primaries are labelled `local-marker-0000`,
+`local-marker-0001`, and so on. All handler primaries
+(`local-handler-0000`, ...) precede retained runtime dependencies; canonical
+files are de-duplicated in first-seen order, including shared transitives. The
+original one-marker/one-handler overload and its labels are unchanged.
+Repeated calls to that original overload overwrite earlier role settings; they
+do not compose. Use the `Seq` overload for supported multi-local composition.
 
 ## Published marker and handler modules
 
@@ -130,8 +154,8 @@ lazy val core = (project in file("core"))
   .settings(
     macroParadiseCompilerProductVersion := "0.1.1",
     macroParadiseMarkerModules := Seq(
-      ("com.example" % "my-macro-annotations" % "1.0.0")
-        .cross(CrossVersion.full)
+      (("com.example" % "my-macro-annotations" % "1.0.0")
+        .cross(CrossVersion.full)) % Provided
     ),
     macroParadiseHandlerModules := Seq(
       ("com.example" % "my-macro-handlers" % "1.0.0")
@@ -139,6 +163,36 @@ lazy val core = (project in file("core"))
     )
   )
 ```
+
+`macroParadiseMarkerModules` preserves each supplied `ModuleID` configuration
+when it adds the marker to ordinary `libraryDependencies`. `% Provided` is the
+normal form for a marker-only module: it resolves through
+`Compile / dependencyClasspath`, becomes a labelled marker-role artifact, and
+participates in `macroParadiseExternalArtifactIdentity`, while remaining absent
+from ordinary runtime. Omit `% Provided` when the published marker module also
+contains runtime-bearing API the application needs.
+
+`macroParadiseHandlerModules` places the declared modules in the hidden
+`macroParadiseHandler` configuration. Direct configured handler artifacts are
+resolved first, followed by their complete transitive dependency classpath.
+That ordered closure becomes `macroParadiseHandlerClasspath` and also
+participates in the external identity; it is not added to ordinary application
+runtime dependencies.
+
+Together, marker artifacts and the handler classpath pass through validation
+and precheck, then produce these compiler inputs:
+
+```text
+-Xplugin-require:macroparadise
+-P:macroparadise:handlerClasspath=<ordered handler paths>
+-P:macroparadise:externalArtifactIdentity=sha256:<derived identity>
+```
+
+The published and local APIs are intentionally asymmetric. Published
+`ModuleID` values are declarative resolver inputs. Local `ProjectReference`
+values must create static sbt task dependencies on `packageBin`,
+`classDirectory`, and runtime dependency classpaths. Project-reference setting
+keys would hide that real task-graph distinction rather than simplify it.
 
 In this mode, resolving the producer modules is intentional. A workflow that
 temporarily removes `core`, publishes both producers locally, then restores
@@ -288,12 +342,13 @@ general same-module support remain false.
 
 ## Manual alternative and verification
 
-Users who do not want the sbt integration can use the complete manual setup in
-[External handler authoring](../docs/EXTERNAL_HANDLER_AUTHORING.md). That path
-copies a self-contained build-definition `ExternalArtifactIdentity` helper and
-does not depend on this sbt plugin.
+Users who do not want the sbt integration can use the complete same-build or
+published-module manual setup in
+[External handler authoring](../docs/EXTERNAL_HANDLER_AUTHORING.md). Both paths
+copy a self-contained build-definition `ExternalArtifactIdentity` helper and do
+not depend on this sbt plugin.
 
-The exact hyphenated-directory source fixture and all three build modes are in
+The exact hyphenated-directory source fixture and all four build modes are in
 [`examples/user-onboarding-three-mode-fixture`](../examples/user-onboarding-three-mode-fixture/README.md).
 From the repository root, the focused external verifier runs it on the selected
 exact Scala line:

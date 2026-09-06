@@ -210,7 +210,10 @@ handler, then annotated consumer. Choose one of two top-level setups:
 
 - **sbt integration (recommended normal path):** use same-build local marker
   and handler projects with no producer `publishLocal`, or use genuinely
-  published marker/handler modules;
+  published marker/handler modules. Marker-only local projects normally use
+  `provided->compile`, and marker-only published modules normally use
+  `% Provided`, keeping marker API available for compilation but absent at
+  runtime;
 - **fully manual:** keep the ordinary marker dependency and wire the compiler
   plugin, complete handler expansion classpath, and content identity directly.
 
@@ -225,7 +228,10 @@ To test current `0.2.0-SNAPSHOT` source instead, first run `sbt -batch
 publishLocal` inside `sbt-integration/` and select that local snapshot in
 `project/plugins.sbt`. The static local-project helper deliberately does not
 infer the marker dependency; the consumer must still declare
-`.dependsOn(macroAnnotations)`. The complete manual escape hatch is in
+`.dependsOn(macroAnnotations % "provided->compile")` for marker-only API, or a
+plain dependency for intentionally runtime-bearing marker API. Current source
+also provides a `Seq[ProjectReference]` overload for multiple local marker and
+handler projects. The complete manual escape hatch is in
 [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md).
 
 The plugin loader sees the self-contained
@@ -262,11 +268,13 @@ form without changing the experimental handler API.
 sbt -batch verifyExternalHandlerAuthoringStarter
 ```
 
-The copy/paste identity tutorial is in
+The copy/paste identity tutorial, including a no-AutoPlugin published-module
+recipe, is in
 [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md); the executable
 [starter example](examples/external-handler-starter/README.md) is the generated-
-output follow-on. The exact hyphenated-directory fixture for manual,
-same-build local-project, and published-module setup is retained under
+output follow-on. The exact hyphenated-directory fixture for same-build manual,
+same-build local-project, AutoPlugin published-module, and manual
+published-module setup is retained under
 [`examples/user-onboarding-three-mode-fixture`](examples/user-onboarding-three-mode-fixture/README.md).
 
 ## Supported experimental boundary

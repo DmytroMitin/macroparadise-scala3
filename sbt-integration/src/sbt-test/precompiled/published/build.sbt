@@ -14,7 +14,7 @@ resolvers := Seq("scripted-fixture" at fixtureRepository.toURI.toString, Resolve
 credentials := Nil
 
 macroParadiseMarkerModules := Seq(
-  ("fixture" % "published-marker" % "1.0").cross(CrossVersion.full)
+  (("fixture" % "published-marker" % "1.0").cross(CrossVersion.full)) % Provided
 )
 macroParadiseHandlerModules := Seq(
   ("fixture" % "published-handler" % "1.0").cross(CrossVersion.full)
@@ -67,6 +67,7 @@ verifyPublished := {
   val handlerNames = handlers.map(_.file.getName)
   val ordinaryRuntime = (Runtime / fullClasspath).value.files.map(_.getCanonicalFile)
   assert(markers.size == 1 && markers.head.file.getName.contains("published-marker"))
+  assert(!ordinaryRuntime.contains(markers.head.file.getCanonicalFile))
   assert(handlers.head.file.getName == "published-handler_3.8.4-1.0.jar", handlerNames)
   val runtimeDependency = handlers.find(_.file.getName == "published-runtime_3.8.4-1.0.jar").getOrElse {
     sys.error("published handler runtime dependency is missing: " + handlerNames.mkString(","))

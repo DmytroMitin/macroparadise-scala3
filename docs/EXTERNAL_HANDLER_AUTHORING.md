@@ -49,7 +49,7 @@ a nearby or cross-line artifact is not interchangeable.
 ```text
     macroAnnotations project             macroHandlers project
              |                                   |
-             | core dependsOn(macroAnnotations)  | macroHandlers / Compile / packageBin
+             | core dependsOn(marker % provided) | macroHandlers / Compile / packageBin
              +------------------+----------------+
                                 |
                            core project
@@ -64,7 +64,7 @@ ordinary application compile and runtime classpaths:
 
 ```scala
 lazy val core = (project in file("core"))
-  .dependsOn(macroAnnotations)
+  .dependsOn(macroAnnotations % "provided->compile")
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
@@ -108,8 +108,14 @@ import com.example.`macro`.annotations.identity
 class Something
 ```
 
-The marker project must remain on the consumer's ordinary compile classpath via
-`.dependsOn(macroAnnotations)`. Omitting that edge is an sbt build-graph error.
+The marker project must remain on the consumer's ordinary compile classpath.
+For marker-only API, the normal form is
+`.dependsOn(macroAnnotations % "provided->compile")`: consumer `provided`
+receives producer `compile`, preserving compilation and packaged-marker
+identity/precheck while keeping the marker out of ordinary runtime. Use plain
+`.dependsOn(macroAnnotations)` when the producer intentionally contains runtime
+API or classes the application needs. Omitting the edge entirely is an sbt
+build-graph error.
 Dotty can report unresolved-import and cyclic-completion diagnostics around the
 missing annotation; those compiler diagnostics are independent of
 Macro-Paradise's pre-typer identity resolver.
@@ -128,6 +134,126 @@ sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 The task packages the product artifacts, runs the isolated nested build, checks
 the imported-short and direct-qualified consumers, and verifies missing-handler
 and missing-marker negatives. It does not publish artifacts.
+
+## Manual published modules without the sbt integration
+
+When markers and handlers are genuinely published modules, the same manual
+boundary can be expressed with resolver inputs and no sbt-macroparadise
+AutoPlugin. Keep project/plugins.sbt free of the integration plugin, copy the
+self-contained
+[ExternalArtifactIdentity.scala](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala)
+into the consumer's project/ directory, and use the released 0.1.1 coordinates
+below. The example uses two marker modules and two handler modules; replace only
+the com.example coordinates and versions with your published artifacts.
+
+~~~scala
+import java.io.File
+import scala.collection.mutable
+
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
+
+val mpVersion = "0.1.1"
+val mpPlugin =
+  ("com.github.dmytromitin" % "macroparadise-scala3-plugin" % mpVersion)
+    .cross(CrossVersion.full)
+
+val markerModules = Seq(
+  (("com.example" % "marker-a" % "1.0.0").cross(CrossVersion.full)) % Provided,
+  (("com.example" % "marker-b" % "1.0.0").cross(CrossVersion.full)) % Provided
+)
+val handlerModules = Seq(
+  ("com.example" % "handler-a" % "1.0.0").cross(CrossVersion.full),
+  ("com.example" % "handler-b" % "1.0.0").cross(CrossVersion.full)
+)
+
+val MacroParadiseHandler = config("macroParadiseHandler").hide
+lazy val markerArtifacts = taskKey[Seq[(String, File)]]("Exact marker inventory")
+lazy val handlerClasspath = taskKey[Seq[(String, File)]]("Complete handler closure")
+lazy val externalArtifactIdentity = taskKey[String]("Combined role identity")
+
+def resolveConfigured(
+    modules: Seq[ModuleID],
+    classpath: Classpath,
+    role: String
+): Seq[(String, File)] =
+  modules.flatMap { requested =>
+    val matches = classpath.filter(_.get(moduleID.key).exists { actual =>
+      actual.organization == requested.organization &&
+      (actual.name == requested.name || actual.name.startsWith(requested.name + "_")) &&
+      actual.revision == requested.revision
+    })
+    require(matches.nonEmpty,
+      s"configured $role module did not resolve: ${requested.organization}:${requested.name}:${requested.revision}")
+    matches.zipWithIndex.map { case (entry, index) =>
+      s"${requested.organization}:${requested.name}:${requested.revision}:$index" -> entry.data
+    }
+  }
+
+def completeHandlers(
+    modules: Seq[ModuleID],
+    classpath: Classpath
+): Seq[(String, File)] = {
+  val direct = resolveConfigured(modules, classpath, "handler")
+  val directPaths = direct.map(_._2.getCanonicalFile).toSet
+  val dependencies = classpath.iterator
+    .filterNot(entry => directPaths(entry.data.getCanonicalFile))
+    .zipWithIndex
+    .map { case (entry, index) =>
+      val coordinate = entry.get(moduleID.key)
+        .map(m => s"${m.organization}:${m.name}:${m.revision}")
+        .getOrElse(entry.data.getName)
+      f"transitive-$index%04d:$coordinate" -> entry.data
+    }.toVector
+  val seen = mutable.LinkedHashSet.empty[File]
+  (direct ++ dependencies).filter { case (_, file) =>
+    seen.add(file.getCanonicalFile)
+  }
+}
+
+lazy val core = (project in file("core"))
+  .configs(MacroParadiseHandler)
+  .settings(inConfig(MacroParadiseHandler)(Defaults.configSettings))
+  .settings(
+    libraryDependencies += compilerPlugin(mpPlugin),
+    libraryDependencies ++= markerModules,
+    libraryDependencies ++= handlerModules.map(_ % MacroParadiseHandler.name),
+    markerArtifacts := resolveConfigured(
+      markerModules,
+      (Compile / dependencyClasspath).value,
+      "marker"
+    ),
+    handlerClasspath := completeHandlers(
+      handlerModules,
+      (MacroParadiseHandler / dependencyClasspath).value
+    ),
+    externalArtifactIdentity := ExternalArtifactIdentity.combined(
+      markerArtifacts.value,
+      handlerClasspath.value
+    ),
+    Compile / scalacOptions ++= Seq(
+      "-Xplugin-require:macroparadise",
+      "-P:macroparadise:handlerClasspath=" +
+        handlerClasspath.value.map(_._2.getAbsolutePath).mkString(File.pathSeparator),
+      "-P:macroparadise:externalArtifactIdentity=sha256:" +
+        externalArtifactIdentity.value
+    )
+  )
+~~~
+
+The marker ModuleID configurations are preserved in ordinary
+libraryDependencies; % Provided keeps marker-only modules on the compile
+classpath and out of runtime. Omit it only for deliberately runtime-bearing
+marker API. Handler modules resolve in the hidden configuration, and
+completeHandlers retains direct handler JARs first, then their full transitive
+closure with canonical first-seen de-duplication. Neither handlers nor their
+handler-only dependencies become ordinary application dependencies.
+
+The executable four-mode onboarding fixture validates this recipe with two
+published markers, two published handlers, one shared handler dependency,
+runtime isolation, both expansions, and fail-closed empty-role, role-collision,
+missing-dependency, and missing-handler cases on all supported exact Scala
+lines. See
+[manual-published/build.sbt](../examples/user-onboarding-three-mode-fixture/manual-published/build.sbt).
 
 ## Marker
 
@@ -738,7 +864,7 @@ lazy val macroHandlers = (project in file("macro-handlers"))
   )
 
 lazy val core = (project in file("core"))
-  .dependsOn(macroAnnotations)
+  .dependsOn(macroAnnotations % "provided->compile")
   .settings(
     libraryDependencies += compilerPlugin(macroparadisePlugin),
     Compile / scalacOptions ++= {
@@ -873,7 +999,9 @@ this precompiled topology. It derives exact full-cross plugin and API modules,
 keeps published handlers in a hidden configuration, expands their complete
 ordered dependency classpath, and installs the compiler options. Its static
 local-project helper returns settings only: the consumer still declares
-`.dependsOn(marker)`. The module is published as `0.1.1`; current
+`.dependsOn(marker % "provided->compile")` for marker-only API, or plain
+`.dependsOn(marker)` for deliberately runtime-bearing marker API. The module is
+published as `0.1.1`; current
 `0.2.0-SNAPSHOT` development remains source-built/local-only. Persistent BSP
 compilation and run requests are qualified for exact Scala 3.3.8 and 3.8.4
 with sbt 1.12.15 on JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt

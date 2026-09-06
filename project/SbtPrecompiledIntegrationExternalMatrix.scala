@@ -9,6 +9,34 @@ import scala.sys.process.{Process, ProcessLogger}
 object SbtPrecompiledIntegrationExternalMatrix {
   final case class Config(scalaVersion: String, sbtVersion: String, projectVersion: String)
 
+  final case class MultiLocalSnapshot(
+      markerA: String,
+      markerB: String,
+      handlerA: String,
+      handlerB: String,
+      sharedRuntime: String,
+      identity: String,
+      consumerMtime: Long
+  )
+
+  def changedOnly(before: MultiLocalSnapshot, after: MultiLocalSnapshot, expected: String): Vector[String] = {
+    val inputs = Vector(
+      "markerA" -> (before.markerA != after.markerA),
+      "markerB" -> (before.markerB != after.markerB),
+      "handlerA" -> (before.handlerA != after.handlerA),
+      "handlerB" -> (before.handlerB != after.handlerB),
+      "sharedRuntime" -> (before.sharedRuntime != after.sharedRuntime)
+    )
+    val errors = Vector.newBuilder[String]
+    inputs.foreach { case (name, changed) =>
+      if (name == expected && !changed) errors += s"expected input did not change: $name"
+      else if (name != expected && changed) errors += s"unexpected input changed: $name"
+    }
+    if (before.identity == after.identity) errors += "external identity did not change"
+    if (after.consumerMtime <= before.consumerMtime) errors += "consumer did not recompile"
+    errors.result()
+  }
+
   final case class Transition(
       baselineValue: String,
       editedValue: String,
@@ -55,6 +83,30 @@ object SbtPrecompiledIntegrationExternalMatrix {
         s"missingRoleNegatives=$missingRoleNegatives wrongCoordinateNegative=$wrongCoordinateNegative " +
         s"showInspectEvidence=$showInspectEvidence " +
         s"noOpStable=${transition.noOpMtimeStable}"
+  }
+
+  final case class MultiLocalVerificationResult(
+      scalaVersion: String,
+      markerCount: Int,
+      handlerCount: Int,
+      sharedRuntimeCount: Int,
+      directPrimariesFirst: Boolean,
+      runtimeIsolated: Boolean,
+      incrementalInputs: Vector[String],
+      missingRoleNegatives: Boolean,
+      roleCollisionNegative: Boolean,
+      missingDependencyNegative: Boolean,
+      missingHandlerNegative: Boolean,
+      noOpStable: Boolean,
+      evidenceDirectory: File
+  ) {
+    def render: String =
+      s"scala=$scalaVersion multiLocalMarkers=$markerCount multiLocalHandlers=$handlerCount " +
+        s"sharedRuntimeCount=$sharedRuntimeCount directPrimariesFirst=$directPrimariesFirst " +
+        s"runtimeIsolated=$runtimeIsolated incrementalInputs=${incrementalInputs.mkString(",")} " +
+        s"missingRoleNegatives=$missingRoleNegatives roleCollisionNegative=$roleCollisionNegative " +
+        s"missingDependencyNegative=$missingDependencyNegative missingHandlerNegative=$missingHandlerNegative " +
+        s"noOpStable=$noOpStable"
   }
 
   def validateTransition(value: Transition): Vector[String] = {
@@ -272,6 +324,169 @@ object SbtPrecompiledIntegrationExternalMatrix {
     result
   }
 
+  def verifyMultiLocal(
+      repositoryRoot: File,
+      pluginApiJar: File,
+      pluginJar: File,
+      pluginApiPom: File,
+      pluginPom: File,
+      taskRoot: File,
+      config: Config
+  ): MultiLocalVerificationResult = {
+    require(Set("3.3.8", "3.8.4", "3.9.0")(config.scalaVersion), "unsupported exact Scala line")
+    require(config.sbtVersion == "1.12.15", "unsupported sbt version")
+    require(config.projectVersion == "0.2.0-SNAPSHOT", "unexpected product version")
+    sbt.IO.delete(taskRoot)
+    val evidence = new File(taskRoot, "evidence")
+    val repository = new File(taskRoot, "repository")
+    val build = new File(taskRoot, "build")
+    sbt.IO.createDirectory(evidence)
+    stageProduct(repository, pluginApiJar, pluginApiPom, "macroparadise-scala3-plugin-api", config)
+    stageProduct(repository, pluginJar, pluginPom, "macroparadise-scala3-plugin", config)
+    createMultiLocalBuild(repositoryRoot, repository, build, evidence, config)
+
+    def execute(slot: String, commands: Vector[String], description: String): (MultiLocalSnapshot, File) = {
+      val log = new File(evidence, slot + ".log")
+      require(runSbt(build, config, slot, commands :+ "recordMultiLocalState", log) == 0, description)
+      val state = readState(new File(evidence, slot + ".state"))
+      MultiLocalSnapshot(
+        state("markerASha256"),
+        state("markerBSha256"),
+        state("handlerASha256"),
+        state("handlerBSha256"),
+        state("sharedRuntimeSha256"),
+        state("identity"),
+        state("consumerMtime").toLong
+      ) -> log
+    }
+
+    val (baseline, baselineLog) = execute(
+      "multi-baseline",
+      Vector("clean", "core/run"),
+      "multi-local baseline failed"
+    )
+    require(multiRuntimeValue(baselineLog) == "A:runtime-v1;B:runtime-v1", "multi-local baseline output mismatch")
+    val baselineState = readState(new File(evidence, "multi-baseline.state"))
+    val markerLabels = splitList(baselineState("markerLabels"))
+    val handlerLabels = splitList(baselineState("handlerLabels"))
+    val handlerFiles = splitList(baselineState("handlerFiles"))
+    require(markerLabels == Vector("local-marker-0000", "local-marker-0001"), "multi-local marker labels mismatch")
+    val directPrimariesFirst = handlerLabels.take(2) == Vector("local-handler-0000", "local-handler-0001")
+    require(directPrimariesFirst, "multi-local handler primaries are not direct-first")
+    val sharedRuntimeCount = handlerFiles.count(_.contains("shared-handler-runtime"))
+    require(sharedRuntimeCount == 1, "shared handler runtime dependency was not retained exactly once")
+    require(handlerFiles.distinct == handlerFiles, "multi-local handler classpath was not canonically de-duplicated")
+    val runtimeIsolated = baselineState("runtimeIsolated") == "true"
+    require(runtimeIsolated, "multi-local marker or handler tool artifact leaked onto runtime classpath")
+
+    val markerASource = new File(build, "marker-a/src/main/scala/MarkerA.scala")
+    val markerBSource = new File(build, "marker-b/src/main/scala/MarkerB.scala")
+    val handlerASource = new File(build, "handler-a/src/main/scala/HandlerA.scala")
+    val handlerBSource = new File(build, "handler-b/src/main/scala/HandlerB.scala")
+    val sharedSource = new File(build, "shared-handler-runtime/src/main/scala/SharedRuntime.scala")
+    val originalMarkerA = read(markerASource)
+    val originalMarkerB = read(markerBSource)
+    val originalHandlerA = read(handlerASource)
+    val originalHandlerB = read(handlerBSource)
+    val originalShared = read(sharedSource)
+
+    write(markerASource, originalMarkerA.replace("HandlerA\")", "AlternateHandlerA\")"))
+    val (markerAEdited, markerALog) = execute("marker-a-edited", Vector("core/run"), "marker A incremental rebuild failed")
+    require(multiRuntimeValue(markerALog) == "A:runtime-v1;B:runtime-v1", "marker A edit changed semantics")
+    require(changedOnly(baseline, markerAEdited, "markerA").isEmpty, changedOnly(baseline, markerAEdited, "markerA").mkString("; "))
+
+    write(markerBSource, originalMarkerB.replace("HandlerB\")", "AlternateHandlerB\")"))
+    val (markerBEdited, markerBLog) = execute("marker-b-edited", Vector("core/run"), "marker B incremental rebuild failed")
+    require(multiRuntimeValue(markerBLog) == "A:runtime-v1;B:runtime-v1", "marker B edit changed semantics")
+    require(changedOnly(markerAEdited, markerBEdited, "markerB").isEmpty, changedOnly(markerAEdited, markerBEdited, "markerB").mkString("; "))
+
+    write(handlerASource, originalHandlerA.replace("\"A:\" + SharedRuntime.current", "\"A2:\" + SharedRuntime.current"))
+    val (handlerAEdited, handlerALog) = execute("handler-a-edited", Vector("core/run"), "handler A incremental rebuild failed")
+    require(multiRuntimeValue(handlerALog) == "A2:runtime-v1;B:runtime-v1", "handler A edit output mismatch")
+    require(changedOnly(markerBEdited, handlerAEdited, "handlerA").isEmpty, changedOnly(markerBEdited, handlerAEdited, "handlerA").mkString("; "))
+
+    write(handlerBSource, originalHandlerB.replace("\"B:\" + SharedRuntime.current", "\"B2:\" + SharedRuntime.current"))
+    val (handlerBEdited, handlerBLog) = execute("handler-b-edited", Vector("core/run"), "handler B incremental rebuild failed")
+    require(multiRuntimeValue(handlerBLog) == "A2:runtime-v1;B2:runtime-v1", "handler B edit output mismatch")
+    require(changedOnly(handlerAEdited, handlerBEdited, "handlerB").isEmpty, changedOnly(handlerAEdited, handlerBEdited, "handlerB").mkString("; "))
+
+    write(sharedSource, originalShared.replace("runtime-v1", "runtime-v2"))
+    val (sharedEdited, sharedLog) = execute("shared-runtime-edited", Vector("core/run"), "shared runtime incremental rebuild failed")
+    require(multiRuntimeValue(sharedLog) == "A2:runtime-v2;B2:runtime-v2", "shared runtime edit output mismatch")
+    require(changedOnly(handlerBEdited, sharedEdited, "sharedRuntime").isEmpty, changedOnly(handlerBEdited, sharedEdited, "sharedRuntime").mkString("; "))
+
+    write(markerASource, originalMarkerA)
+    write(markerBSource, originalMarkerB)
+    write(handlerASource, originalHandlerA)
+    write(handlerBSource, originalHandlerB)
+    write(sharedSource, originalShared)
+    val (restored, restoredLog) = execute("restored", Vector("core/run"), "multi-local restoration failed")
+    require(multiRuntimeValue(restoredLog) == "A:runtime-v1;B:runtime-v1", "restored output mismatch")
+    require(restored.copy(consumerMtime = baseline.consumerMtime) == baseline, "restored artifact identity did not return to baseline")
+    val (noOp, noOpLog) = execute("noop", Vector("core/run"), "multi-local no-op failed")
+    require(multiRuntimeValue(noOpLog) == "A:runtime-v1;B:runtime-v1", "no-op output mismatch")
+    val noOpStable = noOp == restored
+    require(noOpStable, "consecutive multi-local no-op changed identity or consumer output")
+
+    def fails(slot: String, commands: Vector[String]): Boolean = {
+      val log = new File(evidence, slot + ".log")
+      runSbt(build, config, slot, commands, log) != 0
+    }
+    val emptyMarkerFailed = fails(
+      "empty-marker-role",
+      Vector("set core / macroParadiseMarkerArtifacts := Seq.empty", "core/macroParadiseValidate")
+    )
+    val emptyHandlerFailed = fails(
+      "empty-handler-role",
+      Vector("set core / macroParadiseHandlerClasspath := Seq.empty", "core/macroParadiseValidate")
+    )
+    val roleCollisionFailed = fails(
+      "role-collision",
+      Vector(
+        "set core / macroParadiseMarkerArtifacts := Seq(macroParadiseLabelled(\"collision\", (handlerA / Compile / packageBin).value))",
+        "core/macroParadiseValidate"
+      )
+    )
+    val missingDependencyFailed = fails(
+      "missing-shared-dependency",
+      Vector(
+        "set core / macroParadiseHandlerClasspath := Seq(macroParadiseLabelled(\"handler-a\", (handlerA / Compile / packageBin).value), macroParadiseLabelled(\"handler-b\", (handlerB / Compile / packageBin).value))",
+        "core/clean",
+        "core/compile"
+      )
+    )
+    val missingHandlerFailed = fails(
+      "missing-handler-b",
+      Vector(
+        "set core / macroParadiseHandlerClasspath := Seq(macroParadiseLabelled(\"handler-a\", (handlerA / Compile / packageBin).value), macroParadiseLabelled(\"runtime\", (sharedHandlerRuntime / Compile / packageBin).value))",
+        "core/clean",
+        "core/compile"
+      )
+    )
+    require(emptyMarkerFailed && emptyHandlerFailed, "multi-local empty role validation unexpectedly passed")
+    require(roleCollisionFailed, "multi-local marker/handler role collision unexpectedly passed")
+    require(missingDependencyFailed, "multi-local missing shared handler dependency unexpectedly compiled")
+    require(missingHandlerFailed, "multi-local missing handler B unexpectedly compiled")
+
+    val result = MultiLocalVerificationResult(
+      config.scalaVersion,
+      markerLabels.size,
+      handlerLabels.take(2).size,
+      sharedRuntimeCount,
+      directPrimariesFirst,
+      runtimeIsolated,
+      Vector("markerA", "markerB", "handlerA", "handlerB", "sharedRuntime"),
+      missingRoleNegatives = true,
+      roleCollisionNegative = true,
+      missingDependencyNegative = true,
+      missingHandlerNegative = true,
+      noOpStable,
+      evidence
+    )
+    write(new File(evidence, "summary.txt"), result.render + "\n")
+    result
+  }
+
   private def stageProduct(
       repository: File,
       jar: File,
@@ -328,6 +543,194 @@ object SbtPrecompiledIntegrationExternalMatrix {
     write(new File(build, "core/src/main/scala/Consumer.scala"), consumerSource)
     write(new File(build, "build.sbt"), buildText(repository, evidence, config))
   }
+
+  private def createMultiLocalBuild(
+      repositoryRoot: File,
+      repository: File,
+      build: File,
+      evidence: File,
+      config: Config
+  ): Unit = {
+    Vector(
+      "project",
+      "shared-handler-runtime/src/main/scala",
+      "marker-a/src/main/scala",
+      "marker-b/src/main/scala",
+      "handler-a/src/main/scala",
+      "handler-b/src/main/scala",
+      "core/src/main/scala"
+    ).foreach(path => sbt.IO.createDirectory(new File(build, path)))
+    write(new File(build, "project/build.properties"), "sbt.version=" + config.sbtVersion + "\n")
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/ArtifactIdentity.scala").toPath,
+      new File(build, "project/ArtifactIdentity.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/MacroParadisePrecompiledPlugin.scala").toPath,
+      new File(build, "project/MacroParadisePrecompiledPlugin.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    write(new File(build, "shared-handler-runtime/src/main/scala/SharedRuntime.scala"), multiSharedRuntimeSource("runtime-v1"))
+    write(new File(build, "marker-a/src/main/scala/MarkerA.scala"), multiMarkerSource("A", "HandlerA"))
+    write(new File(build, "marker-b/src/main/scala/MarkerB.scala"), multiMarkerSource("B", "HandlerB"))
+    write(new File(build, "handler-a/src/main/scala/HandlerA.scala"), multiHandlerSource("A"))
+    write(new File(build, "handler-b/src/main/scala/HandlerB.scala"), multiHandlerSource("B"))
+    write(new File(build, "core/src/main/scala/Consumer.scala"), multiConsumerSource)
+    write(new File(build, "build.sbt"), multiLocalBuildText(repository, evidence, config))
+  }
+
+  private def multiLocalBuildText(repository: File, evidence: File, config: Config): String =
+    s"""import java.io.File
+       |import java.nio.charset.StandardCharsets
+       |import java.nio.file.Files
+       |import java.security.MessageDigest
+       |import macroparadise.sbt.{MacroParadiseIntegration, MacroParadisePrecompiledPlugin}
+       |import MacroParadisePrecompiledPlugin.autoImport._
+       |
+       |ThisBuild / scalaVersion := "${config.scalaVersion}"
+       |ThisBuild / version := "${config.projectVersion}"
+       |ThisBuild / resolvers := Seq(
+       |  "task-product-repository" at "${scalaString(repository.toURI.toString)}",
+       |  Resolver.mavenCentral
+       |)
+       |ThisBuild / credentials := Nil
+       |ThisBuild / publish / skip := true
+       |
+       |val mpVersion = "${config.projectVersion}"
+       |val mpApi =
+       |  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % mpVersion)
+       |    .cross(CrossVersion.full)
+       |
+       |lazy val recordMultiLocalState = taskKey[Unit]("Record multi-local invalidation state")
+       |
+       |lazy val sharedHandlerRuntime = project.in(file("shared-handler-runtime"))
+       |  .settings(name := "shared-handler-runtime")
+       |
+       |lazy val markerA = project.in(file("marker-a"))
+       |  .settings(name := "multi-marker-a", libraryDependencies += mpApi)
+       |
+       |lazy val markerB = project.in(file("marker-b"))
+       |  .settings(name := "multi-marker-b", libraryDependencies += mpApi)
+       |
+       |def handlerSettings(moduleName: String): Seq[Def.Setting[_]] = Seq(
+       |  name := moduleName,
+       |  libraryDependencies ++= Seq(
+       |    mpApi,
+       |    "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+       |  ),
+       |  Compile / unmanagedJars += Attributed.blank((sharedHandlerRuntime / Compile / packageBin).value),
+       |  Runtime / unmanagedJars += Attributed.blank((sharedHandlerRuntime / Compile / packageBin).value)
+       |)
+       |
+       |lazy val handlerA = project.in(file("handler-a")).settings(handlerSettings("multi-handler-a"))
+       |lazy val handlerB = project.in(file("handler-b")).settings(handlerSettings("multi-handler-b"))
+       |
+       |lazy val core = project.in(file("core"))
+       |  .dependsOn(markerA % "provided->compile", markerB % "provided->compile")
+       |  .enablePlugins(MacroParadisePrecompiledPlugin)
+       |  .settings(MacroParadiseIntegration.precompiledProjects(
+       |    markers = Seq(markerA, markerB),
+       |    handlers = Seq(handlerA, handlerB)
+       |  ))
+       |  .settings(name := "multi-local-consumer", macroParadiseCompilerProductVersion := mpVersion)
+       |
+       |def sha256(file: File): String =
+       |  MessageDigest.getInstance("SHA-256")
+       |    .digest(Files.readAllBytes(file.toPath))
+       |    .map(value => f"$${value & 0xff}%02x")
+       |    .mkString
+       |
+       |lazy val root = project.in(file("."))
+       |  .aggregate(sharedHandlerRuntime, markerA, markerB, handlerA, handlerB, core)
+       |  .settings(
+       |    recordMultiLocalState := {
+       |      val slot = sys.props("matrix.slot")
+       |      val markerAJar = (markerA / Compile / packageBin).value.getCanonicalFile
+       |      val markerBJar = (markerB / Compile / packageBin).value.getCanonicalFile
+       |      val handlerAJar = (handlerA / Compile / packageBin).value.getCanonicalFile
+       |      val handlerBJar = (handlerB / Compile / packageBin).value.getCanonicalFile
+       |      val sharedJar = (sharedHandlerRuntime / Compile / packageBin).value.getCanonicalFile
+       |      val markerAClasses = (markerA / Compile / classDirectory).value.getCanonicalFile
+       |      val markerBClasses = (markerB / Compile / classDirectory).value.getCanonicalFile
+       |      val markers = (core / macroParadiseMarkerArtifacts).value
+       |      val handlers = (core / macroParadiseHandlerClasspath).value
+       |      val compileClasspath = (core / Compile / fullClasspath).value.files.map(_.getCanonicalFile)
+       |      val runtimeClasspath = (core / Runtime / fullClasspath).value.files.map(_.getCanonicalFile)
+       |      val consumerA = (core / Compile / classDirectory).value / "fixture" / "SubjectA.class"
+       |      val consumerB = (core / Compile / classDirectory).value / "fixture" / "SubjectB.class"
+       |      val runtimeIsolated =
+       |        compileClasspath.contains(markerAClasses) && compileClasspath.contains(markerBClasses) &&
+       |        !runtimeClasspath.contains(markerAClasses) && !runtimeClasspath.contains(markerBClasses) &&
+       |        !runtimeClasspath.contains(handlerAJar) && !runtimeClasspath.contains(handlerBJar) &&
+       |        !runtimeClasspath.contains(sharedJar)
+       |      IO.write(
+       |        file("${scalaString(evidence.getAbsolutePath)}/" + slot + ".state"),
+       |        "markerASha256=" + sha256(markerAJar) + "\\n" +
+       |          "markerBSha256=" + sha256(markerBJar) + "\\n" +
+       |          "handlerASha256=" + sha256(handlerAJar) + "\\n" +
+       |          "handlerBSha256=" + sha256(handlerBJar) + "\\n" +
+       |          "sharedRuntimeSha256=" + sha256(sharedJar) + "\\n" +
+       |          "identity=" + (core / macroParadiseExternalArtifactIdentity).value + "\\n" +
+       |          "consumerMtime=" + math.max(consumerA.lastModified, consumerB.lastModified) + "\\n" +
+       |          "markerLabels=" + markers.map(_.label).mkString("|") + "\\n" +
+       |          "handlerLabels=" + handlers.map(_.label).mkString("|") + "\\n" +
+       |          "handlerFiles=" + handlers.map(_.file.getCanonicalPath).mkString("|") + "\\n" +
+       |          "runtimeIsolated=" + runtimeIsolated + "\\n",
+       |        StandardCharsets.UTF_8
+       |      )
+       |    }
+       |  )
+       |""".stripMargin
+
+  private def multiSharedRuntimeSource(value: String): String =
+    s"""package fixture.runtime
+       |
+       |object SharedRuntime:
+       |  def current: String = "$value"
+       |""".stripMargin
+
+  private def multiMarkerSource(suffix: String, handler: String): String =
+    s"""package fixture.marker
+       |
+       |import paradise3.api.expander
+       |import scala.annotation.StaticAnnotation
+       |
+       |@expander("fixture.handler.$handler")
+       |final class marker$suffix extends StaticAnnotation
+       |""".stripMargin
+
+  private def multiHandlerSource(suffix: String): String =
+    s"""package fixture.handler
+       |
+       |import dotty.tools.dotc.core.Contexts.Context
+       |import fixture.runtime.SharedRuntime
+       |import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+       |import paradise3.api.helpers.ExpansionHelpers
+       |
+       |final class Handler$suffix extends ParadiseAnnotationExpander:
+       |  override def annotationName: String = "fixture.marker.marker$suffix"
+       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+       |    ExpansionHelpers.addStringMethodToClass(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
+       |
+       |final class AlternateHandler$suffix extends ParadiseAnnotationExpander:
+       |  override def annotationName: String = "fixture.marker.marker$suffix"
+       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+       |    ExpansionHelpers.addStringMethodToClass(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
+       |""".stripMargin
+
+  private val multiConsumerSource =
+    """package fixture
+      |
+      |import fixture.marker.{markerA, markerB}
+      |
+      |@markerA class SubjectA
+      |@markerB class SubjectB
+      |
+      |object Consumer:
+      |  def main(args: Array[String]): Unit =
+      |    println("MULTI_VALUE=" + new SubjectA().generatedA + ";" + new SubjectB().generatedB)
+      |""".stripMargin
 
   private def buildText(repository: File, evidence: File, config: Config): String =
     s"""import java.io.File
@@ -499,6 +902,15 @@ object SbtPrecompiledIntegrationExternalMatrix {
     require(values.nonEmpty, "runtime value witness is absent")
     values.last.substring(values.last.indexOf("DEPENDENCY_VALUE=") + "DEPENDENCY_VALUE=".length).trim
   }
+
+  private def multiRuntimeValue(log: File): String = {
+    val values = read(log).split("\\r?\\n").toVector.filter(_.contains("MULTI_VALUE="))
+    require(values.nonEmpty, "multi-local runtime value witness is absent")
+    values.last.substring(values.last.indexOf("MULTI_VALUE=") + "MULTI_VALUE=".length).trim
+  }
+
+  private def splitList(value: String): Vector[String] =
+    value.split("\\|", -1).toVector.filter(_.nonEmpty)
 
   private def readState(file: File): Map[String, String] =
     read(file).split("\\r?\\n").toVector.filter(_.contains("=")).map { line =>

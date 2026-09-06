@@ -1,10 +1,10 @@
 object UserOnboardingThreeModeSetupSpec {
-  val CaseCount = 10
+  val CaseCount = 11
 
   def run(): Unit = {
     import UserOnboardingThreeModeSetup._
 
-    assert(supportedModes.map(_.id) == Vector("manual", "local-project", "published-module"))
+    assert(supportedModes.map(_.id) == Vector("manual", "local-project", "published-module", "manual-published"))
 
     val implicitMarker = ProjectBase("macroAnnotations", "macroAnnotations", "macro-annotations")
     val implicitHandler = ProjectBase("macroHandlers", "macroHandlers", "macro-handlers")

@@ -49,8 +49,8 @@ lazy val core = (project in file("core"))
     publish / skip := true,
     macroParadiseCompilerProductVersion := mpVersion,
     macroParadiseMarkerModules := Seq(
-      ("com.example.onboarding" % "user-macro-annotations" % producerVersion)
-        .cross(CrossVersion.full)
+      (("com.example.onboarding" % "user-macro-annotations" % producerVersion)
+        .cross(CrossVersion.full)) % Provided
     ),
     macroParadiseHandlerModules := Seq(
       ("com.example.onboarding" % "user-macro-handlers" % producerVersion)
@@ -71,10 +71,11 @@ lazy val root = (project in file("."))
       val identity = (core / macroParadiseExternalArtifactIdentity).value
       val primaryHandler = handlerClasspath.headOption.getOrElse(sys.error("published handler expansion classpath is empty"))
       require(markerArtifacts.nonEmpty && markerArtifacts.forall(artifact => compileClasspath.contains(artifact.file.getCanonicalFile)), "published marker missing from consumer compile classpath")
+      require(markerArtifacts.forall(artifact => !runtimeClasspath.contains(artifact.file.getCanonicalFile)), "Provided published marker leaked onto consumer runtime classpath")
       require(!runtimeClasspath.contains(primaryHandler.file.getCanonicalFile), "handler implementation leaked onto consumer runtime classpath")
       require(identity.matches("[0-9a-f]{64}"), "derived identity missing")
       require(((core / Compile / classDirectory).value / "com/example/core/GenUser.class").isFile, "GenUser did not compile")
       require(((core / Compile / classDirectory).value / "com/example/core/Something.class").isFile, "Something did not compile")
-      streams.value.log.info("SBT_PLUGIN_PUBLISHED_MODULES=PASS markerCompileClasspath=true handlerRuntimeAbsent=true exactFixture=true taskRepository=true")
+      streams.value.log.info("SBT_PLUGIN_PUBLISHED_MODULES=PASS markerCompileClasspath=true markerRuntimeAbsent=true handlerRuntimeAbsent=true exactFixture=true taskRepository=true")
     }
   )

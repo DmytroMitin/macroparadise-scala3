@@ -168,9 +168,13 @@ There are two top-level choices:
 1. **Use `sbt-macroparadise` (recommended normal path).** For producers in the
    same multi-project build, use
    `MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers)`;
-   neither producer needs `publishLocal`. For producers that really are
+   neither producer needs `publishLocal`. A marker-only project normally uses
+   `.dependsOn(macroAnnotations % "provided->compile")`; use a plain dependency
+   only when that project intentionally carries application runtime API. For
+   producers that really are
    published or deliberately installed in local Ivy, use
-   `macroParadiseMarkerModules` and `macroParadiseHandlerModules`.
+   `macroParadiseMarkerModules` and `macroParadiseHandlerModules`, normally
+   applying `% Provided` to marker-only module declarations.
 2. **Do not use the sbt integration.** Use the complete manual settings and
    copy the public `ExternalArtifactIdentity.scala` build helper into your own
    `project/` directory. The identity option is required for the supported
@@ -200,9 +204,10 @@ addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
 
 The `0.2.0-SNAPSHOT` coordinate is local-only; released `0.1.1` is available
 remotely. See the [integration guide](../sbt-integration/README.md) for complete
-local-project and published-module examples, or
+local-project and published-module examples, including the additive multi-local
+project overload, or
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the complete
-manual graph. All examples use explicit `file("macro-annotations")`,
+same-build and published-module manual graphs. All examples use explicit `file("macro-annotations")`,
 `file("macro-handlers")`, and `file("core")` locations; an unqualified
 `lazy val macroAnnotations = project` instead selects a `macroAnnotations/`
 base directory and does not describe the hyphenated layout.
@@ -254,11 +259,14 @@ sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 
 For the opt-in integration, see the
 [`sbt-integration` module](../sbt-integration/README.md). It preserves the
-three-project topology, requires the marker `.dependsOn` edge explicitly, and
+three-project topology, requires the marker dependency edge explicitly, and
 derives invalidation identity from the complete ordered handler expansion
 classpath. Its same-build local-project mode packages producers directly and
-does not require producer `publishLocal`. The manual graph remains a supported,
-transparent escape hatch.
+does not require producer `publishLocal`. Current source also supports multiple
+local marker/handler projects through
+`precompiledProjects(markers = Seq(...), handlers = Seq(...))`; direct handlers
+precede canonically de-duplicated dependencies. The manual graphs remain
+supported, transparent escape hatches.
 
 For this bounded integration, real persistent sbt BSP
 compilation and run requests are qualified on exact Scala `3.3.8` and `3.8.4`

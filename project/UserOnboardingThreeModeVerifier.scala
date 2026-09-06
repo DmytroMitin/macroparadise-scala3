@@ -14,6 +14,7 @@ object UserOnboardingThreeModeVerifier {
       manual: Boolean,
       localProjects: Boolean,
       publishedModules: Boolean,
+      manualPublishedModules: Boolean,
       brokenImplicitDirectoryNegative: Boolean,
       manualHelperSelfContained: Boolean,
       pluginInstalledFromSource: Boolean,
@@ -25,6 +26,7 @@ object UserOnboardingThreeModeVerifier {
       s"scala=$scalaVersion MANUAL_SETUP=${pass(manual)} " +
         s"SBT_PLUGIN_LOCAL_PROJECTS_NO_PRODUCER_PUBLISHLOCAL=${pass(localProjects)} " +
         s"SBT_PLUGIN_PUBLISHED_MODULES=${pass(publishedModules)} " +
+        s"MANUAL_PUBLISHED_MODULES=${pass(manualPublishedModules)} " +
         s"HYPHENATED_PROJECT_DIRECTORY_REPRO_FIXED=${pass(brokenImplicitDirectoryNegative)} " +
         s"MANUAL_IDENTITY_HELPER_SELF_CONTAINED=$manualHelperSelfContained " +
         s"SBT_PLUGIN_SOURCE_INSTALL=$pluginInstalledFromSource " +
@@ -157,6 +159,90 @@ object UserOnboardingThreeModeVerifier {
     ) != 0
     require(publishedIdentityProtected, "published-module derived identity was replaceable")
 
+    val manualPublishedBuild = prepareMode(template, "manual-published", new File(taskRoot, "manual-published"))
+    val copiedPublishedHelper = new File(manualPublishedBuild, "project/ExternalArtifactIdentity.scala")
+    Files.copy(helperSource.toPath, copiedPublishedHelper.toPath, StandardCopyOption.REPLACE_EXISTING)
+    require(sha256(helperSource) == sha256(copiedPublishedHelper), "manual published identity helper copy differs from the public helper")
+    val manualPublishedLog = new File(evidence, "35-manual-published.log")
+    val manualPublishedModules = runMode(
+      manualPublishedBuild,
+      config,
+      productRepository,
+      producerRepository,
+      Vector(
+        "clean",
+        "sharedHandlerRuntime/publish",
+        "markerA/publish",
+        "markerB/publish",
+        "handler-a/publish",
+        "handler-b/publish",
+        "core/clean",
+        "core/run",
+        "verifyFixture"
+      ),
+      manualPublishedLog
+    ) == 0
+    require(manualPublishedModules, "exact manual published-module fixture failed")
+    require(read(manualPublishedLog).contains("A:runtime-v1;B:runtime-v1"), "manual published-module runtime witness missing")
+
+    def manualPublishedNegative(slot: String, commands: Vector[String]): Boolean =
+      runMode(
+        manualPublishedBuild,
+        config,
+        productRepository,
+        producerRepository,
+        commands,
+        new File(evidence, slot + ".log")
+      ) != 0
+
+    require(
+      manualPublishedNegative(
+        "36-manual-published-empty-marker",
+        Vector("set core / markerArtifacts := Seq.empty", "core/externalArtifactIdentity")
+      ),
+      "manual published empty marker role unexpectedly passed"
+    )
+    require(
+      manualPublishedNegative(
+        "37-manual-published-empty-handler",
+        Vector("set core / handlerClasspath := Seq.empty", "core/externalArtifactIdentity")
+      ),
+      "manual published empty handler role unexpectedly passed"
+    )
+    require(
+      manualPublishedNegative(
+        "38-manual-published-role-collision",
+        Vector(
+          "set core / markerArtifacts := Seq(\"collision\" -> (handlerA / Compile / packageBin).value)",
+          "set core / handlerClasspath := Seq(\"collision\" -> (handlerA / Compile / packageBin).value)",
+          "core/externalArtifactIdentity"
+        )
+      ),
+      "manual published role collision unexpectedly passed"
+    )
+    require(
+      manualPublishedNegative(
+        "39-manual-published-missing-dependency",
+        Vector(
+          "set core / handlerClasspath := Seq(\"handler-a\" -> (handlerA / Compile / packageBin).value, \"handler-b\" -> (handlerB / Compile / packageBin).value)",
+          "core/clean",
+          "core/compile"
+        )
+      ),
+      "manual published missing handler dependency unexpectedly compiled"
+    )
+    require(
+      manualPublishedNegative(
+        "40-manual-published-missing-handler",
+        Vector(
+          "set core / handlerClasspath := Seq(\"handler-a\" -> (handlerA / Compile / packageBin).value, \"shared\" -> (sharedHandlerRuntime / Compile / packageBin).value)",
+          "core/clean",
+          "core/compile"
+        )
+      ),
+      "manual published missing handler B unexpectedly compiled"
+    )
+
     val brokenBuild = prepareBrokenImplicitDirectoryBuild(template, new File(taskRoot, "broken-implicit"), config)
     val brokenLog = new File(evidence, "40-implicit-directory-negative.log")
     val brokenExit = runMode(
@@ -185,8 +271,9 @@ object UserOnboardingThreeModeVerifier {
       manual,
       localProjects,
       publishedModules,
+      manualPublishedModules,
       brokenImplicitDirectoryNegative,
-      manualHelperSelfContained,
+      manualHelperSelfContained && sha256(helperSource) == sha256(copiedPublishedHelper),
       pluginInstalledFromSource,
       localOverride && publishedOverride,
       localIdentityProtected && publishedIdentityProtected,
@@ -198,9 +285,10 @@ object UserOnboardingThreeModeVerifier {
 
   private def prepareMode(template: File, mode: String, destination: File): File = {
     sbt.IO.copyDirectory(new File(template, mode), destination)
-    Vector("macro-annotations", "macro-handlers", "core").foreach { name =>
-      sbt.IO.copyDirectory(new File(template, name), new File(destination, name))
-    }
+    if (mode != "manual-published")
+      Vector("macro-annotations", "macro-handlers", "core").foreach { name =>
+        sbt.IO.copyDirectory(new File(template, name), new File(destination, name))
+      }
     destination
   }
 

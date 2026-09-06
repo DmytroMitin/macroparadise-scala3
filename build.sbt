@@ -816,6 +816,11 @@ verifyIndependentExternalSbtConsumerFromLocalRepository := {
 
 verifySbtPrecompiledIntegrationExternalMatrix := {
   SbtPrecompiledIntegrationExternalMatrixSpec.run()
+  val config = SbtPrecompiledIntegrationExternalMatrix.Config(
+    scalaVersion.value,
+    sbtVersion.value,
+    version.value
+  )
   val result = SbtPrecompiledIntegrationExternalMatrix.verify(
     baseDirectory.value,
     (pluginApi / Compile / packageBin).value,
@@ -823,14 +828,22 @@ verifySbtPrecompiledIntegrationExternalMatrix := {
     (pluginApi / makePom).value,
     (plugin / makePom).value,
     target.value / "sbt-precompiled-integration-external-matrix",
-    SbtPrecompiledIntegrationExternalMatrix.Config(
-      scalaVersion.value,
-      sbtVersion.value,
-      version.value
-    )
+    config
+  )
+  val multiLocal = SbtPrecompiledIntegrationExternalMatrix.verifyMultiLocal(
+    baseDirectory.value,
+    (pluginApi / Compile / packageBin).value,
+    (plugin / Compile / packageBin).value,
+    (pluginApi / makePom).value,
+    (plugin / makePom).value,
+    target.value / "sbt-precompiled-multi-local-integration",
+    config
   )
   streams.value.log.info(
     s"sbt precompiled integration external matrix verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
+  )
+  streams.value.log.info(
+    s"sbt precompiled multi-local integration verified: ${multiLocal.render} evidence=${multiLocal.evidenceDirectory.getAbsolutePath}"
   )
 }
 

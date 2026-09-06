@@ -29,7 +29,7 @@ lazy val macroHandlers = (project in file("macro-handlers"))
   )
 
 lazy val core = (project in file("core"))
-  .dependsOn(macroAnnotations)
+  .dependsOn(macroAnnotations % "provided->compile")
   .settings(MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers))
   .enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
   .settings(macroParadiseCompilerProductVersion := mpVersion)
@@ -48,12 +48,13 @@ lazy val root = (project in file("."))
       val handlerClasspath = (core / macroParadiseHandlerClasspath).value
       val identity = (core / macroParadiseExternalArtifactIdentity).value
       require(compileClasspath.contains(markerClasses), "marker classes missing from consumer compile classpath")
+      require(!runtimeClasspath.contains(markerClasses), "marker-only classes leaked onto consumer runtime classpath")
       require(markerArtifacts.exists(_.file.getCanonicalFile == (macroAnnotations / Compile / packageBin).value.getCanonicalFile), "marker package missing from explicit marker role")
       require(handlerClasspath.headOption.exists(_.file.getCanonicalFile == handlerJar), "primary handler is not first")
       require(!runtimeClasspath.contains(handlerClasses) && !runtimeClasspath.contains(handlerJar), "handler leaked onto consumer runtime classpath")
       require(identity.matches("[0-9a-f]{64}"), "derived identity missing")
       require(((core / Compile / classDirectory).value / "com/example/core/GenUser.class").isFile, "GenUser did not compile")
       require(((core / Compile / classDirectory).value / "com/example/core/Something.class").isFile, "Something did not compile")
-      streams.value.log.info("SBT_PLUGIN_LOCAL_PROJECTS_NO_PRODUCER_PUBLISHLOCAL=PASS markerCompileClasspath=true handlerRuntimeAbsent=true exactFixture=true")
+      streams.value.log.info("SBT_PLUGIN_LOCAL_PROJECTS_NO_PRODUCER_PUBLISHLOCAL=PASS markerCompileClasspath=true markerRuntimeAbsent=true handlerRuntimeAbsent=true exactFixture=true")
     }
   )
