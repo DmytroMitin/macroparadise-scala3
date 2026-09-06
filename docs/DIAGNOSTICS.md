@@ -108,8 +108,9 @@ generated tree shape, names in scope, and exact target assumptions.
 
 ### Same-module stale output
 
-General incremental same-module support remains false. Unreleased `main` has an
-opt-in implementation of one explicit different-file Model A, qualified on
+General incremental same-module support remains false. Released `0.1.1` and
+current `main` have an opt-in implementation of one explicit different-file
+Model A, qualified on
 exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc. Persistent sbt BSP
 qualification remains bounded to exact 3.3.8 and 3.8.4. Confirm that
 `scalacOptions` contains one `sameModuleHandler` relationship and one
@@ -118,8 +119,8 @@ paths are distinct normalized relative paths beneath the configured source
 root. Empty, missing, duplicate, absolute, or escaping paths fail closed.
 
 The marker, handler, and consumer must be separate source files. Same-file
-topologies and cycles produce focused unsupported-model diagnostics. On
-unreleased `main`, the bounded topology is qualified in IntelliJ only for an
+topologies and cycles produce focused unsupported-model diagnostics. The
+bounded topology is qualified in IntelliJ only for an
 sbt-imported project with Build and Run delegated to sbt on JDK 25 and sbt
 1.12.15, across exact Scala 3.3.8 and 3.8.4. Native JPS and broader same-module
 topologies remain outside the claim; precompiled handlers remain the

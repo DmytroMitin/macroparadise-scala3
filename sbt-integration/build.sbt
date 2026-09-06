@@ -1,6 +1,6 @@
 ThisBuild / organization := "com.github.dmytromitin"
 ThisBuild / organizationName := "com.github.dmytromitin"
-ThisBuild / version := "0.1.1-SNAPSHOT"
+ThisBuild / version := "0.2.0-SNAPSHOT"
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / scalaVersion := "2.12.21"
 ThisBuild / sbtVersion := "1.12.15"

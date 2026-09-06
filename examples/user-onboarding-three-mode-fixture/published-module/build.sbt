@@ -10,7 +10,7 @@ ThisBuild / resolvers := Seq(
 )
 ThisBuild / credentials := Nil
 
-val mpVersion = "0.1.1-SNAPSHOT"
+val mpVersion = "0.2.0-SNAPSHOT"
 val producerVersion = "0.0.1-onboarding-matrix"
 val mpApi =
   ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % mpVersion)

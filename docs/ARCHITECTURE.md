@@ -88,8 +88,8 @@ precheck.
 
 ## Same-module boundary
 
-Unreleased `main` implements one bounded different-file Model A behind a
-separate opt-in sbt plugin. The build names one marker source and one handler
+Released `0.1.1` and current `main` include one bounded different-file Model A
+behind a separate opt-in sbt plugin. The build names one marker source and one handler
 source beneath an explicit source root, hashes their exact bytes into a
 same-module compiler-input identity, suspends consumers before mutation, and
 resumes them with freshly compiled current output through a fresh child loader.

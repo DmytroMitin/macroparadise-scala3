@@ -1,4 +1,4 @@
-ThisBuild / version := "0.1.1-SNAPSHOT"
+ThisBuild / version := "0.2.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.8.4"
 ThisBuild / crossScalaVersions := Seq("3.3.8", "3.8.4", "3.9.0")
 ThisBuild / publish / skip := true

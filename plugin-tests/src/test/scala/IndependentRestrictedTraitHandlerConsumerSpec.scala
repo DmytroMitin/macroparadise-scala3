@@ -18,7 +18,7 @@ class IndependentRestrictedTraitHandlerConsumerSpec extends munit.FunSuite:
       "3.8.4"
     )
   private val projectVersion =
-    sys.props.getOrElse("macroparadise.testProjectVersion", "0.1.1-SNAPSHOT")
+    sys.props.getOrElse("macroparadise.testProjectVersion", "0.2.0-SNAPSHOT")
   private val pluginJar =
     new File(s"plugin/target/scala-$scalaVersion/macroparadise-scala3-plugin_$scalaVersion-$projectVersion.jar").getAbsoluteFile
   private val pluginApiJar =

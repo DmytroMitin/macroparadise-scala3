@@ -4,7 +4,7 @@ import sbt._
 import sbt.Keys._
 
 object MacroParadiseSameModulePlugin extends AutoPlugin {
-  private val IntegrationVersion = "0.1.1-SNAPSHOT"
+  private val IntegrationVersion = "0.2.0-SNAPSHOT"
   private val Organization = "com.github.dmytromitin"
   private val PluginModule = "macroparadise-scala3-plugin"
   private val PluginApiModule = "macroparadise-scala3-plugin-api"

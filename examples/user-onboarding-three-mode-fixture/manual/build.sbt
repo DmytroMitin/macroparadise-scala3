@@ -10,7 +10,7 @@ ThisBuild / credentials := Nil
 ThisBuild / publish / skip := true
 
 val mpOrg = "com.github.dmytromitin"
-val mpVersion = "0.1.1-SNAPSHOT"
+val mpVersion = "0.2.0-SNAPSHOT"
 val mpApi = (mpOrg % "macroparadise-scala3-plugin-api" % mpVersion).cross(CrossVersion.full)
 val macroparadisePlugin =
   (mpOrg % "macroparadise-scala3-plugin" % mpVersion).cross(CrossVersion.full)

@@ -14,8 +14,9 @@ Before opening a non-sensitive issue, include:
 - a minimal reproduction and the complete diagnostic without credentials or
   sensitive source.
 
-Use the exact source checkout and documented commands. No remotely published
-artifact or stable coordinate is currently supported. Check
+Use either the exact `0.1.1` full-cross release coordinate or the exact source
+checkout and documented commands. The published artifacts remain experimental;
+no stable compatibility line is promised. Check
 [Compatibility](docs/COMPATIBILITY.md),
 [Diagnostics](docs/DIAGNOSTICS.md), and
 [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)

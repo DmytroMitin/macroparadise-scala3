@@ -10,7 +10,7 @@ ThisBuild / resolvers := Seq(
 ThisBuild / credentials := Nil
 ThisBuild / publish / skip := true
 
-val mpVersion = "0.1.1-SNAPSHOT"
+val mpVersion = "0.2.0-SNAPSHOT"
 val mpApi =
   ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % mpVersion)
     .cross(CrossVersion.full)

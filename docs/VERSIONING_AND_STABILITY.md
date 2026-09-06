@@ -1,8 +1,8 @@
 # Versioning and stability
 
-Macro-Paradise for Scala 3 has an experimental `0.1.0` release on Maven Central
-for exact Scala `3.8.4`. The source build now uses `0.1.1-SNAPSHOT` and
-separately qualifies exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`.
+Macro-Paradise for Scala 3 has an experimental `0.1.1` release on Maven Central
+for exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`. Current `main` uses
+`0.2.0-SNAPSHOT` for the next experimental development line.
 
 The POM uses sbt's `early-semver` tooling hint so dependency tools treat the
 pre-1.0 line conservatively. It does not upgrade the experimental API into a
@@ -18,7 +18,7 @@ stable compatibility promise.
   compiler internals.
 - Helper views and structured output reduce boilerplate but remain
   compiler-sensitive.
-- General same-module handling remains unsupported. Unreleased `main` has one
+- General same-module handling remains unsupported. Current `main` has one
   bounded opt-in different-file Model A that is experimentally supported only
   in its enumerated exact-line CLI/Zinc, persistent sbt BSP, and sbt-delegated
   IntelliJ workflows.
@@ -34,7 +34,7 @@ experimental, exact-compiler-specific, and without compatibility guarantees.
 
 ## Change expectations
 
-For unreleased development after `0.1.0`:
+For `0.2.x` development after released `0.1.1`:
 
 - APIs, option names, tree contracts, supported shapes, diagnostics, and build
   structure may change;
@@ -45,9 +45,12 @@ For unreleased development after `0.1.0`:
 
 ## Separate future decisions
 
+The selected `0.2.x` line is where the next public-contract work may be
+developed. It is not a promise that `0.2.0` will be released, nor a stability or
+compatibility commitment.
+
 These decisions must not be inferred from a passing source build:
 
-- making source publicly visible;
 - changing the selected artifact coordinates or exact full compiler crossing;
 - adopting semantic or early-semantic versioning;
 - publishing, signing, tagging, or supporting another release;

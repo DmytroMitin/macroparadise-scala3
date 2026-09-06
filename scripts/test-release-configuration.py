@@ -7,9 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GROUP = "com.github.dmytromitin"
-RELEASE_VERSION = "0.1.0"
+RELEASE_VERSION = "0.1.1"
 CANDIDATE_VERSION = "0.1.1"
-DEVELOPMENT_VERSION = "0.1.1-SNAPSHOT"
+DEVELOPMENT_VERSION = "0.2.0-SNAPSHOT"
 RELEASE_SCALA_VERSION = "3.8.4"
 SUPPORTED_SCALA_VERSIONS = ("3.3.8", "3.8.4", "3.9.0")
 PLUGIN_ID = "macroparadise"
@@ -90,7 +90,7 @@ class ReleaseConfigurationTest(unittest.TestCase):
         ]
         self.assertEqual(offenders, [])
 
-    def test_public_docs_distinguish_immutable_release_from_unreleased_main(self) -> None:
+    def test_public_docs_distinguish_immutable_release_from_current_main(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         getting_started = (ROOT / "docs/GETTING_STARTED.md").read_text(encoding="utf-8")
         authoring = (ROOT / "docs/EXTERNAL_HANDLER_AUTHORING.md").read_text(encoding="utf-8")
@@ -113,6 +113,8 @@ class ReleaseConfigurationTest(unittest.TestCase):
         )
         self.assertIn(".cross(CrossVersion.full)", authoring)
         self.assertIn(f"-P:{PLUGIN_ID}:handlerClasspath=", authoring)
+        self.assertNotIn("macroparadise-scala3.g8", readme)
+        self.assertNotIn("sbt new", readme)
 
     def test_release_rehearsal_targets_the_0_1_1_three_line_identity(self) -> None:
         rehearsal = (ROOT / "scripts/rehearse-local-release.sh").read_text(encoding="utf-8")

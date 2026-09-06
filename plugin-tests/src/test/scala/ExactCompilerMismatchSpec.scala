@@ -7,7 +7,7 @@ import scala.jdk.CollectionConverters.*
 
 final class ExactCompilerMismatchSpec extends munit.FunSuite:
   private val projectVersion =
-    sys.props.getOrElse("macroparadise.testProjectVersion", "0.1.1-SNAPSHOT")
+    sys.props.getOrElse("macroparadise.testProjectVersion", "0.2.0-SNAPSHOT")
 
   test("the active compiler rejects the plugin artifact from the other exact line"):
     val active = Properties.versionNumberString

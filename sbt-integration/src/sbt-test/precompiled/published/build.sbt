@@ -50,7 +50,7 @@ def writeModule(
 
 publishFixture := {
   IO.delete(fixtureRepository)
-  writeModule("com.github.dmytromitin", "macroparadise-scala3-plugin_3.8.4", "0.1.1-SNAPSHOT")
+  writeModule("com.github.dmytromitin", "macroparadise-scala3-plugin_3.8.4", "0.2.0-SNAPSHOT")
   writeModule("fixture", "published-marker_3.8.4", "1.0")
   writeModule("fixture", "published-runtime_3.8.4", "1.0")
   writeModule(

@@ -17,23 +17,24 @@ IntelliJ must import the build with sbt running on JDK 25. Packaged external-
 handler projects should delegate build and run actions to sbt so the exact
 plugin options, handler packaging dependency, and content identity are retained.
 This sbt-imported workflow is the qualified IDE path. Native JPS compilation is
-not currently qualified. On unreleased `main`, the separate opt-in bounded
+not currently qualified. On current `main`, the separate opt-in bounded
 different-file Model A is also qualified for live handler editing through this
 sbt-delegated workflow on exact Scala 3.3.8 and 3.8.4; that does not establish
 general same-module or native JPS support.
 
-The separate source-built, unreleased sbt integration is also qualified through
+The sbt integration, published as `0.1.1` and source-built for current
+development, is also qualified through
 real persistent sbt BSP sessions for exact Scala `3.3.8` and `3.8.4`, sbt
 1.12.15, and JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt qualification,
 but no retained-process BSP claim. One process is retained across no-op compilation,
 handler-only, handler-dependency-only, marker-metadata-only, and consumer-only
 edits, followed by stale-handler failure and repaired compilation without
-`clean`. This BSP qualification does not extend to native JPS, broader
-same-module topologies, or a remotely published sbt integration coordinate.
+`clean`. This BSP qualification does not extend to native JPS or broader
+same-module topologies.
 
 ## Plugin and handler compatibility
 
-The source-built sbt integration itself runs in the sbt 1.x / Scala 2.12
+The sbt integration itself runs in the sbt 1.x / Scala 2.12
 universe and does not depend on the Dotty runtime. It selects the product
 artifacts for the consumer's exact Scala line with `CrossVersion.full`.
 
@@ -47,7 +48,7 @@ binary descriptors may change between compiler builds. The experimental
 handler API therefore makes no cross-version binary or source compatibility
 promise.
 
-Unreleased `0.1.1-SNAPSHOT` also exposes a bounded syntactic pre-typer
+Released `0.1.1` exposes a bounded syntactic pre-typer
 read-only direct-body view and a separate additive type-structure view. The
 type-structure view reports enclosing type-parameter bounds and ordered direct
 type members without changing existing case-class arities. It distinguishes an
@@ -60,24 +61,24 @@ symbol, alias, fully qualified identity, or semantically equal type. Applied,
 qualified, refined, function, and other broader forms remain unsupported; the
 view does not type trees or perform symbol/owner lookup, inheritance, alias
 expansion, or overload analysis. The raw `ExpansionInput.annotatedClass` tree
-remains the advanced exact-line escape hatch. Released `0.1.0` does not include
-this API.
+remains the advanced exact-line escape hatch. Current `0.2.0-SNAPSHOT`
+development retains this API.
 
-The same unreleased line includes exact-compiler-sensitive placement of one
+The same released line includes exact-compiler-sensitive placement of one
 already-created companion `untpd.TypeDef` plus a structural
 `TwoUpperBoundedGenericTrait` admission profile. Placement conflict checks are
 limited to direct raw `TypeDef` names in the type namespace; Macro-Paradise
 does not construct or interpret alias/refinement syntax and does not expose an
-arbitrary `MemberDef` placement API. Released `0.1.0` does not include these
-surfaces.
+arbitrary `MemberDef` placement API. Current `0.2.0-SNAPSHOT` development
+retains these surfaces.
 
 It also includes the additive
 `RestrictedOrTwoUpperBoundedGenericTrait` target-profile enum case. That case
 is exactly the closed union of the two pre-existing syntactic trait profiles;
 it does not change the `targetProfile: ExpansionTargetProfile` method or add a
 general composition representation. Adding the enum case intentionally moves
-the exact-line experimental API/TASTy surface. Released `0.1.0` does not
-contain it.
+the exact-line experimental API/TASTy surface. It is included in released
+`0.1.1` and retained on current `main`.
 
 ## Marker metadata compatibility
 
@@ -96,17 +97,19 @@ or semantic-versioning commitment.
 
 ## Publication
 
-Version `0.1.0` is the immutable Maven Central release and supports exact Scala
-`3.8.4` only. Unreleased `main` uses `0.1.1-SNAPSHOT` and separately qualifies
-exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`. Only `macroparadise-scala3-plugin` and
+Version `0.1.1` is the immutable Maven Central release and supports exact Scala
+`3.3.8`, `3.8.4`, and stable `3.9.0`. Current `main` uses
+`0.2.0-SNAPSHOT` for the same separately qualified exact lines. Only
+`macroparadise-scala3-plugin` and
 `macroparadise-scala3-plugin-api` set `publish / skip := false`, both with
 `CrossVersion.full`; every aggregate, fixture, test, consumer, example, and
 spike remains skipped. `publishLocal` is supported for those two artifacts.
-The `sbt-integration` module is an additional source-built, unreleased surface;
-it has no configured remote publication destination or credentials.
+The `sbt-integration` module is additionally published as
+`sbt-macroparadise` `0.1.1`; its current `0.2.0-SNAPSHOT` source build has no
+configured remote publication destination or credentials.
 
 No remote publication destination or credentials are configured for ordinary
-development/CI, and this requalification does not publish `0.1.1-SNAPSHOT`.
+development/CI, and this requalification does not publish `0.2.0-SNAPSHOT`.
 
 See [Versioning and stability](VERSIONING_AND_STABILITY.md) and
 [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md).

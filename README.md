@@ -8,9 +8,9 @@ ordinary Scala typing in the same compilation run.
 The core mechanism and a precompiled external-handler path are executable and
 well tested. The project is still compiler-sensitive research: its API,
 configuration, supported shapes, and compatibility policy may change. The
-immutable `0.1.0` release supports exact Scala `3.8.4` and is available
-from Maven Central. Unreleased `main` is qualified separately for exact Scala
-`3.3.8`, `3.8.4`, and stable `3.9.0` at development version `0.1.1-SNAPSHOT`.
+immutable `0.1.1` release supports exact Scala `3.3.8`, `3.8.4`, and stable
+`3.9.0` and is available from Maven Central. Current `main` continues on the
+experimental `0.2.0-SNAPSHOT` development line.
 
 ## A small user-authored example
 
@@ -133,15 +133,15 @@ sbt -batch test
 
 ## Release and development installation
 
-The immutable Central release and unreleased source checkout are separate
-states. Released `0.1.0` is an exact Scala `3.8.4` artifact:
+The immutable Central release and current source checkout are separate states.
+Released `0.1.1` is available for each supported exact Scala line:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.4"
-addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1").cross(CrossVersion.full))
 ```
 
-To install unreleased `0.1.1-SNAPSHOT` from this checkout for one exact line,
+To install current `0.2.0-SNAPSHOT` from this checkout for one exact line,
 select that line explicitly and publish only to the machine-local repository:
 
 ```sh
@@ -154,13 +154,13 @@ Then a local development consumer uses the matching exact line and snapshot:
 
 ```scala
 ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
-addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1-SNAPSHOT").cross(CrossVersion.full))
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.2.0-SNAPSHOT").cross(CrossVersion.full))
 ```
 
 `CrossVersion.full` is required; `%%` produces only a binary Scala suffix and
-does not name this exact-compiler plugin. The added exact lines and snapshot
-version are source-build/local-publication support only; no 0.1.1 artifact has
-been published remotely.
+does not name this exact-compiler plugin. Release `0.1.1` is published for all
+three exact lines. The `0.2.0-SNAPSHOT` coordinate is source-build/local-
+publication support only and is not published remotely.
 
 The plugin JAR is self-contained for compiler loading: it embeds the exact
 unshaded `paradise3.api` runtime classes that the plugin links against. Its POM
@@ -183,10 +183,15 @@ handler, then annotated consumer. Choose one of two top-level setups:
   plugin, complete handler expansion classpath, and content identity directly.
 
 The [`sbt-integration`](sbt-integration/README.md) module documents both plugin
-producer modes. It is currently source-built and unreleased: first run
-`sbt -batch publishLocal` inside `sbt-integration/`, then add the snapshot in
-`project/plugins.sbt`. The `addSbtPlugin` line alone is not a remotely available
-installation today. The static local-project helper deliberately does not
+producer modes. Its `0.1.1` release is available remotely for normal use:
+
+```scala
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1")
+```
+
+To test current `0.2.0-SNAPSHOT` source instead, first run `sbt -batch
+publishLocal` inside `sbt-integration/` and select that local snapshot in
+`project/plugins.sbt`. The static local-project helper deliberately does not
 infer the marker dependency; the consumer must still declare
 `.dependsOn(macroAnnotations)`. The complete manual escape hatch is in
 [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md).
@@ -241,7 +246,7 @@ The current implementation provides bounded evidence for:
 - companion creation and existing-companion merge;
 - generated sibling classes;
 - structured primary, companion, and ordered additional-output roles;
-- an unreleased syntactic pre-typer read-only view of ordered direct members
+- a released experimental syntactic pre-typer read-only view of ordered direct members
   and bounded direct-method structure, with a deliberately tiny type-shape
   normalization;
 - raw untyped output as an expert escape hatch;
@@ -264,7 +269,7 @@ positive evidence remains bounded to the combinations in the test suite.
 - Annotation matching is syntactic. One unambiguous, source-preceding,
   package-level explicit import is supported; alias, wildcard, local/nested,
   given, export, symbol, and general semantic resolution are not implemented.
-- General same-module handler support is deferred. Unreleased `main` contains a
+- General same-module handler support is deferred. Current `main` contains a
   separate opt-in experimental implementation of one bounded different-file
   Model A: one explicit marker source, one explicit handler source, exact
   source-byte identity, compiler-unit suspension, and fresh current-output
@@ -292,9 +297,13 @@ positive evidence remains bounded to the combinations in the test suite.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.
 - Top-level local publication is enabled only for the exact-cross plugin and
-  handler API; the unreleased sbt module has separate local/test packaging.
-  Released `0.1.0` does not contain the unreleased direct-body or type-structure
-  views and has no implied release cadence or production support commitment.
+  handler API; the sbt module has separate packaging and a published `0.1.1`
+  coordinate. Released `0.1.1` includes the bounded direct-body and type-
+  structure views but has no implied release cadence or production support
+  commitment.
+- Public object-target routing and a versioned role-aware public handler
+  contract remain post-`0.1.1` development work. General public U-style
+  existing-definition transformation authoring is not a released API.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.
@@ -335,7 +344,8 @@ explained in the [Security policy](SECURITY.md).
 
 The source is licensed under the [Apache License 2.0](LICENSE). The plugin and
 handler-facing API remain experimental, compiler-version-specific, and without
-stability guarantees. The exact Scala 3.8.4 plugin and plugin API are published
-as `0.1.0`; the 0.1.1-SNAPSHOT three-line work is not published remotely.
-Only the plugin and plugin API support `publishLocal`; internal fixtures,
-tests, examples, consumers, and spikes remain unpublished.
+stability guarantees. The plugin, plugin API, and sbt integration are published
+as `0.1.1`; compiler-facing artifacts use exact full crossing for Scala 3.3.8,
+3.8.4, and 3.9.0. Current `0.2.0-SNAPSHOT` development is not published
+remotely. Internal fixtures, tests, examples, consumers, and spikes remain
+unpublished.

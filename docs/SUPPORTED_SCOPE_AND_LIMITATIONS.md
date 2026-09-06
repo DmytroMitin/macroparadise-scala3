@@ -34,14 +34,14 @@ no context bound, and no constructor/value parameters. It exists for a narrow
 contextual companion-method experiment; it is not general trait or generic
 support.
 
-Unreleased `0.1.1-SNAPSHOT` adds a separate
+Released `0.1.1` includes a separate
 `TwoUpperBoundedGenericTrait` profile. It admits only an ordinary top-level,
 non-case, non-sealed trait with exactly two invariant ordinary single
 upper-bounded type parameters, no lower/alias/context bounds, and no
 constructor/value parameters. The profile is purely structural: it does not
 inspect direct body features or implement downstream annotation semantics.
 
-The same unreleased line adds
+The same released line includes
 `RestrictedOrTwoUpperBoundedGenericTrait`, one closed profile that admits
 exactly the existing `RestrictedGenericTraitApply` envelope or the existing
 `TwoUpperBoundedGenericTrait` envelope. It does not broaden either constituent
@@ -116,7 +116,7 @@ pair is implied.
 
 General production same-module support is deferred and remains false.
 
-Unreleased `main` contains a separate no-trigger sbt plugin for one experimental
+Current `main` retains a separate no-trigger sbt plugin for one experimental
 different-file Model A. The user must opt in, configure exactly one annotation
 name and handler class, and identify exactly one marker source and one handler
 source beneath a bounded source root. The integration hashes deterministic
@@ -140,7 +140,7 @@ fresh sbt session. Native IntelliJ/JPS compilation is not qualified. Same-file
 marker/handler/consumer topologies, dependency cycles, automatic discovery,
 source-root escapes, multiple configured relationships, and broader scheduling
 remain rejected or unimplemented. See the experimental configuration in the
-[source-built sbt integration guide](../sbt-integration/README.md).
+[sbt integration guide](../sbt-integration/README.md).
 
 Precompiled handlers remain the supported experimental path.
 
@@ -163,7 +163,9 @@ Precompiled handlers remain the supported experimental path.
   attachment or span and rejects a source-free member before target copying;
 - semantic import/name resolution;
 - automatic remote dependency or handler discovery;
-- public artifact coordinates, tags, or releases;
+- public object-target routing or a general public U-style existing-definition
+  transformation API;
+- automatic publication beyond the documented immutable `0.1.1` release;
 - a production support or security SLA.
 
 Quasiquotes adapters may appear in isolated tests, but the product build has no

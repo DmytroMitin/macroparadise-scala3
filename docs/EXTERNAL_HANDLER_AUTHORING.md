@@ -20,16 +20,16 @@ sbt.version=1.12.15
 
 Choose one of two top-level setups:
 
-1. **Use the sbt integration (recommended normal path).** Install the current
-   unreleased plugin from source with `cd sbt-integration && sbt -batch
-   verifyIntegrationPolicy publishLocal`, then add
+1. **Use the sbt integration (recommended normal path).** Add the published
+   release with
    `addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" %
-   "0.1.1-SNAPSHOT")` in `project/plugins.sbt`. Use the same-build
+   "0.1.1")` in `project/plugins.sbt`. To exercise current
+   `0.2.0-SNAPSHOT` development instead, run `cd sbt-integration && sbt -batch
+   verifyIntegrationPolicy publishLocal` and select that local version. Use the same-build
    `precompiledProjects` helper without producer `publishLocal`, or use the
    published-module keys when the producers really are resolved modules. The
    [integration guide](../sbt-integration/README.md) contains the complete,
-   mechanically verified builds for both submodes. The sbt-plugin snapshot is
-   not remotely published today.
+   mechanically verified builds for both submodes.
 2. **Use the fully manual setup below.** It exposes every compiler input and
    remains the supported transparent escape hatch. It does not load or depend
    on `sbt-macroparadise`.
@@ -182,7 +182,7 @@ The safe defaults are:
 Override a capability only when the handler has evidence for the corresponding
 plugin-owned admission, composition, or companion contract.
 
-Unreleased `0.1.1-SNAPSHOT` includes the additive
+Released `0.1.1` includes the additive
 `ExpansionTargetProfile.RestrictedOrTwoUpperBoundedGenericTrait` case for one
 handler that must accept exactly either the established one-invariant ordinary
 unbounded trait envelope or the established two-invariant ordinary upper-
@@ -241,7 +241,7 @@ author.
 
 `ExpansionInput` exposes compiler-sensitive untyped trees and bounded decoded
 views. `annotatedClassView` covers the top-level class and primary constructor;
-the unreleased `0.1.1-SNAPSHOT` `annotatedClassBodyView` covers ordered direct
+the released `0.1.1` `annotatedClassBodyView` covers ordered direct
 members and normalized direct-method structure; and
 `annotatedClassTypeStructureView` separately covers enclosing type-parameter
 bounds plus direct type members without changing the existing view carriers.
@@ -271,7 +271,7 @@ explicit `Unsupported` values for controlled consumer rejection. The decoder
 performs no typing, symbol or owner lookup, inheritance, alias expansion,
 subtype checking, or semantic overload analysis. Advanced exact-compiler
 handlers retain raw `ExpansionInput.annotatedClass` as the explicit escape
-hatch. Released `0.1.0` does not contain these body-view or type-structure APIs.
+hatch. Released `0.1.1` includes these body-view and type-structure APIs.
 
 `ExpansionHelpers.withAnnotatedClassView` remains the small fail-closed adapter
 for the common class shape. Helper methods can place an already-authored batch
@@ -292,7 +292,7 @@ cross-version binary compatibility, or general definition builders.
 
 ### Placing authored concrete definitions
 
-Unreleased `0.1.1-SNAPSHOT` development sources provide the generic bounded
+Released `0.1.1` provides the generic bounded
 placement pair:
 
 ```scala
@@ -551,7 +551,7 @@ compile-ready U tutorial or API.
 
 ### Preparing one trait self alias and primary `Self` member
 
-Unreleased `0.1.1-SNAPSHOT` development sources include the first-slice
+Released `0.1.1` includes the first-slice
 `ExpansionTargetProfile.PlainZeroParameterTrait` profile and the bounded
 `ExpansionHelpers.addPreparedSelfTypeToTrait` helper. The profile admits only a
 plain, non-case, non-sealed, zero-type-parameter trait with no constructor value
@@ -585,15 +585,14 @@ partial edit.
 This is not an arbitrary primary or template editor. Macro-Paradise does not
 expose raw self trees through the callback, interpret the generated bounds,
 perform semantic self-type analysis, typing or symbol lookup, or implement an
-annotation library's member semantics. The immutable released `0.1.0` artifact
-does not contain this profile or helper. They remain source-built, unreleased,
-exact-full-cross `0.1.1-SNAPSHOT` API; use the matching Scala line and retain
-the complete manual wiring path described below when the source-built sbt
-integration is unsuitable.
+annotation library's member semantics. The profile and helper are experimental,
+exact-full-cross `0.1.1` API retained on current `0.2.0-SNAPSHOT`; use the
+matching Scala line and retain the complete manual wiring path described below
+when the sbt integration is unsuitable.
 
 ### Placing an already-created companion method
 
-Unreleased `0.1.1-SNAPSHOT` development sources include the bounded
+Released `0.1.1` includes the bounded
 `ExpansionHelpers.addMethodToCompanion` helper. It accepts an already-created
 raw `untpd.DefDef`; the handler remains responsible for constructing or
 lowering that complete method definition:
@@ -620,11 +619,11 @@ This helper does not construct syntax, perform semantic companion or overload
 resolution, replace existing definitions, or accept arbitrary `MemberDef`
 values. It remains compiler-version-sensitive experimental API and must be
 compiled against the matching exact full-cross plugin API artifact. The
-immutable released `0.1.0` coordinate does not contain this helper.
+immutable released `0.1.1` coordinate contains this helper.
 
 ### Placing an already-created companion type
 
-Unreleased `0.1.1-SNAPSHOT` development sources also include
+Released `0.1.1` also includes
 `ExpansionHelpers.addTypeToCompanion`. It accepts exactly one already-created
 raw `untpd.TypeDef`; the handler or an authoring layer owns construction and
 exact lowering of the complete alias, abstract type member, nested class, or
@@ -653,12 +652,12 @@ companion unchanged; `Reject` returns the original annotated primary and no
 partial companion. The generic concrete-definition helpers do not admit
 `TypeDef`; there is no public arbitrary-`MemberDef` placement API, semantic
 companion or name resolution, or alias/refinement semantics in Macro-Paradise.
-The raw-tree escape hatch remains available. Released `0.1.0` does not contain
-this helper, policy, or the two-upper-bounded trait profile.
+The raw-tree escape hatch remains available. Released `0.1.1` includes this
+helper, policy, and the two-upper-bounded trait profile.
 
 ### Placing an already-created companion module
 
-Unreleased `0.1.1-SNAPSHOT` development sources also include the bounded
+Released `0.1.1` also includes the bounded
 `ExpansionHelpers.addModuleToCompanion` helper. It accepts exactly one
 already-created raw `untpd.ModuleDef`; the handler or authoring layer owns the
 module's complete construction and lowering:
@@ -684,9 +683,8 @@ and nested/non-direct members are not searched.
 companion unchanged; `Reject` returns the original annotated primary and no
 partial companion. Macro-Paradise does not construct extension methods, search
 semantic companions or inherited members, or admit modules through the generic
-concrete-definition placement pair. Released `0.1.0` does not contain this
-helper or policy; it is only an unreleased source-built `0.1.1-SNAPSHOT` API on
-the matching exact Scala line.
+concrete-definition placement pair. Released `0.1.1` contains this helper and
+policy on each matching exact Scala line; current `0.2.0-SNAPSHOT` retains it.
 
 ## Local coordinate for marker and handler authors
 
@@ -702,7 +700,7 @@ coordinate, not the plugin implementation or any test fixture:
 ```scala
 ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 libraryDependencies +=
-  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.1-SNAPSHOT")
+  ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.2.0-SNAPSHOT")
     .cross(CrossVersion.full)
 ```
 
@@ -720,7 +718,7 @@ producer is compiled:
 ```scala
 ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 val mpOrg = "com.github.dmytromitin"
-val mpVersion = "0.1.1-SNAPSHOT"
+val mpVersion = "0.2.0-SNAPSHOT"
 val mpApi =
   (mpOrg % "macroparadise-scala3-plugin-api" % mpVersion)
     .cross(CrossVersion.full)
@@ -773,10 +771,10 @@ keeps its artifacts task-local.
 The checked-in generated-greeting starter uses the same three-role topology
 with explicit local artifact paths.
 
-These snapshot coordinates are locally usable from unreleased `main` but are
-not published remotely. Released `0.1.0` remains available only for exact
-Scala `3.8.4`. The repository's built-in `@gen` annotation is a fixture and is
-not the supported public authoring API.
+These snapshot coordinates are locally usable from current `main` but are not
+published remotely. Released `0.1.1` remains available for exact Scala `3.3.8`,
+`3.8.4`, and `3.9.0`. The repository's built-in `@gen` annotation is a fixture
+and is not the supported public authoring API.
 
 ## Explicit-import identity boundary
 
@@ -843,7 +841,7 @@ types parent first. A handler compiled against the separate `plugin-api` JAR
 therefore implements the plugin-owned runtime identity without a shaded alias
 or a second compiler universe.
 
-## Manual wiring and the source-built sbt integration
+## Manual wiring and the sbt integration
 
 The manual escape hatch remains an explicit handler path plus identity derived
 from all explicit marker artifacts and the complete ordered effective handler
@@ -875,14 +873,15 @@ this precompiled topology. It derives exact full-cross plugin and API modules,
 keeps published handlers in a hidden configuration, expands their complete
 ordered dependency classpath, and installs the compiler options. Its static
 local-project helper returns settings only: the consumer still declares
-`.dependsOn(marker)`. The module is source-built and unreleased, and persistent
-BSP compilation and run requests are qualified for exact Scala 3.3.8 and 3.8.4
+`.dependsOn(marker)`. The module is published as `0.1.1`; current
+`0.2.0-SNAPSHOT` development remains source-built/local-only. Persistent BSP
+compilation and run requests are qualified for exact Scala 3.3.8 and 3.8.4
 with sbt 1.12.15 on JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt
 qualification, but no retained-process BSP claim. That qualification covers one retained
 BSP process through no-op, handler-only, handler-dependency-only,
 marker-metadata-only, consumer-only, stale-handler failure, and repaired
 compilation without `clean` or restart. It does not qualify IntelliJ native JPS
-compilation or live same-module handler authoring. Manual wiring above remains
+compilation or broader same-module topologies. Manual wiring above remains
 supported.
 
 If a handler has external runtime dependencies, supply the handler JAR and

@@ -1,7 +1,8 @@
 # Product roadmap
 
-This roadmap is organized by capability. Released `0.1.0` is available for
-exact Scala `3.8.4`; the roadmap does not promise dates, another release,
+This roadmap is organized by capability. Released `0.1.1` is available for
+exact Scala `3.3.8`, `3.8.4`, and `3.9.0`; current `main` is
+`0.2.0-SNAPSHOT`. The roadmap does not promise dates, a `0.2.0` release,
 release cadence, or compatibility duration.
 
 ## Proven core compiler mechanism
@@ -41,20 +42,23 @@ release cadence, or compatibility duration.
 
 ## Same-module handler status
 
-A bounded different-file design probe established a feasible lifecycle for
+A bounded different-file implementation established a working lifecycle for
 explicit handler-source mapping, content-derived incremental identity,
 compiler-unit suspension, and resumed expansion across clean and incremental
-CLI/Zinc/BSP builds. General production support remains deferred because that
-lifecycle is not implemented or product-qualified.
+CLI/Zinc/BSP builds. Exact 3.3.8 and 3.8.4 also have sbt-delegated IntelliJ
+qualification. General production support remains deferred outside this
+enumerated Model A.
 
-Future implementation must prove consumer invalidation after handler
-implementation changes. Same-file handlers, dependency cycles, automatic
-discovery, and live IntelliJ behavior remain outside the established design;
-precompiled handlers remain the supported experimental baseline.
+Consumer invalidation after handler implementation changes is retained in the
+bounded qualification. Same-file handlers, dependency cycles, automatic
+discovery, multiple relationships, and native IntelliJ/JPS compilation remain
+outside the established design; precompiled handlers remain the broad/default
+experimental baseline.
 
 ## Generic sbt integration
 
-The first source-built, opt-in precompiled-handler slice is implemented. It:
+The first opt-in precompiled-handler slice is implemented and published as
+`sbt-macroparadise` `0.1.1`. It:
 
 - select exact full-cross Macro-Paradise plugin and API coordinates;
 - identifies and packages explicit marker and handler projects before consumer
@@ -62,23 +66,33 @@ The first source-built, opt-in precompiled-handler slice is implemented. It:
 - derives content identity from all explicit marker-role artifacts and the
   complete ordered effective handler expansion classpath;
 - install the handler classpath and build-only identity compiler options;
-- is qualified in clean and incremental CLI/Zinc builds on both exact Scala
-  lines; persistent BSP and sbt-delegated IntelliJ qualification remain open;
+- is qualified in clean and incremental CLI/Zinc builds on all three exact
+  Scala lines, with bounded persistent BSP and sbt-delegated IntelliJ evidence
+  on exact 3.3.8 and 3.8.4;
 - retain inspectable manual settings as overrides and an escape hatch;
-- leave room for the bounded same-module source-identity lifecycle only after
-  the precompiled-handler form is proven.
+- retains a separate bounded same-module source-identity lifecycle without
+  broadening the default precompiled-handler contract.
 
 User onboarding permanently retains three qualified setup modes: manual wiring
 with the copied build-definition identity helper, sbt integration with
 same-build local marker/handler projects and no producer `publishLocal`, and sbt
 integration with genuinely published modules. Public examples must use explicit
 project locations when directory names are hyphenated. The integration plugin
-remains source-built until a separate release publishes it remotely.
+is remotely published as `0.1.1`; current `0.2.0-SNAPSHOT` development remains
+source-built/local-only. Manual wiring remains an inspectable escape hatch. A
+downstream project may provide application-specific conveniences;
+compiler/plugin behavior remains in the product API rather than in sbt.
 
-The module remains source-built and unreleased; no remote sbt-plugin coordinate
-is promised. Manual wiring remains an inspectable escape hatch. A downstream
-project may provide application-specific conveniences; compiler/plugin behavior
-remains in the product API rather than in sbt.
+## Next public-contract work
+
+The selected post-`0.1.1` object-target architecture is a sibling, versioned,
+role-aware public handler contract with a private adapter for the existing
+handler API. Object routing, helpers, composition, rollback, exact-line
+qualification, and documentation must all close before any support claim.
+
+Later bounded public U-style existing-definition transformation authoring is a
+separate track. Neither capability is part of released `0.1.1`, and this
+roadmap does not promise a `0.2.0` release.
 
 ## Optional quasiquotes research
 
@@ -92,16 +106,10 @@ another checkout or an unavailable peer artifact.
 ## Open-source, publication, and stability work
 
 The source license is Apache License 2.0. Public source visibility, artifact
-publication, and API stability remain separate decisions.
+publication, and API stability remain separate facts. The existing `0.1.1`
+release does not authorize another release.
 
-Before any public visibility change:
-
-- retain and verify the complete Apache License 2.0 text and build metadata;
-- preserve any required private lineage outside the public source surface;
-- rehearse and independently inspect a sanitized source snapshot;
-- confirm governance and security wording remains truthful.
-
-Before any artifact publication:
+Before any future artifact publication:
 
 - choose supported coordinates and compiler-crossing rules;
 - define signing, provenance, source/documentation artifacts, and failure

@@ -1,8 +1,8 @@
 # Getting started
 
-Macro-Paradise `0.1.0` is available from Maven Central for exact Scala `3.8.4`.
-Unreleased `main` uses `0.1.1-SNAPSHOT` and can be built or installed locally
-for exact Scala `3.3.8`, `3.8.4`, or stable `3.9.0` as separate lanes.
+Macro-Paradise `0.1.1` is available from Maven Central for exact Scala `3.3.8`,
+`3.8.4`, and stable `3.9.0`. Current `main` uses `0.2.0-SNAPSHOT` and can be
+built or installed locally for the same separate exact lanes.
 
 ## Requirements
 
@@ -60,19 +60,19 @@ sbt -batch test
 
 It is narrower than the canonical product gate.
 
-## Use the release or publish unreleased main locally
+## Use the release or publish current main locally
 
-The released coordinate remains exact Scala `3.8.4`:
+The released coordinate is available for each supported exact Scala line:
 
 ```scala
-ThisBuild / scalaVersion := "3.8.4"
-addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.0").cross(CrossVersion.full))
+ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1").cross(CrossVersion.full))
 ```
 
-From a clone, publish the two unreleased compiler-facing user artifacts for one
-selected exact line to the machine-local sbt/Ivy repository. The separate sbt
-integration module is source-built and uses its own local/test packaging; it is
-not part of these commands:
+From a clone, publish the two current-snapshot compiler-facing user artifacts
+for one selected exact line to the machine-local sbt/Ivy repository. The
+separate sbt integration module uses its own local/test packaging and is not
+part of these commands:
 
 ```sh
 sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
@@ -84,7 +84,7 @@ In a fresh external development project, use the same exact line and snapshot:
 
 ```scala
 ThisBuild / scalaVersion := "3.3.8"
-addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1-SNAPSHOT").cross(CrossVersion.full))
+addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.2.0-SNAPSHOT").cross(CrossVersion.full))
 ```
 
 Do not replace `.cross(CrossVersion.full)` with `%%`: the published artifact is
@@ -114,23 +114,30 @@ There are two top-level choices:
    `project/` directory. The identity option is required for the supported
    incremental contract.
 
-The integration plugin itself is source-built and unreleased. From this source
-checkout, install it to local Ivy separately:
+For normal released use, add the published integration plugin directly:
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1")
+```
+
+To test current `0.2.0-SNAPSHOT` source instead, install it to local Ivy
+separately:
 
 ```sh
 cd sbt-integration
 sbt -batch verifyIntegrationPolicy publishLocal
 ```
 
-Then the consumer build can contain:
+Then the development consumer build can contain:
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1-SNAPSHOT")
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
 ```
 
-That coordinate is not available from a remote repository today. See the
-[source-built integration guide](../sbt-integration/README.md) for complete
+The `0.2.0-SNAPSHOT` coordinate is local-only; released `0.1.1` is available
+remotely. See the [integration guide](../sbt-integration/README.md) for complete
 local-project and published-module examples, or
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md) for the complete
 manual graph. All examples use explicit `file("macro-annotations")`,
@@ -183,7 +190,7 @@ mechanically compiles both source forms with:
 sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
 ```
 
-For the opt-in source-built integration, see the
+For the opt-in integration, see the
 [`sbt-integration` module](../sbt-integration/README.md). It preserves the
 three-project topology, requires the marker `.dependsOn` edge explicitly, and
 derives invalidation identity from the complete ordered handler expansion
@@ -191,20 +198,20 @@ classpath. Its same-build local-project mode packages producers directly and
 does not require producer `publishLocal`. The manual graph remains a supported,
 transparent escape hatch.
 
-For this source-built, unreleased integration, real persistent sbt BSP
+For this bounded integration, real persistent sbt BSP
 compilation and run requests are qualified on exact Scala `3.3.8` and `3.8.4`
 with sbt 1.12.15 and JDK 25. Exact 3.9.0 has CLI/Zinc and ordinary sbt
 qualification, but no retained-process BSP claim. The retained-process qualification includes
 content-sensitive handler, handler-dependency, and marker invalidation plus
 stale-handler failure and repair without `clean` or server restart. The
-separate opt-in bounded different-file Model A on unreleased `main` is also
+separate opt-in bounded different-file Model A on current `main` is also
 qualified for live IntelliJ use on exact Scala 3.3.8 and 3.8.4 when Build and Run
 are delegated to sbt, including handler-only edits without `clean`. This does
-not make the integration a remotely published sbt plugin, establish general
-same-module support, or qualify IntelliJ native JPS compilation.
+not establish general same-module support or qualify IntelliJ native JPS
+compilation.
 
 The bounded Model-A copy/paste source layout is in the
-[source-built integration guide](../sbt-integration/README.md#experimental-same-module-different-file-model-a).
+[integration guide](../sbt-integration/README.md#experimental-same-module-different-file-model-a).
 Its current qualified binding uses direct-qualified consumer annotation syntax;
 the precompiled path's imported-short canonicalization is not a same-module
 scheduling trigger.

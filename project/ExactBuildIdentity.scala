@@ -1,8 +1,8 @@
 object ExactBuildIdentity {
   val SupportedScalaVersions = Set("3.3.8", "3.8.4", "3.9.0")
   val DefaultScalaVersion = "3.8.4"
-  val DevelopmentVersion = "0.1.1-SNAPSHOT"
-  val ReleasedVersion = "0.1.0"
+  val DevelopmentVersion = "0.2.0-SNAPSHOT"
+  val ReleasedVersion = "0.1.1"
 
   val SelectedScalaVersion =
     sys.props.getOrElse("macroparadise.exactScalaVersion", DefaultScalaVersion)

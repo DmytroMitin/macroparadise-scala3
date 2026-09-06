@@ -1,10 +1,11 @@
-# Source-built sbt integration
+# sbt integration
 
 This opt-in sbt plugin automates the precompiled Macro-Paradise marker/handler
 setup. It runs in sbt 1.x's Scala 2.12 plugin universe and has no Scala 3
 runtime dependency of its own.
 
-Unreleased `main` also contains a separate no-trigger plugin for one bounded
+The published `0.1.1` integration and current `main` also contain a separate
+no-trigger plugin for one bounded
 same-module different-file Model A, experimentally supported only in the
 enumerated exact-line workflows below. Enabling that plugin is an explicit
 choice and does not change the default precompiled path.
@@ -15,11 +16,18 @@ compiler-option identity from every explicit marker artifact plus the complete
 ordered handler expansion classpath. The consumer still declares its ordinary
 marker dependency.
 
-## Install the current source-built snapshot
+## Install the release or current source snapshot
 
-The integration is unreleased. There is no remote sbt-plugin artifact for
-`0.1.1-SNAPSHOT`. From this repository checkout, install it deliberately to
-local Ivy:
+For normal use, install the published `0.1.1` integration:
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1")
+```
+
+There is no remote sbt-plugin artifact for current `0.2.0-SNAPSHOT`
+development. To exercise that source checkout, install it deliberately to local
+Ivy:
 
 ```sh
 cd sbt-integration
@@ -30,11 +38,11 @@ Then add this file to the downstream build:
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1-SNAPSHOT")
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
 ```
 
 The compiler plugin and plugin API for the selected exact Scala line must also
-be resolvable. For unreleased main, install those from the repository root as
+be resolvable. For current main development, install those from the repository root as
 described in [Getting started](../docs/GETTING_STARTED.md). Installing the sbt
 plugin does not publish marker or handler projects.
 
@@ -51,7 +59,7 @@ import macroparadise.sbt.MacroParadisePrecompiledPlugin.autoImport._
 
 ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 
-val mpVersion = "0.1.1-SNAPSHOT"
+val mpVersion = "0.1.1"
 val mpApi =
   ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % mpVersion)
     .cross(CrossVersion.full)
@@ -120,7 +128,7 @@ ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 lazy val core = (project in file("core"))
   .enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
   .settings(
-    macroParadiseCompilerProductVersion := "0.1.1-SNAPSHOT",
+    macroParadiseCompilerProductVersion := "0.1.1",
     macroParadiseMarkerModules := Seq(
       ("com.example" % "my-macro-annotations" % "1.0.0")
         .cross(CrossVersion.full)
@@ -146,8 +154,8 @@ derived output in supported AutoPlugin mode; replacing it fails validation.
 
 ## Experimental same-module different-file Model A
 
-This path is unreleased and experimentally supported only within its bounded
-qualified workflows. It is deliberately separate from
+This path is included in released `0.1.1` but remains experimentally supported
+only within its bounded qualified workflows. It is deliberately separate from
 `MacroParadisePrecompiledPlugin`, accepts exactly one explicit relationship,
 and supports only exact Scala 3.3.8, 3.8.4, or 3.9.0:
 
@@ -203,7 +211,7 @@ sbt.version=1.12.15
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1-SNAPSHOT")
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.1.1")
 ```
 
 Use the `build.sbt` configuration above, then define the marker in its own
@@ -302,8 +310,8 @@ sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
 ```
 
 Neither command remotely publishes an sbt plugin, Maven artifact, tag, or
-release. The bounded same-module implementation remains unreleased and is
-experimentally supported only for exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc,
+release. The bounded same-module implementation in `0.1.1` is experimentally
+supported only for exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc,
 plus exact 3.3.8 and 3.8.4 persistent sbt BSP and sbt-delegated IntelliJ
 workflows. Precompiled handlers remain the broad/default supported
 experimental path.
