@@ -26,6 +26,8 @@ ThisBuild / developers := List(
     url("https://github.com/DmytroMitin")
   )
 )
+
+lazy val Legacy011Compatibility = config("legacy011Compatibility").hide
 ThisBuild / pomIncludeRepository := (_ => false)
 
 Global / onLoad ~= { previous =>
@@ -82,6 +84,9 @@ lazy val verifyConsumerReleaseConfiguration =
 
 lazy val verifyPublicProductBoundary =
   taskKey[Unit]("Run the canonical self-contained public-product build boundary")
+
+lazy val verifyIndependentRoleAwareHandlerPackagedConsumer =
+  taskKey[Unit]("Verify the independent role-aware marker, handler, and consumer artifacts")
 
 verifyJdkVersionEnforcement := {
   JdkVersionEnforcementSpec.run()
@@ -213,7 +218,10 @@ verifyPublicProductBoundary := Def
     plugin / Compile / packageBin,
     verifyExperimentalPluginApiSurfaceBaseline,
     verifyExperimentalHandlerContractArtifact,
-    verifyIndependentPrecompiledHandlerPackagedConsumer,
+    Def.sequential(
+      verifyIndependentPrecompiledHandlerPackagedConsumer,
+      verifyIndependentRoleAwareHandlerPackagedConsumer
+    ),
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
     verifySbtPrecompiledIntegrationModule,
@@ -295,6 +303,8 @@ lazy val verifySbtPrecompiledIntegrationModule =
 
 
 lazy val root = (project in file("."))
+  .configs(Legacy011Compatibility)
+  .settings(inConfig(Legacy011Compatibility)(Defaults.configSettings))
   .aggregate(
     legacyMetadataMarkerFixture,
     pluginApi,
@@ -305,7 +315,10 @@ lazy val root = (project in file("."))
   )
   .settings(
     name := "macroparadise-scala3",
-    publish / skip := true
+    publish / skip := true,
+    libraryDependencies +=
+      ("com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.1.1")
+        .cross(CrossVersion.full) % Legacy011Compatibility
   )
 
 lazy val legacyMetadataMarkerFixture =
@@ -774,6 +787,39 @@ verifyIndependentPrecompiledHandlerPackagedConsumer := {
   )
   streams.value.log.info(
     s"independent precompiled handler packaged consumer verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
+  )
+}
+
+verifyIndependentRoleAwareHandlerPackagedConsumer := {
+  val releasedApiArtifact =
+    (Legacy011Compatibility / dependencyClasspath).value.files.find { file =>
+      file.getName == s"macroparadise-scala3-plugin-api_${scalaVersion.value}-0.1.1.jar"
+    }.getOrElse(sys.error("published 0.1.1 exact-line plugin-api artifact was not resolved"))
+  val result = IndependentRoleAwareHandlerPackagedConsumer.verify(
+    baseDirectory.value,
+    (pluginApi / Compile / packageBin).value,
+    (plugin / Compile / packageBin).value,
+    releasedApiArtifact,
+    (pluginApi / Compile / dependencyClasspath).value.files,
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "handler" /
+      "IndependentRoleAwareHandler.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "marker" /
+      "IndependentRoleAwareMarker.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "consumer" /
+      "IndependentRoleAwareConsumer.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-handler" /
+      "LegacyBinaryHandlers.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-marker" /
+      "LegacyBinaryMarkers.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-consumer" /
+      "LegacyBinaryConsumer.scala",
+    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-object-negative" /
+      "LegacyBinaryObjectNegative.scala",
+    target.value / "independent-role-aware-handler-packaged-consumer",
+    IndependentRoleAwareHandlerPackagedConsumer.Config(scalaVersion.value, version.value)
+  )
+  streams.value.log.info(
+    s"independent role-aware handler packaged consumer verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
   )
 }
 

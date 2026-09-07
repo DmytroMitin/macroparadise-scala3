@@ -1,0 +1,5 @@
+package legacybinaryconsumer
+
+import legacybinaryprobe.LegacyBinaryClassMarker
+
+@LegacyBinaryClassMarker object LegacyObject

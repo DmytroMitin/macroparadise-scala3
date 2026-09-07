@@ -1,5 +1,60 @@
 # External handler authoring
 
+## Role-aware object handler first slice (`0.2.0-SNAPSHOT`)
+
+The legacy `ParadiseAnnotationExpander` contract remains limited to its
+plugin-owned class and qualified-trait profiles. Placing a legacy handler's
+annotation on an object is still unsupported and never invokes that handler.
+
+Current `0.2.0-SNAPSHOT` adds the sibling
+`RoleAwareParadiseAnnotationExpander` contract for exactly one ordinary
+top-level object participant. Target kind and shape profile are separate:
+`RoleAwareTargetAdmission.OrdinaryTopLevelObject` is the closed pairing of
+`ExpansionTargetKind.Object` and
+`RoleAwareShapeProfile.OrdinaryTopLevelObject`. The default handler is
+standalone, object-only, and `PrimaryOnly`:
+
+```scala
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.*
+
+final class ObjectHandler extends RoleAwareParadiseAnnotationExpander:
+  val annotationName = "example.roleAwareMarker"
+
+  def expand(input: RoleAwareExpansionInput)(using Context) =
+    input.primary match
+      case ExpansionPrimaryRole.Object(objectTree) =>
+        // Expert exact-version code may copy objectTree and its Template here.
+        RoleAwareExpansionOutcome.Expanded(
+          RoleAwareExpansionOutput(
+            ExpansionPrimaryRole.Object(objectTree),
+            OppositeChange.Preserve
+          )
+        )
+      case _ =>
+        RoleAwareExpansionOutcome.Rejected(
+          List(ExpansionDiagnostic("expected an object", input.currentAnnotation.sourcePos))
+        )
+```
+
+Handlers may opt into `LeaseExisting`, `LeaseOrCreateClass`,
+`LeaseOrCreateTrait`, or `LeaseOrCreateClassOrTrait`. A leased same-name class
+or trait can be preserved or replaced. With no existing opposite, an authorized
+handler can request explicit class/trait creation with `BeforePrimary` or
+`AfterPrimary`; the plugin never guesses either choice. There is no delete
+operation and no arbitrary package-stat replacement result.
+
+Raw Dotty trees are exact-compiler-version-sensitive. Snapshot, validation,
+annotation consumption, commit, and exact rollback authority remain
+plugin-owned. This first slice rejects multiple role-aware participants and
+fresh/generated handled object annotations; public object R1/R2 lineage,
+source-ordered multi-participant object composition, and public role-aware
+class/trait primary routing remain separately gated. Role-aware generated-member
+helpers are also deferred, so expert handlers currently use narrow raw-tree
+copying. Quasiquotes remains an optional authoring layer and is not a Macro
+production dependency.
+
 Start with a user-defined `@identity` annotation. It is the smallest supported
 authoring example because it exercises the complete external-handler wiring
 contract without generating a member. The independent external sbt verifier

@@ -1,5 +1,27 @@
 # Supported scope and limitations
 
+## `0.2.0-SNAPSHOT` role-aware object boundary
+
+The additive `RoleAwareParadiseAnnotationExpander` API routes one ordinary
+top-level object primary through the plugin-owned role-aware transaction kernel.
+It can expose an existing same-name class or trait under an explicit lease and
+supports validated `Preserve`, `Replace`, or explicit class/trait `Create` with
+`BeforePrimary` or `AfterPrimary` placement. Target kind remains distinct from
+the closed shape profile, and all raw compiler trees remain exact-version
+experimental values.
+
+The legacy `ParadiseAnnotationExpander`, `ExpansionInput`, `ExpansionOutcome`,
+`StructuredExpansionOutput`, target profiles, and helper signatures retain
+their released `0.1.1` shapes and behavior. In particular, a legacy annotation
+on an object is rejected without invoking its handler.
+
+This slice does not support nested/local/package objects, enum cases, public
+role-aware class or trait primaries, multiple role-aware participants,
+role-aware generated R1/R2 work, arbitrary package-stat output, deletion of an
+opposite, same-module handlers, or role-aware generated-member helpers.
+Transaction identities, package indices, snapshots, and rollback handles are
+not public. Quasiquotes remains optional and is not a production dependency.
+
 Macro-Paradise for Scala 3 is a bounded compiler experiment, not a complete
 replacement for Scala 2 Macro Paradise or a stable general macro-annotation
 framework.

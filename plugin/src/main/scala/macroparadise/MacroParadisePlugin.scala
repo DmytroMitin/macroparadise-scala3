@@ -17,7 +17,17 @@ import paradise3.api.{
   ExpansionInput as ExternalExpansionInput,
   ExpansionOutcome as ExternalExpansionOutcome,
   ExpansionTargetProfile as ExternalExpansionTargetProfile,
-  ParadiseAnnotationExpander as ExternalParadiseAnnotationExpander
+  ParadiseAnnotationExpander as ExternalParadiseAnnotationExpander,
+  RoleAwareParadiseAnnotationExpander as ExternalRoleAwareParadiseAnnotationExpander,
+  ExpansionPrimaryRole as ExternalExpansionPrimaryRole,
+  ExpansionOppositeRole as ExternalExpansionOppositeRole,
+  RoleAwareExpansionInput as ExternalRoleAwareExpansionInput,
+  RoleAwareExpansionOutcome as ExternalRoleAwareExpansionOutcome,
+  RoleAwareExpansionOutput as ExternalRoleAwareExpansionOutput,
+  OppositeChange as ExternalOppositeChange,
+  OppositePlacement as ExternalOppositePlacement,
+  RoleAwareOppositeCapability as ExternalRoleAwareOppositeCapability,
+  RoleAwareTargetAdmission as ExternalRoleAwareTargetAdmission
 }
 
 import java.io.File
@@ -45,7 +55,7 @@ private object ExternalHandlerInvocationTrace:
 
 private object ExternalHandlerLoading:
   final case class MetadataDiscoveryResult(
-      handlers: List[LoadedExternalHandler],
+      handlers: List[LoadedExternalHandlerContract],
       legacySimpleRequests: Set[ExplicitImportAnnotationIdentityRequest]
   )
 
@@ -60,11 +70,11 @@ private object ExternalHandlerLoading:
   )
 
   final case class LoadedHandlers(
-      explicit: List[LoadedExternalHandler],
+      explicit: List[LoadedExternalHandlerContract],
       handlerClasspath: List[String],
       handlerLoader: ClassLoader,
       metadataReader: AnnotationMetadataReader,
-      metadataHandlerRunCache: MetadataHandlerRunCache,
+      metadataHandlerRunCache: ExternalHandlerContractRunCache,
       deferredSameModule: Option[DeferredSameModuleHandler],
       invocationTrace: ExternalHandlerInvocationTrace,
       ownedLoaders: List[URLClassLoader]
@@ -190,7 +200,7 @@ private object ExternalHandlerLoading:
               handlerClasspath = handlerClasspath,
               handlerLoader = loader,
               metadataReader = reader,
-              metadataHandlerRunCache = MetadataHandlerRunCache(
+              metadataHandlerRunCache = ExternalHandlerContractRunCache(
                 explicitHandlers
               ),
               deferredSameModule = deferredSameModule,
@@ -213,7 +223,7 @@ private object ExternalHandlerLoading:
       handlerLoader = pluginLoader,
       metadataReader =
         UnavailableStructuredAnnotationMetadataReader(diagnostic),
-      metadataHandlerRunCache = MetadataHandlerRunCache(Nil),
+      metadataHandlerRunCache = ExternalHandlerContractRunCache(Nil),
       deferredSameModule = None,
       invocationTrace = invocationTrace,
       ownedLoaders = ownedLoaders
@@ -278,10 +288,10 @@ private object ExternalHandlerLoading:
         .flatMap: request =>
           val lookupAnnotationName = request.annotationName
           val hasCanonicalExplicit =
-            loaded.explicit.exists(_.descriptor.annotationName == request.annotationName)
+            loaded.explicit.exists(_.annotationName == request.annotationName)
           val hasLegacySimpleExplicit =
             !hasCanonicalExplicit && request.importedShortName.exists: shortName =>
-              loaded.explicit.exists(_.descriptor.annotationName == shortName)
+              loaded.explicit.exists(_.annotationName == shortName)
           loaded.metadataReader.findExpanderClass(lookupAnnotationName) match
             case MetadataLookupResult.Found(className) =>
               val resolution =
@@ -294,11 +304,11 @@ private object ExternalHandlerLoading:
                     request.importedShortName match
                       case Some(shortName)
                           if !hasCanonicalExplicit &&
-                            !handler.descriptor.annotationName.contains('.') =>
+                            !handler.annotationName.contains('.') =>
                         legacySimpleRequests += request
                         shortName
                       case _ => lookupAnnotationName
-                  MetadataHandlerBinding.validate(
+                  ExternalHandlerContractBinding.validate(
                     bindingAnnotationName,
                     className,
                     handler,
@@ -313,7 +323,7 @@ private object ExternalHandlerLoading:
                           Nil
                         case classCache.Origin.Discovered
                             if emittedDiscoveredClassNames.add(className) =>
-                          List(binding.loadedHandler)
+                          List(binding)
                         case classCache.Origin.Discovered =>
                           Nil
                 case None =>
@@ -336,20 +346,20 @@ private object ExternalHandlerLoading:
     MetadataDiscoveryResult(handlers, legacySimpleRequests.toSet)
 
   def validateUniqueHandlers(
-      handlers: List[LoadedExternalHandler]
-  )(using Context): List[LoadedExternalHandler] =
+      handlers: List[LoadedExternalHandlerContract]
+  )(using Context): List[LoadedExternalHandlerContract] =
     val seenExternal = scala.collection.mutable.Set.empty[String]
-    val uniqueHandlers = List.newBuilder[LoadedExternalHandler]
+    val uniqueHandlers = List.newBuilder[LoadedExternalHandlerContract]
 
     handlers.foreach: handler =>
-      val annotationName = handler.descriptor.annotationName
+      val annotationName = handler.annotationName
       if BuiltInAnnotationNames.contains(annotationName) then
         report.error(
           ExternalHandlerDiagnostics.render(
             ExternalHandlerDiagnostics.Stage.Loading,
             "DUPLICATE_HANDLER_REGISTRATION",
             "annotation" -> s"@$annotationName",
-            "handler" -> handler.descriptor.handlerClassName,
+            "handler" -> handler.handlerClassName,
             "conflict" -> "built-in handler",
             "detail" -> s"duplicate annotation handler registration for `$annotationName`"
           )
@@ -360,7 +370,7 @@ private object ExternalHandlerLoading:
             ExternalHandlerDiagnostics.Stage.Loading,
             "DUPLICATE_HANDLER_REGISTRATION",
             "annotation" -> s"@$annotationName",
-            "handler" -> handler.descriptor.handlerClassName,
+            "handler" -> handler.handlerClassName,
             "conflict" -> "another external handler",
             "detail" -> s"duplicate annotation handler registration for `$annotationName`"
           )
@@ -424,9 +434,11 @@ private object ExternalHandlerLoading:
       loader: ClassLoader
   )(using Context): DeferredLoadResult =
     try
-      val instance = loader.loadClass(deferred.handlerClassName).getConstructor().newInstance()
-      instance match
-        case expander: ExternalParadiseAnnotationExpander =>
+      val handlerClass = loader.loadClass(deferred.handlerClassName)
+      ExternalHandlerClassClassification.classify(handlerClass) match
+        case ExternalHandlerClassClassification.LegacyHandler =>
+          val expander = handlerClass.getConstructor().newInstance()
+            .asInstanceOf[ExternalParadiseAnnotationExpander]
           captureDescriptor(expander, loader) match
             case Some(loaded) if loaded.descriptor.annotationName == deferred.annotationName =>
               DeferredLoadResult.Available(loaded)
@@ -437,9 +449,19 @@ private object ExternalHandlerLoading:
               DeferredLoadResult.Invalid
             case None =>
               DeferredLoadResult.Invalid
-        case other =>
+        case ExternalHandlerClassClassification.RoleAwareHandler =>
           report.error(
-            s"experimental same-module handler `${deferred.handlerClassName}` does not implement paradise3.api.ParadiseAnnotationExpander; got `${other.getClass.getName}`"
+            s"experimental same-module role-aware handler `${deferred.handlerClassName}` is outside the Prompt-206 precompiled-handler slice"
+          )
+          DeferredLoadResult.Invalid
+        case ExternalHandlerClassClassification.InvalidNeither =>
+          report.error(
+            s"experimental same-module handler `${deferred.handlerClassName}` implements neither public handler interface"
+          )
+          DeferredLoadResult.Invalid
+        case ExternalHandlerClassClassification.InvalidAmbiguousBoth =>
+          report.error(
+            s"experimental same-module handler `${deferred.handlerClassName}` ambiguously implements both public handler interfaces"
           )
           DeferredLoadResult.Invalid
     catch
@@ -470,15 +492,41 @@ private object ExternalHandlerLoading:
       className: String,
       loader: ClassLoader,
       handlerClasspath: List[String]
-  )(using Context): Option[LoadedExternalHandler] =
+  )(using Context): Option[LoadedExternalHandlerContract] =
     try
       val handlerClass = loader.loadClass(className)
-      val instance = handlerClass.getConstructor().newInstance()
-      instance match
-        case expander: ExternalParadiseAnnotationExpander =>
-          captureDescriptor(expander, loader)
-        case other =>
-          report.error(ExternalHandlerDiagnostics.typeMismatch(className, other.getClass, loader))
+      ExternalHandlerClassClassification.classify(handlerClass) match
+        case ExternalHandlerClassClassification.LegacyHandler =>
+          val instance = handlerClass.getConstructor().newInstance()
+          captureDescriptor(
+            instance.asInstanceOf[ExternalParadiseAnnotationExpander],
+            loader
+          )
+        case ExternalHandlerClassClassification.RoleAwareHandler =>
+          val instance = handlerClass.getConstructor().newInstance()
+          captureRoleAwareDescriptor(
+            instance.asInstanceOf[ExternalRoleAwareParadiseAnnotationExpander],
+            loader
+          )
+        case ExternalHandlerClassClassification.InvalidNeither =>
+          report.error(
+            ExternalHandlerDiagnostics.render(
+              ExternalHandlerDiagnostics.Stage.Loading,
+              "INVALID_HANDLER_INTERFACE_NEITHER",
+              "handler" -> className,
+              "detail" -> "external handler implements neither ParadiseAnnotationExpander nor RoleAwareParadiseAnnotationExpander"
+            )
+          )
+          None
+        case ExternalHandlerClassClassification.InvalidAmbiguousBoth =>
+          report.error(
+            ExternalHandlerDiagnostics.render(
+              ExternalHandlerDiagnostics.Stage.Loading,
+              "INVALID_HANDLER_INTERFACE_AMBIGUOUS_BOTH",
+              "handler" -> className,
+              "detail" -> "external handler implements both ParadiseAnnotationExpander and RoleAwareParadiseAnnotationExpander"
+            )
+          )
           None
     catch
       case error: InvocationTargetException =>
@@ -525,6 +573,16 @@ private object ExternalHandlerLoading:
       loader: ClassLoader
   )(using Context): Option[LoadedExternalHandler] =
     ExternalHandlerDescriptor.capture(expander, loader) match
+      case Right(loaded) => Some(loaded)
+      case Left(failure) =>
+        report.error(failure.diagnostic)
+        None
+
+  private def captureRoleAwareDescriptor(
+      expander: ExternalRoleAwareParadiseAnnotationExpander,
+      loader: ClassLoader
+  )(using Context): Option[LoadedRoleAwareExternalHandler] =
+    RoleAwareExternalHandlerDescriptor.capture(expander, loader) match
       case Right(loaded) => Some(loaded)
       case Left(failure) =>
         report.error(failure.diagnostic)
@@ -1372,7 +1430,7 @@ private object ParadiseTreeRewrite:
     private def isHandledAnnotation(tree: Tree, externalExpanders: List[AnnotationExpander])(using Context, ExplicitImportAnnotationIdentityResolver): Boolean =
       expanders(externalExpanders).exists(expander => isAnnotationNamed(tree, expander.annotationName))
 
-    private def isAnnotationNamed(
+    def isAnnotationNamed(
         tree: Tree,
         expectedName: String,
         identityWitnesses: List[Tree] = Nil
@@ -1404,25 +1462,472 @@ private object ParadiseTreeRewrite:
         dedupeHandlersByClass(loadedExternalHandlers.explicit ++ discoveredHandlers)
       )
     val externalExpanders =
-      externalHandlers.map: handler =>
-        ExternalAnnotationExpander(
-          handler,
-          loadedExternalHandlers.invocationTrace
-        )
+      externalHandlers.collect:
+        case handler: LoadedExternalHandler =>
+          ExternalAnnotationExpander(
+            handler,
+            loadedExternalHandlers.invocationTrace
+          )
+    val roleAwareHandlers =
+      externalHandlers.collect:
+        case handler: LoadedRoleAwareExternalHandler => handler
 
     unit.untpdTree match
       case pkg: PackageDef =>
         val rewrittenStats =
-          privateObjectParticipant match
-            case None => rewritePackageStats(pkg.stats, externalExpanders)
-            case Some(participant) =>
-              rewritePrivateObjectTransactions(pkg.stats, participant) match
-                case Right(privateStats) =>
-                  rewritePackageStats(privateStats, externalExpanders)
-                case Left(originalStats) => originalStats
+          rewriteRoleAwareObjectTransactions(
+            pkg.stats,
+            roleAwareHandlers,
+            externalHandlers,
+            loadedExternalHandlers.invocationTrace
+          ) match
+            case Left(originalStats) => originalStats
+            case Right(roleAwareStats) =>
+              privateObjectParticipant match
+                case None => rewritePackageStats(roleAwareStats, externalExpanders)
+                case Some(participant) =>
+                  rewritePrivateObjectTransactions(roleAwareStats, participant) match
+                    case Right(privateStats) =>
+                      rewritePackageStats(privateStats, externalExpanders)
+                    case Left(originalStats) => originalStats
         cpy.PackageDef(pkg)(pkg.pid, rewrittenStats)
       case tree =>
         tree
+
+  private final case class RoleAwareObjectFailure(
+      category: String,
+      detail: String
+  )
+
+  private def rewriteRoleAwareObjectTransactions(
+      originalStats: List[Tree],
+      handlers: List[LoadedRoleAwareExternalHandler],
+      allHandlers: List[LoadedExternalHandlerContract],
+      invocationTrace: ExternalHandlerInvocationTrace
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Either[List[Tree], List[Tree]] =
+    if handlers.isEmpty then Right(originalStats)
+    else
+      var currentStats = originalStats
+      var failed = false
+      val handledNames =
+        (builtInExpanders.map(_.annotationName) ++ allHandlers.map(_.annotationName)).distinct
+
+      originalStats.foreach: original =>
+        if !failed then
+          original match
+            case moduleDef: ModuleDef =>
+              val originalAnnotations = Trees.mods(moduleDef).annotations
+              val matchingRoleAware = originalAnnotations.flatMap: annotation =>
+                handlers
+                  .find(handler => HandledAnnotations.isAnnotationNamed(annotation, handler.annotationName))
+                  .map(handler => annotation -> handler)
+              val matchingLegacy = originalAnnotations.flatMap: annotation =>
+                allHandlers.collectFirst:
+                  case handler: LoadedExternalHandler
+                      if HandledAnnotations.isAnnotationNamed(annotation, handler.annotationName) =>
+                    annotation -> handler
+
+              if matchingRoleAware.nonEmpty then
+                if matchingRoleAware.size != 1 then
+                  reportRoleAwareObjectFailure(
+                    matchingRoleAware.head._2,
+                    moduleDef,
+                    matchingRoleAware.head._1,
+                    "admission",
+                    "MULTIPLE_ROLE_AWARE_PARTICIPANTS",
+                    s"expected exactly one role-aware participant, found ${matchingRoleAware.size}"
+                  )
+                  failed = true
+                else if matchingLegacy.nonEmpty then
+                  val (annotation, handler) = matchingRoleAware.head
+                  reportRoleAwareObjectFailure(
+                    handler,
+                    moduleDef,
+                    annotation,
+                    "admission",
+                    "AMBIGUOUS_LEGACY_ROLE_AWARE_PARTICIPANTS",
+                    s"object also matches legacy handlers ${matchingLegacy.map(_._2.handlerClassName).mkString(",")}"
+                  )
+                  failed = true
+                else
+                  val (currentAnnotation, loaded) = matchingRoleAware.head
+                  val descriptor = loaded.descriptor
+                  val transaction =
+                    ObjectTransaction.discover(
+                      currentStats,
+                      moduleDef,
+                      Vector(descriptor.handlerClassName)
+                    )
+                  transaction match
+                    case Left(violation) =>
+                      reportRoleAwareObjectFailure(
+                        loaded,
+                        moduleDef,
+                        currentAnnotation,
+                        "discovery",
+                        violation.category.toString,
+                        violation.detail
+                      )
+                      failed = true
+                    case Right(started) =>
+                      leasedOpposite(descriptor.oppositeCapability, started.currentOpposite) match
+                        case Left(failure) =>
+                          reportRoleAwareObjectFailure(
+                            loaded,
+                            moduleDef,
+                            currentAnnotation,
+                            "capability-admission",
+                            failure.category,
+                            failure.detail
+                          )
+                          failed = true
+                        case Right(leased) =>
+                          val input = ExternalRoleAwareExpansionInput(
+                            annotationName = descriptor.annotationName,
+                            primary = ExternalExpansionPrimaryRole.Object(started.currentPrimary),
+                            leasedOpposite = leased.map(toExternalOpposite),
+                            topLevelNames = collectTopLevelNames(currentStats),
+                            currentAnnotation = currentAnnotation,
+                            admission = ExternalRoleAwareTargetAdmission.OrdinaryTopLevelObject
+                          )
+                          invocationTrace.record(
+                            descriptor.handlerClassName,
+                            descriptor.annotationName,
+                            started.currentPrimary.name.toString
+                          )
+                          val outcome =
+                            try Right(loaded.instance.expand(input))
+                            catch
+                              case error: LinkageError =>
+                                Left(
+                                  RoleAwareObjectFailure(
+                                    "LINKAGE_ERROR",
+                                    normalizedRoleAwareCause(error)
+                                  )
+                                )
+                              case NonFatal(error) =>
+                                Left(
+                                  RoleAwareObjectFailure(
+                                    "NONFATAL_EXCEPTION",
+                                    normalizedRoleAwareCause(error)
+                                  )
+                                )
+                          val staged =
+                            outcome.flatMap: value =>
+                              adaptRoleAwareOutcome(
+                                value,
+                                input,
+                                descriptor,
+                                started.currentOpposite,
+                                originalAnnotations,
+                                handledNames
+                              ).flatMap: result =>
+                                started.stageValidatedOutput(result).left.map: violation =>
+                                  RoleAwareObjectFailure(
+                                    violation.category.toString,
+                                    violation.detail
+                                  )
+                          staged match
+                            case Left(failure) =>
+                              reportRoleAwareObjectFailure(
+                                loaded,
+                                moduleDef,
+                                currentAnnotation,
+                                "output-validation",
+                                failure.category,
+                                failure.detail
+                              )
+                              failed = true
+                            case Right(value) =>
+                              currentStats = value.commitPackageStats
+            case other =>
+              firstNestedRoleAwareMatch(other, handlers).foreach:
+                (target, annotation, handler) =>
+                  report.error(
+                    ExternalHandlerDiagnostics.render(
+                      ExternalHandlerDiagnostics.Stage.OutputValidation,
+                      "UNSUPPORTED_ROLE_AWARE_PRIMARY",
+                      "annotation" -> s"@${handler.annotationName}",
+                      "handler" -> handler.handlerClassName,
+                      "target" -> target.getClass.getSimpleName,
+                      "detail" -> "Prompt-206 admits only an ordinary top-level object primary"
+                    ),
+                    annotation.sourcePos
+                  )
+                  failed = true
+
+      if failed then Left(originalStats) else Right(currentStats)
+
+  private def firstNestedRoleAwareMatch(
+      root: Tree,
+      handlers: List[LoadedRoleAwareExternalHandler]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Option[(Tree, Tree, LoadedRoleAwareExternalHandler)] =
+    var found: Option[(Tree, Tree, LoadedRoleAwareExternalHandler)] = None
+    val traverser = new UntypedTreeMap:
+      override def transform(tree: Tree)(using Context): Tree =
+        if found.isEmpty then
+          tree match
+            case value: TypeDef =>
+              found = firstRoleAwareAnnotation(value, Trees.mods(value).annotations, handlers)
+            case value: ModuleDef =>
+              found = firstRoleAwareAnnotation(value, Trees.mods(value).annotations, handlers)
+            case _ => ()
+        if found.isEmpty then super.transform(tree) else tree
+    traverser.transform(root)
+    found
+
+  private def firstRoleAwareAnnotation(
+      target: Tree,
+      annotations: List[Tree],
+      handlers: List[LoadedRoleAwareExternalHandler]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Option[(Tree, Tree, LoadedRoleAwareExternalHandler)] =
+    annotations.iterator.flatMap: annotation =>
+      handlers.iterator
+        .find(handler => HandledAnnotations.isAnnotationNamed(annotation, handler.annotationName))
+        .map(handler => (target, annotation, handler))
+    .toSeq.headOption
+
+  private def leasedOpposite(
+      capability: ExternalRoleAwareOppositeCapability,
+      current: Option[OppositeRole]
+  ): Either[RoleAwareObjectFailure, Option[OppositeRole]] =
+    capability match
+      case ExternalRoleAwareOppositeCapability.PrimaryOnly => Right(None)
+      case ExternalRoleAwareOppositeCapability.LeaseExisting => Right(current)
+      case ExternalRoleAwareOppositeCapability.LeaseOrCreateClass =>
+        current match
+          case Some(_: OppositeRole.TraitOpposite) =>
+            Left(RoleAwareObjectFailure("OPPOSITE_CAPABILITY_MISMATCH", "existing trait opposite is not permitted by LeaseOrCreateClass"))
+          case _ => Right(current)
+      case ExternalRoleAwareOppositeCapability.LeaseOrCreateTrait =>
+        current match
+          case Some(_: OppositeRole.ClassOpposite) =>
+            Left(RoleAwareObjectFailure("OPPOSITE_CAPABILITY_MISMATCH", "existing class opposite is not permitted by LeaseOrCreateTrait"))
+          case _ => Right(current)
+      case ExternalRoleAwareOppositeCapability.LeaseOrCreateClassOrTrait =>
+        Right(current)
+
+  private def toExternalOpposite(value: OppositeRole): ExternalExpansionOppositeRole =
+    value match
+      case OppositeRole.ObjectOpposite(tree) => ExternalExpansionOppositeRole.Object(tree)
+      case OppositeRole.ClassOpposite(tree)  => ExternalExpansionOppositeRole.Class(tree)
+      case OppositeRole.TraitOpposite(tree)  => ExternalExpansionOppositeRole.Trait(tree)
+
+  private def adaptRoleAwareOutcome(
+      outcome: ExternalRoleAwareExpansionOutcome,
+      input: ExternalRoleAwareExpansionInput,
+      descriptor: RoleAwareExternalHandlerDescriptor,
+      discoveredOpposite: Option[OppositeRole],
+      originalAnnotations: List[Tree],
+      handledNames: List[String]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Either[RoleAwareObjectFailure, RoleAwareExpansionResult] =
+    if outcome == null then
+      Left(RoleAwareObjectFailure("NULL_OUTCOME", "returned null instead of RoleAwareExpansionOutcome"))
+    else
+      outcome match
+        case ExternalRoleAwareExpansionOutcome.Rejected(diagnostics) =>
+          if diagnostics == null then
+            Left(RoleAwareObjectFailure("NULL_REJECTION_DIAGNOSTICS", "returned Rejected with null diagnostics"))
+          else if diagnostics.isEmpty then
+            Left(RoleAwareObjectFailure("EMPTY_REJECTION_DIAGNOSTICS", "returned Rejected without a diagnostic"))
+          else if diagnostics.exists(_ == null) then
+            Left(RoleAwareObjectFailure("NULL_REJECTION_DIAGNOSTIC", "returned Rejected with a null diagnostic entry"))
+          else if diagnostics.exists(diagnostic => diagnostic.message == null || diagnostic.message.trim.isEmpty) then
+            Left(RoleAwareObjectFailure("INVALID_REJECTION_DIAGNOSTIC", "returned Rejected with a null or empty diagnostic message"))
+          else
+            Left(
+              RoleAwareObjectFailure(
+                "HANDLER_REJECTED",
+                diagnostics.map(_.message.replaceAll("\\s+", " ").trim).mkString(" | ")
+              )
+            )
+        case ExternalRoleAwareExpansionOutcome.Expanded(output) =>
+          if output == null then
+            Left(RoleAwareObjectFailure("NULL_EXPANSION_OUTPUT", "returned Expanded with null output"))
+          else
+            adaptRoleAwareOutput(
+              output,
+              input,
+              descriptor,
+              discoveredOpposite,
+              originalAnnotations,
+              handledNames
+            )
+
+  private def adaptRoleAwareOutput(
+      output: ExternalRoleAwareExpansionOutput,
+      input: ExternalRoleAwareExpansionInput,
+      descriptor: RoleAwareExternalHandlerDescriptor,
+      discoveredOpposite: Option[OppositeRole],
+      originalAnnotations: List[Tree],
+      handledNames: List[String]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Either[RoleAwareObjectFailure, RoleAwareExpansionResult] =
+    for
+      primary <- adaptExternalPrimary(output.primary)
+      objectPrimary <- primary match
+        case value @ PrimaryRole.ObjectPrimary(_) => Right(value)
+        case other => Left(RoleAwareObjectFailure("PRIMARY_ROLE_MISMATCH", s"object admission returned ${other.kind} primary"))
+      canonicalPrimary <- canonicalizeRoleAwareAnnotations(
+        objectPrimary.value,
+        input.currentAnnotation,
+        originalAnnotations,
+        handledNames
+      )
+      intent <- adaptExternalOppositeChange(
+        output.opposite,
+        descriptor.oppositeCapability,
+        input.leasedOpposite,
+        discoveredOpposite
+      )
+    yield RoleAwareExpansionResult(PrimaryRole.ObjectPrimary(canonicalPrimary), intent)
+
+  private def adaptExternalPrimary(
+      value: ExternalExpansionPrimaryRole
+  )(using Context): Either[RoleAwareObjectFailure, PrimaryRole] =
+    if value == null then Left(RoleAwareObjectFailure("NULL_PRIMARY_ROLE", "returned null primary role"))
+    else
+      value match
+        case ExternalExpansionPrimaryRole.Object(tree) =>
+          if tree == null then Left(RoleAwareObjectFailure("NULL_PRIMARY_TREE", "object primary contains null tree"))
+          else Right(PrimaryRole.ObjectPrimary(tree))
+        case ExternalExpansionPrimaryRole.Class(tree) =>
+          adaptExternalTypePrimary(tree, expectTrait = false)
+        case ExternalExpansionPrimaryRole.Trait(tree) =>
+          adaptExternalTypePrimary(tree, expectTrait = true)
+
+  private def adaptExternalTypePrimary(
+      tree: TypeDef,
+      expectTrait: Boolean
+  )(using Context): Either[RoleAwareObjectFailure, PrimaryRole] =
+    if tree == null then Left(RoleAwareObjectFailure("NULL_PRIMARY_TREE", "primary role contains null TypeDef"))
+    else
+      PrimaryRole.fromLegacyTypeDef(tree).left
+        .map(violation => RoleAwareObjectFailure(violation.category.toString, violation.detail))
+        .flatMap:
+          case value: PrimaryRole.TraitPrimary if expectTrait => Right(value)
+          case value: PrimaryRole.ClassPrimary if !expectTrait => Right(value)
+          case value => Left(RoleAwareObjectFailure("COUNTERFEIT_PRIMARY_ROLE", s"wrapper disagrees with raw ${value.kind} tree"))
+
+  private def adaptExternalOpposite(
+      value: ExternalExpansionOppositeRole
+  )(using Context): Either[RoleAwareObjectFailure, OppositeRole] =
+    if value == null then Left(RoleAwareObjectFailure("NULL_OPPOSITE_ROLE", "opposite role is null"))
+    else
+      value match
+        case ExternalExpansionOppositeRole.Object(tree) =>
+          if tree == null then Left(RoleAwareObjectFailure("NULL_OPPOSITE_TREE", "object opposite contains null tree"))
+          else Right(OppositeRole.ObjectOpposite(tree))
+        case ExternalExpansionOppositeRole.Class(tree) =>
+          adaptExternalTypeOpposite(tree, expectTrait = false)
+        case ExternalExpansionOppositeRole.Trait(tree) =>
+          adaptExternalTypeOpposite(tree, expectTrait = true)
+
+  private def adaptExternalTypeOpposite(
+      tree: TypeDef,
+      expectTrait: Boolean
+  )(using Context): Either[RoleAwareObjectFailure, OppositeRole] =
+    if tree == null then Left(RoleAwareObjectFailure("NULL_OPPOSITE_TREE", "opposite role contains null TypeDef"))
+    else
+      OppositeRole.fromTypeDef(tree).left
+        .map(violation => RoleAwareObjectFailure(violation.category.toString, violation.detail))
+        .flatMap:
+          case value: OppositeRole.TraitOpposite if expectTrait => Right(value)
+          case value: OppositeRole.ClassOpposite if !expectTrait => Right(value)
+          case value => Left(RoleAwareObjectFailure("COUNTERFEIT_OPPOSITE_ROLE", s"wrapper disagrees with raw ${value.kind} tree"))
+
+  private def adaptExternalOppositeChange(
+      change: ExternalOppositeChange,
+      capability: ExternalRoleAwareOppositeCapability,
+      leased: Option[ExternalExpansionOppositeRole],
+      discovered: Option[OppositeRole]
+  )(using Context): Either[RoleAwareObjectFailure, OppositeIntent] =
+    if change == null then Left(RoleAwareObjectFailure("NULL_OPPOSITE_CHANGE", "returned null opposite change"))
+    else
+      change match
+        case ExternalOppositeChange.Preserve => Right(OppositeIntent.Preserve)
+        case ExternalOppositeChange.Replace(value) =>
+          if capability == ExternalRoleAwareOppositeCapability.PrimaryOnly || leased.isEmpty then
+            Left(RoleAwareObjectFailure("REPLACE_WITHOUT_LEASE", "Replace requires a coordinator-leased existing opposite"))
+          else adaptExternalOpposite(value).map(OppositeIntent.Replace(_))
+        case ExternalOppositeChange.Create(value, placement) =>
+          if discovered.nonEmpty then
+            Left(RoleAwareObjectFailure("CREATE_WITH_EXISTING_OPPOSITE", "Create requires no discovered opposite"))
+          else if placement == null then
+            Left(RoleAwareObjectFailure("INVALID_OPPOSITE_PLACEMENT", "Create requires explicit placement"))
+          else
+            adaptExternalOpposite(value).flatMap: opposite =>
+              val kind = opposite match
+                case _: OppositeRole.ClassOpposite => Some(OppositeCreationKind.Class)
+                case _: OppositeRole.TraitOpposite => Some(OppositeCreationKind.Trait)
+                case _ => None
+              val allowed = (capability, kind) match
+                case (ExternalRoleAwareOppositeCapability.LeaseOrCreateClass, Some(OppositeCreationKind.Class)) => true
+                case (ExternalRoleAwareOppositeCapability.LeaseOrCreateTrait, Some(OppositeCreationKind.Trait)) => true
+                case (ExternalRoleAwareOppositeCapability.LeaseOrCreateClassOrTrait, Some(_)) => true
+                case _ => false
+              if !allowed then
+                Left(RoleAwareObjectFailure("OPPOSITE_CAPABILITY_MISMATCH", s"$capability does not permit creation of ${opposite.kind}"))
+              else
+                val internalPlacement = placement match
+                  case ExternalOppositePlacement.BeforePrimary => OppositePlacement.BeforePrimary
+                  case ExternalOppositePlacement.AfterPrimary  => OppositePlacement.AfterPrimary
+                Right(OppositeIntent.Create(kind.get, internalPlacement, opposite))
+
+  private def canonicalizeRoleAwareAnnotations(
+      returned: ModuleDef,
+      currentAnnotation: Tree,
+      originals: List[Tree],
+      handledNames: List[String]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Either[RoleAwareObjectFailure, ModuleDef] =
+    val returnedAnnotations = Trees.mods(returned).annotations
+    val currentOccurrences = returnedAnnotations.count(_ eq currentAnnotation)
+    if currentOccurrences > 1 then
+      Left(RoleAwareObjectFailure("DUPLICATE_CURRENT_ANNOTATION", "returned primary duplicates the exact current annotation"))
+    else
+      val expectedOriginals = originals.filterNot(_ eq currentAnnotation)
+      val returnedOriginals = returnedAnnotations.filter(annotation => expectedOriginals.exists(_ eq annotation))
+      if returnedOriginals.size != expectedOriginals.size ||
+          !returnedOriginals.zip(expectedOriginals).forall((actual, expected) => actual eq expected)
+      then
+        Left(RoleAwareObjectFailure("ANNOTATION_LINEAGE_MISMATCH", "returned primary deleted, reconstructed, or reordered original annotations"))
+      else
+        val freshHandled = returnedAnnotations.exists: annotation =>
+          !originals.exists(_ eq annotation) &&
+            handledNames.exists(HandledAnnotations.isAnnotationNamed(annotation, _))
+        if freshHandled then
+          Left(RoleAwareObjectFailure("FRESH_HANDLED_ANNOTATION", "returned primary introduced an unqualified fresh handled annotation"))
+        else
+          val canonical = returnedAnnotations.filterNot(_ eq currentAnnotation)
+          Right(
+            returned
+              .withMods(Trees.mods(returned).withAnnotations(canonical))
+              .asInstanceOf[ModuleDef]
+          )
+
+  private def normalizedRoleAwareCause(error: Throwable): String =
+    val message = Option(error.getMessage).map(_.replaceAll("\\s+", " ").trim).filter(_.nonEmpty).getOrElse("<no-message>")
+    s"cause=${error.getClass.getName} message=$message"
+
+  private def reportRoleAwareObjectFailure(
+      handler: LoadedRoleAwareExternalHandler,
+      primary: ModuleDef,
+      annotation: Tree,
+      stage: String,
+      category: String,
+      detail: String
+  )(using Context): Unit =
+    report.error(
+      ExternalHandlerDiagnostics.render(
+        ExternalHandlerDiagnostics.Stage.OutputValidation,
+        category,
+        "annotation" -> s"@${handler.annotationName}",
+        "handler" -> handler.handlerClassName,
+        "object" -> primary.name.toString,
+        "roleAwareStage" -> stage,
+        "detail" -> detail
+      ),
+      annotation.sourcePos
+    )
 
   private def rewritePrivateObjectTransactions(
       originalStats: List[Tree],
@@ -1591,12 +2096,11 @@ private object ParadiseTreeRewrite:
     )
 
   private def dedupeHandlersByClass(
-      handlers: List[LoadedExternalHandler]
-  ): List[LoadedExternalHandler] =
+      handlers: List[LoadedExternalHandlerContract]
+  ): List[LoadedExternalHandlerContract] =
     val seen = scala.collection.mutable.Set.empty[String]
     handlers.filter: handler =>
-      val descriptor = handler.descriptor
-      val key = s"${descriptor.handlerClassName}:${descriptor.annotationName}"
+      val key = s"${handler.handlerClassName}:${handler.annotationName}"
       val isNew = !seen.contains(key)
       seen += key
       isNew

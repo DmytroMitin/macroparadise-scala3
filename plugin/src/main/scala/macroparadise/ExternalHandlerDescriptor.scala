@@ -16,11 +16,17 @@ private[macroparadise] final case class ExternalHandlerDescriptor(
     consumesExistingCompanion: Boolean
 )
 
+private[macroparadise] trait LoadedExternalHandlerContract:
+  def handlerClassName: String
+  def annotationName: String
+
 private[macroparadise] final case class LoadedExternalHandler(
     instance: ParadiseAnnotationExpander,
     descriptor: ExternalHandlerDescriptor,
     metadataFailureAlreadyReported: Boolean = false
-)
+) extends LoadedExternalHandlerContract:
+  def handlerClassName: String = descriptor.handlerClassName
+  def annotationName: String = descriptor.annotationName
 
 private[macroparadise] object ExternalHandlerDescriptor:
   final case class LoaderOwnership(

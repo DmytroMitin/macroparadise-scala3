@@ -746,8 +746,8 @@ class ConflictSpec extends munit.FunSuite:
     assertBoundaryDiagnostic(
       outcome,
       "loading",
-      "category=HANDLER_TYPE_MISMATCH",
-      "external annotation handler `demo.NotAnExpander` does not implement paradise3.api.ParadiseAnnotationExpander"
+      "category=INVALID_HANDLER_INTERFACE_NEITHER",
+      "implements neither ParadiseAnnotationExpander nor RoleAwareParadiseAnnotationExpander"
     )
   }
 

@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "234b6fc31c31ee15f870a259cbd340d0016fb7c428ade41bfa6ef936d7b51c0b",
-    "3.8.4" -> "f6994fc5acf8e20860c032a69e30226e31eacf9d65be7540fa726b2bc7bbd2de",
-    "3.9.0" -> "065e6abb8fa56f709303ae9dc9f1ecebed71a4ebeac907944fd5b329b9bd34c3"
+    "3.3.8" -> "f0b2db83d19b8e9d7ab5a8197697e3fd4ecc01a5b0af91946e0fdf86fcb7b00a",
+    "3.8.4" -> "da1275bcbfa9bee0f31ee13cc9fe5afaeab353595c8ef6e1cc499e246eb972fd",
+    "3.9.0" -> "c5a899d69db67ccb355976fb21a864026533aba20fe3f13b068f555e997e51f6"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -741,8 +741,17 @@ object ExperimentalPluginApiSurface {
         "paradise3/api/AnnotatedClassView$Variance.class",
         "paradise3/api/AnnotationTermArgument.class",
         "paradise3/api/ExpansionCompositionPolicy.class",
+        "paradise3/api/ExpansionOppositeRole.class",
         "paradise3/api/ExpansionOutcome.class",
+        "paradise3/api/ExpansionPrimaryRole.class",
+        "paradise3/api/ExpansionTargetKind.class",
         "paradise3/api/ExpansionTargetProfile.class",
+        "paradise3/api/OppositeChange.class",
+        "paradise3/api/OppositePlacement.class",
+        "paradise3/api/RoleAwareExpansionOutcome.class",
+        "paradise3/api/RoleAwareOppositeCapability.class",
+        "paradise3/api/RoleAwareShapeProfile.class",
+        "paradise3/api/RoleAwareTargetAdmission.class",
         "paradise3/api/helpers/CompanionModuleConflictPolicy.class",
         "paradise3/api/helpers/CompanionMethodConflictPolicy.class",
         "paradise3/api/helpers/CompanionTypeConflictPolicy.class",

@@ -88,6 +88,14 @@ CLASS|paradise3/api/ExpansionDiagnostic$.class|HANDLER_CONTRACT|public final cla
 CLASS|paradise3/api/ExpansionDiagnostic.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionDiagnostic implements scala.Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionInput$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOppositeRole$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionOppositeRole$Class$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Class$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOppositeRole$Class.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Class extends paradise3.api.ExpansionOppositeRole
+CLASS|paradise3/api/ExpansionOppositeRole$Object$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Object$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOppositeRole$Object.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Object extends paradise3.api.ExpansionOppositeRole
+CLASS|paradise3/api/ExpansionOppositeRole$Trait$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Trait$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionOppositeRole$Trait.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOppositeRole$Trait extends paradise3.api.ExpansionOppositeRole
+CLASS|paradise3/api/ExpansionOppositeRole.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionOppositeRole implements scala.reflect.Enum
 CLASS|paradise3/api/ExpansionOutcome$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$$anon$3 extends paradise3.api.ExpansionOutcome implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/ExpansionOutcome$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/ExpansionOutcome$Expanded$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Expanded$ implements scala.deriving.Mirror$Product,java.io.Serializable
@@ -97,10 +105,51 @@ CLASS|paradise3/api/ExpansionOutcome$Rejected.class|HANDLER_CONTRACT|public fina
 CLASS|paradise3/api/ExpansionOutcome$Structured$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionOutcome$Structured.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured extends paradise3.api.ExpansionOutcome
 CLASS|paradise3/api/ExpansionOutcome.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionOutcome implements scala.reflect.Enum
+CLASS|paradise3/api/ExpansionPrimaryRole$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionPrimaryRole$Class$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Class$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionPrimaryRole$Class.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Class extends paradise3.api.ExpansionPrimaryRole
+CLASS|paradise3/api/ExpansionPrimaryRole$Object$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Object$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionPrimaryRole$Object.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Object extends paradise3.api.ExpansionPrimaryRole
+CLASS|paradise3/api/ExpansionPrimaryRole$Trait$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Trait$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionPrimaryRole$Trait.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionPrimaryRole$Trait extends paradise3.api.ExpansionPrimaryRole
+CLASS|paradise3/api/ExpansionPrimaryRole.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionPrimaryRole implements scala.reflect.Enum
+CLASS|paradise3/api/ExpansionTargetKind$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetKind$$anon$1 extends paradise3.api.ExpansionTargetKind implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/ExpansionTargetKind$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetKind$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/ExpansionTargetKind.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionTargetKind implements scala.reflect.Enum
 CLASS|paradise3/api/ExpansionTargetProfile$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetProfile$$anon$2 extends paradise3.api.ExpansionTargetProfile implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/ExpansionTargetProfile$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetProfile$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/ExpansionTargetProfile.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionTargetProfile implements scala.reflect.Enum
+CLASS|paradise3/api/OppositeChange$$anon$5.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$$anon$5 extends paradise3.api.OppositeChange implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/OppositeChange$.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/OppositeChange$Create$.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$Create$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/OppositeChange$Create.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$Create extends paradise3.api.OppositeChange
+CLASS|paradise3/api/OppositeChange$Replace$.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$Replace$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/OppositeChange$Replace.class|HANDLER_CONTRACT|public final class paradise3.api.OppositeChange$Replace extends paradise3.api.OppositeChange
+CLASS|paradise3/api/OppositeChange.class|HANDLER_CONTRACT|public abstract class paradise3.api.OppositeChange implements scala.reflect.Enum
+CLASS|paradise3/api/OppositePlacement$$anon$6.class|HANDLER_CONTRACT|public final class paradise3.api.OppositePlacement$$anon$6 extends paradise3.api.OppositePlacement implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/OppositePlacement$.class|HANDLER_CONTRACT|public final class paradise3.api.OppositePlacement$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/OppositePlacement.class|HANDLER_CONTRACT|public abstract class paradise3.api.OppositePlacement implements scala.reflect.Enum
 CLASS|paradise3/api/ParadiseAnnotationExpander.class|HANDLER_CONTRACT|public interface paradise3.api.ParadiseAnnotationExpander
+CLASS|paradise3/api/RoleAwareExpansionInput$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionInput$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionInput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionOutcome$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutcome$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutcome$Expanded$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutcome$Expanded extends paradise3.api.RoleAwareExpansionOutcome
+CLASS|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutcome$Rejected$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutcome$Rejected extends paradise3.api.RoleAwareExpansionOutcome
+CLASS|paradise3/api/RoleAwareExpansionOutcome.class|HANDLER_CONTRACT|public abstract class paradise3.api.RoleAwareExpansionOutcome implements scala.reflect.Enum
+CLASS|paradise3/api/RoleAwareExpansionOutput$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutput$ implements scala.deriving.Mirror$Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareExpansionOutput.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareExpansionOutput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareOppositeCapability$$anon$4 extends paradise3.api.RoleAwareOppositeCapability implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/RoleAwareOppositeCapability$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareOppositeCapability$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/RoleAwareOppositeCapability.class|HANDLER_CONTRACT|public abstract class paradise3.api.RoleAwareOppositeCapability implements scala.reflect.Enum
+CLASS|paradise3/api/RoleAwareParadiseAnnotationExpander.class|HANDLER_CONTRACT|public interface paradise3.api.RoleAwareParadiseAnnotationExpander
+CLASS|paradise3/api/RoleAwareShapeProfile$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareShapeProfile$$anon$2 extends paradise3.api.RoleAwareShapeProfile implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/RoleAwareShapeProfile$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareShapeProfile$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/RoleAwareShapeProfile.class|HANDLER_CONTRACT|public abstract class paradise3.api.RoleAwareShapeProfile implements scala.reflect.Enum
+CLASS|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareTargetAdmission$$anon$3 extends paradise3.api.RoleAwareTargetAdmission implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/RoleAwareTargetAdmission$.class|HANDLER_CONTRACT|public final class paradise3.api.RoleAwareTargetAdmission$ implements scala.deriving.Mirror$Sum,java.io.Serializable
+CLASS|paradise3/api/RoleAwareTargetAdmission.class|HANDLER_CONTRACT|public abstract class paradise3.api.RoleAwareTargetAdmission implements scala.reflect.Enum
 CLASS|paradise3/api/StructuredExpansionOutput$.class|HANDLER_CONTRACT|public final class paradise3.api.StructuredExpansionOutput$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/StructuredExpansionOutput.class|HANDLER_CONTRACT|public final class paradise3.api.StructuredExpansionOutput implements scala.Product,java.io.Serializable
 CLASS|paradise3/api/expander.class|METADATA_CARRIER|public interface paradise3.api.expander extends java.lang.annotation.Annotation
@@ -1452,6 +1501,95 @@ MEMBER|paradise3/api/ExpansionInput.class|METHOD|productPrefix|0|public|-|()Ljav
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|topLevelNames|0|public|-|()Lscala/collection/immutable/Set;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionInput;)Lparadise3/api/ExpansionInput;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|FIELD|Class|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Class$;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|FIELD|Object|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Object$;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|FIELD|Trait|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Trait$;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionOppositeRole;)I
+MEMBER|paradise3/api/ExpansionOppositeRole$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Class$;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOppositeRole$Class;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)V
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Class.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOppositeRole$Class;)Lparadise3/api/ExpansionOppositeRole$Class;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Object$;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOppositeRole$Object;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)V
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Object.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOppositeRole$Object;)Lparadise3/api/ExpansionOppositeRole$Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOppositeRole$Trait$;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionOppositeRole$Trait;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)V
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionOppositeRole$Trait.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionOppositeRole$Trait;)Lparadise3/api/ExpansionOppositeRole$Trait;
+MEMBER|paradise3/api/ExpansionOppositeRole.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionOppositeRole.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/ExpansionOppositeRole.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionOppositeRole.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionOppositeRole.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionOppositeRole.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
 MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
 MEMBER|paradise3/api/ExpansionOutcome$$anon$3.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -1556,6 +1694,124 @@ MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementNames|0|public|
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|FIELD|Class|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Class$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|FIELD|Object|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Object$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|FIELD|Trait|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Trait$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionPrimaryRole;)I
+MEMBER|paradise3/api/ExpansionPrimaryRole$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Class$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionPrimaryRole$Class;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Class.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionPrimaryRole$Class;)Lparadise3/api/ExpansionPrimaryRole$Class;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Object$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionPrimaryRole$Object;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/untpd$ModuleDef;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/untpd$ModuleDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Object.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionPrimaryRole$Object;)Lparadise3/api/ExpansionPrimaryRole$Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionPrimaryRole$Trait$;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionPrimaryRole$Trait;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|CONSTRUCTOR|<init>|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)V
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|_1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|apply|0|public|static|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|copy$default$1|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|copy|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|tree|0|public|-|()Ldotty/tools/dotc/ast/Trees$TypeDef;
+MEMBER|paradise3/api/ExpansionPrimaryRole$Trait.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionPrimaryRole$Trait;)Lparadise3/api/ExpansionPrimaryRole$Trait;
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionPrimaryRole.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind$$anon$1.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|FIELD|Class|0|public|static,final|Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionTargetKind$;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|FIELD|Object|0|public|static,final|Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|FIELD|Trait|0|public|static,final|Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/ExpansionTargetKind$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionTargetKind;)I
+MEMBER|paradise3/api/ExpansionTargetKind$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|METHOD|values|0|public|-|()[Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/ExpansionTargetKind.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/ExpansionTargetKind.class|METHOD|values|0|public|static|()[Lparadise3/api/ExpansionTargetKind;
 MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
 MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
 MEMBER|paradise3/api/ExpansionTargetProfile$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -1587,6 +1843,112 @@ MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productIterator|0|publi
 MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ExpansionTargetProfile.class|METHOD|values|0|public|static|()[Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$$anon$5.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$.class|FIELD|Create|0|public|static,final|Lparadise3/api/OppositeChange$Create$;
+MEMBER|paradise3/api/OppositeChange$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/OppositeChange$;
+MEMBER|paradise3/api/OppositeChange$.class|FIELD|Preserve|0|public|static,final|Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/OppositeChange$.class|FIELD|Replace|0|public|static,final|Lparadise3/api/OppositeChange$Replace$;
+MEMBER|paradise3/api/OppositeChange$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/OppositeChange$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/OppositeChange$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/OppositeChange;)I
+MEMBER|paradise3/api/OppositeChange$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/OppositeChange$Create$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/OppositeChange$Create$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/OppositeChange$Create$;
+MEMBER|paradise3/api/OppositeChange$Create$.class|METHOD|apply|0|public|-|(Lparadise3/api/ExpansionOppositeRole;Lparadise3/api/OppositePlacement;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$Create$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Create$.class|METHOD|unapply|0|public|-|(Lparadise3/api/OppositeChange$Create;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/OppositeChange$Create.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionOppositeRole;Lparadise3/api/OppositePlacement;)V
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|_1|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|_2|0|public|-|()Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|apply|0|public|static|(Lparadise3/api/ExpansionOppositeRole;Lparadise3/api/OppositePlacement;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|copy|0|public|-|(Lparadise3/api/ExpansionOppositeRole;Lparadise3/api/OppositePlacement;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|placement|0|public|-|()Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|unapply|0|public|static|(Lparadise3/api/OppositeChange$Create;)Lparadise3/api/OppositeChange$Create;
+MEMBER|paradise3/api/OppositeChange$Create.class|METHOD|value|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/OppositeChange$Replace$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/OppositeChange$Replace$;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|METHOD|apply|0|public|-|(Lparadise3/api/ExpansionOppositeRole;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|METHOD|unapply|0|public|-|(Lparadise3/api/OppositeChange$Replace;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/OppositeChange$Replace.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionOppositeRole;)V
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|_1|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|apply|0|public|static|(Lparadise3/api/ExpansionOppositeRole;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|copy|0|public|-|(Lparadise3/api/ExpansionOppositeRole;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|unapply|0|public|static|(Lparadise3/api/OppositeChange$Replace;)Lparadise3/api/OppositeChange$Replace;
+MEMBER|paradise3/api/OppositeChange$Replace.class|METHOD|value|0|public|-|()Lparadise3/api/ExpansionOppositeRole;
+MEMBER|paradise3/api/OppositeChange.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/OppositeChange.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/OppositeChange.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/OppositeChange.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositeChange.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/OppositeChange.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement$$anon$6.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement$.class|FIELD|AfterPrimary|0|public|static,final|Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement$.class|FIELD|BeforePrimary|0|public|static,final|Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/OppositePlacement$;
+MEMBER|paradise3/api/OppositePlacement$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/OppositePlacement$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/OppositePlacement;)I
+MEMBER|paradise3/api/OppositePlacement$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement$.class|METHOD|values|0|public|-|()[Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/OppositePlacement.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/OppositePlacement;
+MEMBER|paradise3/api/OppositePlacement.class|METHOD|values|0|public|static|()[Lparadise3/api/OppositePlacement;
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|annotationName|0|public|abstract|()Ljava/lang/String;
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|compositionPolicy$|0|public|static|(Lparadise3/api/ParadiseAnnotationExpander;)Lparadise3/api/ExpansionCompositionPolicy;
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|compositionPolicy|0|public|default|()Lparadise3/api/ExpansionCompositionPolicy;
@@ -1595,6 +1957,232 @@ MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|consumesExistingCom
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|expand|0|public|abstract|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|targetProfile$|0|public|static|(Lparadise3/api/ParadiseAnnotationExpander;)Lparadise3/api/ExpansionTargetProfile;
 MEMBER|paradise3/api/ParadiseAnnotationExpander.class|METHOD|targetProfile|0|public|default|()Lparadise3/api/ExpansionTargetProfile;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareExpansionInput$;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionPrimaryRole;Lscala/Option;Lscala/collection/immutable/Set;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/RoleAwareTargetAdmission;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|METHOD|unapply|0|public|-|(Lparadise3/api/RoleAwareExpansionInput;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionPrimaryRole;Lscala/Option;Lscala/collection/immutable/Set;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/RoleAwareTargetAdmission;)V
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_2|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_3|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_4|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_5|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|_6|0|public|-|()Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|admission|0|public|-|()Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|annotationName|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lparadise3/api/ExpansionPrimaryRole;Lscala/Option;Lscala/collection/immutable/Set;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/RoleAwareTargetAdmission;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$3|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$4|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$5|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy$default$6|0|public|-|()Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionPrimaryRole;Lscala/Option;Lscala/collection/immutable/Set;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/RoleAwareTargetAdmission;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|currentAnnotation|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|leasedOpposite|0|public|-|()Lscala/Option;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|primary|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|topLevelNames|0|public|-|()Lscala/collection/immutable/Set;
+MEMBER|paradise3/api/RoleAwareExpansionInput.class|METHOD|unapply|0|public|static|(Lparadise3/api/RoleAwareExpansionInput;)Lparadise3/api/RoleAwareExpansionInput;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|FIELD|Expanded|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutcome$Expanded$;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutcome$;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|FIELD|Rejected|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutcome$Rejected$;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/RoleAwareExpansionOutcome;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/RoleAwareExpansionOutcome;)I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutcome$Expanded$;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|METHOD|apply|0|public|-|(Lparadise3/api/RoleAwareExpansionOutput;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|METHOD|unapply|0|public|-|(Lparadise3/api/RoleAwareExpansionOutcome$Expanded;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/RoleAwareExpansionOutput;)V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|_1|0|public|-|()Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|apply|0|public|static|(Lparadise3/api/RoleAwareExpansionOutput;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|copy|0|public|-|(Lparadise3/api/RoleAwareExpansionOutput;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|output|0|public|-|()Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Expanded.class|METHOD|unapply|0|public|static|(Lparadise3/api/RoleAwareExpansionOutcome$Expanded;)Lparadise3/api/RoleAwareExpansionOutcome$Expanded;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutcome$Rejected$;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|METHOD|apply|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|METHOD|unapply|0|public|-|(Lparadise3/api/RoleAwareExpansionOutcome$Rejected;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|CONSTRUCTOR|<init>|0|public|-|(Lscala/collection/immutable/List;)V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|_1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|apply|0|public|static|(Lscala/collection/immutable/List;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|copy$default$1|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|copy|0|public|-|(Lscala/collection/immutable/List;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|diagnostics|0|public|-|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome$Rejected.class|METHOD|unapply|0|public|static|(Lparadise3/api/RoleAwareExpansionOutcome$Rejected;)Lparadise3/api/RoleAwareExpansionOutcome$Rejected;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/RoleAwareExpansionOutcome;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionOutcome.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareExpansionOutput$;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|METHOD|apply|0|public|-|(Lparadise3/api/ExpansionPrimaryRole;Lparadise3/api/OppositeChange;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|METHOD|unapply|0|public|-|(Lparadise3/api/RoleAwareExpansionOutput;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionPrimaryRole;Lparadise3/api/OppositeChange;)V
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|_1|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|_2|0|public|-|()Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|apply|0|public|static|(Lparadise3/api/ExpansionPrimaryRole;Lparadise3/api/OppositeChange;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|copy|0|public|-|(Lparadise3/api/ExpansionPrimaryRole;Lparadise3/api/OppositeChange;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|opposite|0|public|-|()Lparadise3/api/OppositeChange;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|primary|0|public|-|()Lparadise3/api/ExpansionPrimaryRole;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareExpansionOutput.class|METHOD|unapply|0|public|static|(Lparadise3/api/RoleAwareExpansionOutput;)Lparadise3/api/RoleAwareExpansionOutput;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$$anon$4.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|LeaseExisting|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|LeaseOrCreateClassOrTrait|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|LeaseOrCreateClass|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|LeaseOrCreateTrait|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability$;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|FIELD|PrimaryOnly|0|public|static,final|Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/RoleAwareOppositeCapability;)I
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|METHOD|values|0|public|-|()[Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareOppositeCapability.class|METHOD|values|0|public|static|()[Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|annotationName|0|public|abstract|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|compositionPolicy$|0|public|static|(Lparadise3/api/RoleAwareParadiseAnnotationExpander;)Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|compositionPolicy|0|public|default|()Lparadise3/api/ExpansionCompositionPolicy;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|expand|0|public|abstract|(Lparadise3/api/RoleAwareExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/RoleAwareExpansionOutcome;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|oppositeCapability$|0|public|static|(Lparadise3/api/RoleAwareParadiseAnnotationExpander;)Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|oppositeCapability|0|public|default|()Lparadise3/api/RoleAwareOppositeCapability;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|targetAdmissions$|0|public|static|(Lparadise3/api/RoleAwareParadiseAnnotationExpander;)Lscala/collection/immutable/List;
+MEMBER|paradise3/api/RoleAwareParadiseAnnotationExpander.class|METHOD|targetAdmissions|0|public|default|()Lscala/collection/immutable/List;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareShapeProfile$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareShapeProfile$;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|FIELD|OrdinaryTopLevelObject|0|public|static,final|Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/RoleAwareShapeProfile;)I
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|METHOD|values|0|public|-|()[Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareShapeProfile.class|METHOD|values|0|public|static|()[Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|CONSTRUCTOR|<init>|0|public|-|()V
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$$anon$3.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/RoleAwareTargetAdmission$;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|FIELD|OrdinaryTopLevelObject|0|public|static,final|Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/RoleAwareTargetAdmission;)I
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|METHOD|values|0|public|-|()[Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionTargetKind;Lparadise3/api/RoleAwareShapeProfile;)V
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|shapeProfile|0|public|-|()Lparadise3/api/RoleAwareShapeProfile;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|targetKind|0|public|-|()Lparadise3/api/ExpansionTargetKind;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/RoleAwareTargetAdmission;
+MEMBER|paradise3/api/RoleAwareTargetAdmission.class|METHOD|values|0|public|static|()[Lparadise3/api/RoleAwareTargetAdmission;
 MEMBER|paradise3/api/StructuredExpansionOutput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/StructuredExpansionOutput$;
 MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|apply|0|public|-|(Ldotty/tools/dotc/ast/Trees$TypeDef;Lscala/Option;Lscala/collection/immutable/List;)Lparadise3/api/StructuredExpansionOutput;
 MEMBER|paradise3/api/StructuredExpansionOutput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -1820,9 +2408,21 @@ RESOURCE|paradise3/api/AnnotationTermArgument.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionCompositionPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionDiagnostic.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionInput.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionOppositeRole.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionOutcome.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionPrimaryRole.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/ExpansionTargetKind.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionTargetProfile.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/OppositeChange.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/OppositePlacement.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ParadiseAnnotationExpander.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareExpansionInput.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareExpansionOutcome.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareExpansionOutput.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareOppositeCapability.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareParadiseAnnotationExpander.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareShapeProfile.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/RoleAwareTargetAdmission.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/StructuredExpansionOutput.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionMethodConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/CompanionModuleConflictPolicy.tasty|SCALA_TASTY
@@ -1874,4 +2474,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=f6994fc5acf8e20860c032a69e30226e31eacf9d65be7540fa726b2bc7bbd2de
+normalized-sha256=da1275bcbfa9bee0f31ee13cc9fe5afaeab353595c8ef6e1cc499e246eb972fd
