@@ -18,7 +18,7 @@ on an object is rejected without invoking its handler.
 This slice does not support nested/local/package objects, enum cases, public
 role-aware class or trait primaries, multiple role-aware participants,
 role-aware generated R1/R2 work, arbitrary package-stat output, deletion of an
-opposite, same-module handlers, or role-aware generated-member helpers.
+opposite, or same-module role-aware handlers.
 Transaction identities, package indices, snapshots, and rollback handles are
 not public. Quasiquotes remains optional and is not a production dependency.
 
@@ -116,9 +116,9 @@ captured descriptors are simple also retain that legacy identity; the imported
 canonical form is selected only when marker metadata selects a handler that
 declares the matching qualified identity.
 
-## Composition
+## Legacy source-annotation composition
 
-Handlers default to `StandaloneOnly`. A handler may opt into `SourceOrdered`,
+Legacy handlers default to `StandaloneOnly`. A handler may opt into `SourceOrdered`,
 but a multi-annotation stack is admitted only when every participant opts in,
 and all admission checks succeed. Source-ordered handlers may use different
 existing closed target profiles when the concrete target independently
@@ -185,8 +185,8 @@ Precompiled handlers remain the supported experimental path.
   attachment or span and rejects a source-free member before target copying;
 - semantic import/name resolution;
 - automatic remote dependency or handler discovery;
-- public object-target routing or a general public U-style existing-definition
-  transformation API;
+- object-target routing beyond the bounded role-aware ordinary top-level slice,
+  or a general public U-style existing-definition transformation API;
 - automatic publication beyond the documented immutable `0.1.1` release;
 - a production support or security SLA.
 
@@ -197,3 +197,6 @@ provide a valid virtual source name; that name is observable provenance rather
 than Definition semantics, and Macro-Paradise neither generates nor repairs it.
 See [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md#virtual-generated-source-names)
 for the current contract and non-blocking Quasiquotes ergonomics recommendation.
+
+See [Expansion model and composition](EXPANSION_MODEL_AND_COMPOSITION.md) for
+composable generated-member helpers, topology truth tables, and legacy omission compatibility.

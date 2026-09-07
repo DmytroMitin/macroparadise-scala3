@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "f0b2db83d19b8e9d7ab5a8197697e3fd4ecc01a5b0af91946e0fdf86fcb7b00a",
-    "3.8.4" -> "da1275bcbfa9bee0f31ee13cc9fe5afaeab353595c8ef6e1cc499e246eb972fd",
-    "3.9.0" -> "c5a899d69db67ccb355976fb21a864026533aba20fe3f13b068f555e997e51f6"
+    "3.3.8" -> "30b48ab62b7ade15eab9eda6ec130f8852c3472a22e18b5075311a577d86d61d",
+    "3.8.4" -> "e654c1b7594326628e67211c8144feceda154fef5ad26f9be71a5512afa934a8",
+    "3.9.0" -> "cf8bb021f133192f899aa59f3aa15b0dcc5eeb3d9d6e75e66f0019fe045c6dfe"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -755,6 +755,7 @@ object ExperimentalPluginApiSurface {
         "paradise3/api/helpers/CompanionModuleConflictPolicy.class",
         "paradise3/api/helpers/CompanionMethodConflictPolicy.class",
         "paradise3/api/helpers/CompanionTypeConflictPolicy.class",
+        "paradise3/api/helpers/RoleAwareMissingOppositePolicy.class",
         "paradise3/api/helpers/SelfAliasOrigin.class"
       )
       released384Surface.map {

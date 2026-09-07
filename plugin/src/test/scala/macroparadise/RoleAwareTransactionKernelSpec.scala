@@ -113,6 +113,10 @@ class RoleAwareTransactionKernelSpec extends munit.FunSuite:
 
     assertEquals(complete.currentOpposite, None)
     assert(incremental.currentOpposite.exists(_.tree eq fixture.classCompanion))
+    assertEquals(complete.outputTrees, List(fixture.rewrittenClass))
+    assertEquals(incremental.outputTrees, List(fixture.rewrittenClass, fixture.classCompanion))
+    assert(incremental.outputTrees.last eq fixture.classCompanion)
+    assert(transaction.currentOpposite.exists(_.tree eq fixture.classCompanion))
   }
 
   test("wrong primary name and wrong primary role fail before transaction staging") {

@@ -95,6 +95,10 @@ class RawExpansionOutputValidatorSpec extends munit.FunSuite:
     )
   }
 
+  test("rejects exact companion-only output because the mandatory primary is absent") {
+    assertEquals(violation(List(moduleDef("Primary"))).map(_.invariant), Some("B (primary first)"))
+  }
+
   test("rejects companion-first output with invariant B") {
     assertEquals(
       violation(List(moduleDef("Primary"), typeDef("Primary"))).map(_.invariant),

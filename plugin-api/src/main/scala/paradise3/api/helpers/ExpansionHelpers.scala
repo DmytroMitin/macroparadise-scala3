@@ -6,13 +6,7 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Names.*
-import paradise3.api.{
-  AnnotatedClassView,
-  ExpansionDiagnostic,
-  ExpansionInput,
-  ExpansionOutcome,
-  StructuredExpansionOutput
-}
+import paradise3.api.*
 
 /** Optional helpers for the experimental external-handler API.
   *
@@ -26,6 +20,105 @@ import paradise3.api.{
   * replacement for raw compiler-tree access.
   */
 object ExpansionHelpers:
+  /** Compose the narrow existing-user-method-wins helper without finalizing. */
+  def addStringMethodToClass(
+      edit: LegacyExpansionEdit, methodName: String, value: String
+  )(using Context): Either[ExpansionDiagnostic, LegacyExpansionEdit] =
+    val template = edit.primary.rhs.asInstanceOf[Template]
+    val rewritten =
+      if classHasMethod(template, methodName) then edit.primary
+      else cpy.TypeDef(edit.primary)(edit.primary.name,
+        appendEditMembers(template, List(stringReturningMethod(methodName, value, edit.primary.source))))
+    Right(new LegacyExpansionEdit(edit.original, rewritten, edit.companion))
+
+  /** Append exact members to the continuing primary, preserving the companion. */
+  def placeMembersInPrimary(
+      edit: LegacyExpansionEdit, generatedMembers: List[MemberDef]
+  )(using Context): Either[ExpansionDiagnostic, LegacyExpansionEdit] =
+    val template = edit.primary.rhs.asInstanceOf[Template]
+    validateGeneratedTermMembers(edit.original, generatedMembers, template.body, "primary").map: members =>
+      val primary = cpy.TypeDef(edit.primary)(edit.primary.name, appendEditMembers(template, members))
+      new LegacyExpansionEdit(edit.original, primary, edit.companion)
+
+  /** Append exact members to the current companion or create its ordinary shell. */
+  def placeMembersInCompanion(
+      edit: LegacyExpansionEdit, generatedMembers: List[MemberDef]
+  )(using Context): Either[ExpansionDiagnostic, LegacyExpansionEdit] =
+    val body = edit.companion.map(_.impl.body).getOrElse(Nil)
+    validateGeneratedTermMembers(edit.original, generatedMembers, body, "companion").map: members =>
+      val companion = edit.companion match
+        case Some(value) => mergeMembersIntoCompanion(value, members)
+        case None => makeCompanionWithMembers(edit.primary.name, members, edit.primary.source)
+      new LegacyExpansionEdit(edit.original, edit.primary, Some(companion))
+
+  /** Append exact members inside an object-primary proposal. */
+  def placeMembersInPrimary(
+      edit: RoleAwareExpansionEdit, generatedMembers: List[MemberDef]
+  )(using Context): Either[ExpansionDiagnostic, RoleAwareExpansionEdit] =
+    val primary = edit.primary.asInstanceOf[ExpansionPrimaryRole.Object].tree
+    validateGeneratedTermMembers(primary.name.toString, edit.original.currentAnnotation.sourcePos,
+      generatedMembers, primary.impl.body, "primary").map: members =>
+      val rewritten = cpy.ModuleDef(primary)(primary.name, appendEditMembers(primary.impl, members))
+      new RoleAwareExpansionEdit(edit.original, ExpansionPrimaryRole.Object(rewritten), edit.opposite, edit.change)
+
+  /** Append to an existing or previously created class/trait, preserving provenance. */
+  def placeMembersInOpposite(
+      edit: RoleAwareExpansionEdit,
+      generatedMembers: List[MemberDef],
+      ifMissing: RoleAwareMissingOppositePolicy
+  )(using Context): Either[ExpansionDiagnostic, RoleAwareExpansionEdit] =
+    val primary = edit.primary.asInstanceOf[ExpansionPrimaryRole.Object].tree
+    val position = edit.original.currentAnnotation.sourcePos
+    def reject(message: String) = Left(ExpansionDiagnostic(message, position))
+    val existing = edit.opposite.map:
+      case ExpansionOppositeRole.Class(tree) => tree
+      case ExpansionOppositeRole.Trait(tree) => tree
+      case _ => throw new AssertionError("validated edit opposite role")
+    val body = existing.map(_.rhs.asInstanceOf[Template].body).getOrElse(Nil)
+    if ifMissing == null then reject("missing-opposite policy must be non-null")
+    else
+      val creation = ifMissing match
+        case RoleAwareMissingOppositePolicy.Reject => None
+        case RoleAwareMissingOppositePolicy.CreateClass(placement) => Some((false, placement))
+        case RoleAwareMissingOppositePolicy.CreateTrait(placement) => Some((true, placement))
+      if existing.isEmpty && creation.exists(_._2 == null) then reject("opposite creation placement must be explicit and non-null")
+      else if existing.isEmpty && creation.isEmpty then reject("no current class or trait opposite; missing-opposite policy rejects creation")
+      else validateGeneratedTermMembers(primary.name.toString, position, generatedMembers, body, "opposite").map: members =>
+        val opposite = existing match
+          case Some(tree) =>
+            val rewritten = cpy.TypeDef(tree)(tree.name, appendEditMembers(tree.rhs.asInstanceOf[Template], members))
+            edit.opposite.get match
+              case ExpansionOppositeRole.Class(_) => ExpansionOppositeRole.Class(rewritten)
+              case _ => ExpansionOppositeRole.Trait(rewritten)
+          case None =>
+            given dotty.tools.dotc.util.SourceFile = primary.source
+            val raw = TypeDef(primary.name.toTypeName, makeTemplate(primary.source, members))
+            if creation.get._1 then
+              ExpansionOppositeRole.Trait(raw.withMods(Modifiers(dotty.tools.dotc.core.Flags.Trait)).asInstanceOf[TypeDef])
+            else ExpansionOppositeRole.Class(raw)
+        val change = edit.change match
+          case OppositeChange.Create(_, placement) => OppositeChange.Create(opposite, placement)
+          case _ if existing.isEmpty => OppositeChange.Create(opposite, creation.get._2)
+          case _ => OppositeChange.Replace(opposite)
+        new RoleAwareExpansionEdit(edit.original, edit.primary, Some(opposite), change)
+
+  /** One-shot convenience over the same composable engine. */
+  def placeMembersInPrimary(
+      input: RoleAwareExpansionInput, generatedMembers: List[MemberDef]
+  )(using Context): RoleAwareExpansionOutcome =
+    RoleAwareExpansionEdit.finish(RoleAwareExpansionEdit.start(input).flatMap(e => placeMembersInPrimary(e, generatedMembers)))
+
+  /** One-shot convenience with explicit missing-opposite behavior. */
+  def placeMembersInOpposite(
+      input: RoleAwareExpansionInput,
+      generatedMembers: List[MemberDef],
+      ifMissing: RoleAwareMissingOppositePolicy
+  )(using Context): RoleAwareExpansionOutcome =
+    RoleAwareExpansionEdit.finish(RoleAwareExpansionEdit.start(input).flatMap(e => placeMembersInOpposite(e, generatedMembers, ifMissing)))
+
+  private def appendEditMembers(template: Template, members: List[MemberDef])(using Context): Template =
+    cpy.Template(template)(template.constr, template.parentsOrDerived, template.derived, template.self, template.body ++ members)
+
   /** Build a successful expansion outcome from already-constructed raw trees. */
   def expanded(trees: List[untpd.Tree]): ExpansionOutcome =
     ExpansionOutcome.Expanded(trees)
@@ -582,12 +675,20 @@ object ExpansionHelpers:
       existingBody: List[Tree],
       targetRole: String
   )(using Context): Either[ExpansionDiagnostic, List[MemberDef]] =
-    val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
+    validateGeneratedTermMembers(input.className, mostSpecificCurrentAnnotationPosition(input), generatedMembers, existingBody, targetRole)
+
+  private def validateGeneratedTermMembers(
+      targetName: String,
+      rejectionPosition: dotty.tools.dotc.util.SrcPos,
+      generatedMembers: List[MemberDef] | Null,
+      existingBody: List[Tree],
+      targetRole: String
+  )(using Context): Either[ExpansionDiagnostic, List[MemberDef]] =
     Option(generatedMembers) match
       case None =>
         Left(
           ExpansionDiagnostic(
-            s"generated member batch for `${input.className}` must be a non-null List",
+            s"generated member batch for `${targetName}` must be a non-null List",
             rejectionPosition
           )
         )
@@ -595,7 +696,7 @@ object ExpansionHelpers:
         if members.isEmpty then
           Left(
             ExpansionDiagnostic(
-              s"generated member batch for `${input.className}` must contain at least one untpd.DefDef or untpd.ValDef",
+              s"generated member batch for `${targetName}` must contain at least one untpd.DefDef or untpd.ValDef",
               rejectionPosition
             )
           )
@@ -611,7 +712,8 @@ object ExpansionHelpers:
                 Option(rawMember) match
                   case Some(member: DefDef) =>
                     validateGeneratedTermMember(
-                      input,
+                      targetName,
+                      rejectionPosition,
                       member,
                       member.name,
                       index,
@@ -622,7 +724,8 @@ object ExpansionHelpers:
                       loop(tail, index + 1, generatedNames + member.name)
                   case Some(member: ValDef) =>
                     validateGeneratedTermMember(
-                      input,
+                      targetName,
+                      rejectionPosition,
                       member,
                       member.name,
                       index,
@@ -634,14 +737,14 @@ object ExpansionHelpers:
                   case Some(other) =>
                     Left(
                       ExpansionDiagnostic(
-                        s"generated member batch entry $index for `${input.className}` has unsupported raw kind `${other.getClass.getName}`; only untpd.DefDef and untpd.ValDef are admitted",
+                        s"generated member batch entry $index for `${targetName}` has unsupported raw kind `${other.getClass.getName}`; only untpd.DefDef and untpd.ValDef are admitted",
                         usableTreePosition(other, rejectionPosition)
                       )
                     )
                   case None =>
                     Left(
                       ExpansionDiagnostic(
-                        s"generated member batch entry $index for `${input.className}` is null; only untpd.DefDef and untpd.ValDef are admitted",
+                        s"generated member batch entry $index for `${targetName}` is null; only untpd.DefDef and untpd.ValDef are admitted",
                         rejectionPosition
                       )
                     )
@@ -649,7 +752,8 @@ object ExpansionHelpers:
           loop(members, 0, Set.empty)
 
   private def validateGeneratedTermMember(
-      input: ExpansionInput,
+      targetName: String,
+      rejectionPosition: dotty.tools.dotc.util.SrcPos,
       member: MemberDef,
       name: TermName,
       index: Int,
@@ -658,13 +762,15 @@ object ExpansionHelpers:
       targetRole: String
   )(using Context): Either[ExpansionDiagnostic, Unit] =
     val decodedName = name.toString
-    val rejectionPosition = mostSpecificCurrentAnnotationPosition(input)
     if !member.source.exists && !member.span.exists then
-      Left(generatedMemberPositionDiagnostic(input, member))
+      Left(ExpansionDiagnostic(
+        s"generated member `${member.name}` for `$targetName` has no usable source position; direct placement requires an insertion-ready positioned DefDef or ValDef",
+        rejectionPosition
+      ))
     else if decodedName.isEmpty || decodedName == "<init>" || decodedName == "<clinit>" then
       Left(
         ExpansionDiagnostic(
-          s"generated member batch entry $index for `${input.className}` has unusable direct term name `$decodedName`",
+          s"generated member batch entry $index for `${targetName}` has unusable direct term name `$decodedName`",
           usableTreePosition(member, rejectionPosition)
         )
       )
@@ -676,14 +782,14 @@ object ExpansionHelpers:
     then
       Left(
         ExpansionDiagnostic(
-          s"generated $targetRole member `$decodedName` conflicts with existing direct $targetRole term member `$decodedName` for `${input.className}`",
+          s"generated $targetRole member `$decodedName` conflicts with existing direct $targetRole term member `$decodedName` for `${targetName}`",
           rejectionPosition
         )
       )
     else if generatedNames.contains(name) then
       Left(
         ExpansionDiagnostic(
-          s"generated member batch for `${input.className}` contains duplicate direct term name `$decodedName`; pre-typer overload resolution is not attempted",
+          s"generated member batch for `${targetName}` contains duplicate direct term name `$decodedName`; pre-typer overload resolution is not attempted",
           usableTreePosition(member, rejectionPosition)
         )
       )

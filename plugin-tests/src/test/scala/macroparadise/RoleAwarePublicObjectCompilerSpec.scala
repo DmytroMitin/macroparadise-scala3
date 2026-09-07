@@ -8,6 +8,7 @@ import dotty.tools.dotc.core.Flags.Trait
 import dotty.tools.dotc.core.Names.*
 import dotty.tools.dotc.interfaces.{Diagnostic, SimpleReporter}
 import paradise3.api.*
+import paradise3.api.helpers.*
 
 import java.io.File
 import java.nio.file.Files
@@ -81,13 +82,13 @@ final class PrimaryOnlyCreateHandler
     extends RoleAwareNegativeHandler("primaryCreate", "primaryCreateMarker"):
   protected def result(input: RoleAwareExpansionInput)(using Context) =
     val primary = objectPrimary(input)
-    val created = RoleAwareNegativeTrees.freshType(primary.name.toString, primary.source, false)
-    RoleAwareExpansionOutcome.Expanded(
-      RoleAwareExpansionOutput(
-        input.primary,
-        OppositeChange.Create(ExpansionOppositeRole.Class(created), OppositePlacement.BeforePrimary)
-      )
-    )
+    val member = ExpansionHelpers.stringReturningMethod("composed", "ok", primary.source)
+    val program = for
+      e0 <- RoleAwareExpansionEdit.start(input)
+      e1 <- ExpansionHelpers.placeMembersInPrimary(e0, List(member))
+      e2 <- ExpansionHelpers.placeMembersInOpposite(e1, List(member), RoleAwareMissingOppositePolicy.CreateClass(OppositePlacement.BeforePrimary))
+    yield e2
+    RoleAwareExpansionEdit.finish(program)
 
 final class WrongPrimaryNameHandler
     extends RoleAwareNegativeHandler("wrongPrimaryName", "wrongPrimaryNameMarker"):
@@ -212,10 +213,30 @@ final class FreshHandledAnnotationHandler
 final class LateLineageFailureHandler
     extends RoleAwareNegativeHandler("late", "lateMarker"):
   protected def result(input: RoleAwareExpansionInput)(using Context) =
-    val rewritten = RoleAwareNegativeTrees.withoutLastAnnotation(objectPrimary(input))
-    RoleAwareExpansionOutcome.Expanded(
-      RoleAwareExpansionOutput(ExpansionPrimaryRole.Object(rewritten), OppositeChange.Preserve)
-    )
+    val member = ExpansionHelpers.stringReturningMethod("composed", "ok", objectPrimary(input).source)
+    val program = for
+      e0 <- RoleAwareExpansionEdit.start(input)
+      e1 <- ExpansionHelpers.placeMembersInPrimary(e0, List(member))
+      e2 <- ExpansionHelpers.placeMembersInPrimary(e1, List(ExpansionHelpers.stringReturningMethod("second", "ok", objectPrimary(input).source)))
+    yield e2
+    RoleAwareExpansionEdit.finish(program) match
+      case RoleAwareExpansionOutcome.Expanded(output) =>
+        val rewritten = RoleAwareNegativeTrees.withoutLastAnnotation(output.primary.asInstanceOf[ExpansionPrimaryRole.Object].tree)
+        RoleAwareExpansionOutcome.Expanded(output.copy(primary = ExpansionPrimaryRole.Object(rewritten)))
+      case rejected => rejected
+
+final class LateEditFailureHandler
+    extends RoleAwareNegativeHandler("lateEdit", "lateEditMarker"):
+  override val oppositeCapability = RoleAwareOppositeCapability.LeaseExisting
+  protected def result(input: RoleAwareExpansionInput)(using Context) =
+    val member = ExpansionHelpers.stringReturningMethod("composed", "ok", objectPrimary(input).source)
+    val program = for
+      e0 <- RoleAwareExpansionEdit.start(input)
+      e1 <- ExpansionHelpers.placeMembersInPrimary(e0, List(member))
+      e2 <- ExpansionHelpers.placeMembersInOpposite(e1, List(member), RoleAwareMissingOppositePolicy.Reject)
+      e3 <- ExpansionHelpers.placeMembersInPrimary(e2, List(member))
+    yield e3
+    RoleAwareExpansionEdit.finish(program)
 
 final class LegacyObjectHandler extends ParadiseAnnotationExpander:
   RoleAwareNegativeCounters.constructed("legacy")
@@ -285,6 +306,7 @@ class RoleAwarePublicObjectCompilerSpec extends munit.FunSuite:
   }
 
   List(
+    ("lateEditMarker", classOf[LateEditFailureHandler], "class Subject", "conflicts with existing direct primary"),
     ("primaryReplaceMarker", classOf[PrimaryOnlyReplaceHandler], "class Subject", "REPLACE_WITHOUT_LEASE"),
     ("primaryCreateMarker", classOf[PrimaryOnlyCreateHandler], "", "OPPOSITE_CAPABILITY_MISMATCH"),
     ("wrongPrimaryNameMarker", classOf[WrongPrimaryNameHandler], "", "PrimaryNameMismatch"),

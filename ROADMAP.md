@@ -85,10 +85,13 @@ compiler/plugin behavior remains in the product API rather than in sbt.
 
 ## Next public-contract work
 
-The selected post-`0.1.1` object-target architecture is a sibling, versioned,
-role-aware public handler contract with a private adapter for the existing
-handler API. Object routing, helpers, composition, rollback, exact-line
-qualification, and documentation must all close before any support claim.
+Current `0.2.0-SNAPSHOT` implements the sibling role-aware public handler
+contract for one ordinary top-level object, preserving the legacy API through
+its private adapter. Immutable helper programs compose edits on both sides
+inside one handler. Multiple role-aware participants, object R1/R2 lineage,
+explicit opposite deletion, and primary role/focus changes remain separate
+future work. See [Expansion model and composition](docs/EXPANSION_MODEL_AND_COMPOSITION.md)
+for the current bounded topology and verification boundary.
 
 Later bounded public U-style existing-definition transformation authoring is a
 separate track. Neither capability is part of released `0.1.1`, and this

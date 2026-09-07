@@ -70,6 +70,21 @@ object IndependentRoleAwareHandlerPackagedConsumer {
     require(compilerJars.exists(_.getName.startsWith("scala3-library_3-")))
     require(compilerJars.exists(_.getName.startsWith("scala-library-")))
 
+    // Source-level factory boundary: the compiler must reject both constructors.
+    Vector(
+      "Legacy" -> "new paradise3.api.LegacyExpansionEdit(null, null, None)",
+      "RoleAware" -> "new paradise3.api.RoleAwareExpansionEdit(null, null, None, paradise3.api.OppositeChange.Preserve)"
+    ).foreach { case (label, expression) =>
+      val source = new File(evidenceDirectory, s"Forbidden${label}Construction.scala")
+      Files.write(source.toPath, s"package outsideapi\nobject Forbidden${label}Construction { val value = $expression }\n".getBytes(StandardCharsets.UTF_8))
+      val destination = new File(evidenceDirectory, s"forbidden-$label-classes")
+      require(destination.mkdirs())
+      val negative = compile(repositoryRoot, compilerJars, Vector(apiArtifact) ++ compilerJars,
+        destination, source, Vector.empty, new File(evidenceDirectory, s"forbidden-$label-construction.log"))
+      require(negative._1 != 0 && negative._2.contains("cannot be accessed"), s"$label constructor was not source-protected: ${negative._2}")
+      require(regularFiles(destination).isEmpty, s"$label forbidden construction emitted files")
+    }
+
     val handlerCompile = compile(
       repositoryRoot,
       compilerJars,
@@ -120,8 +135,14 @@ object IndependentRoleAwareHandlerPackagedConsumer {
     val invocationLines =
       if (trace.isFile) Files.readAllLines(trace.toPath, StandardCharsets.UTF_8).toArray.toVector.map(_.toString)
       else Vector.empty
-    require(invocationLines.size == 5, s"expected five role-aware invocations, found ${invocationLines.size}")
-    require(invocationLines.forall(_.contains("handler=roleawareprobe.IndependentRoleAwareHandler")))
+    require(invocationLines.size == 10, s"expected five role-aware, two legacy composite, and three omission-regression invocations, found ${invocationLines.size}")
+    require(invocationLines.count(_.contains("handler=roleawareprobe.IndependentRoleAwareHandler")) == 5)
+    require(invocationLines.count(_.contains("handler=roleawareprobe.IndependentLegacyClassHandler")) == 1)
+    require(invocationLines.count(_.contains("handler=roleawareprobe.IndependentLegacyTraitHandler")) == 1)
+    require(invocationLines.count(_.contains("handler=roleawareprobe.IndependentOmittingHandler")) == 2)
+    require(invocationLines.count(_.contains("handler=roleawareprobe.IndependentRetainingHandler")) == 1)
+    require(!outputFiles.exists(_.endsWith("DroppedCompanion$.class")), "complete omission retained the leased companion")
+    require(outputFiles.exists(_.endsWith("RetainedCompanion$.class")), "intermediate omission dropped the leased companion")
 
     val runtimeJars = compilerJars.filter(file =>
       file.getName.startsWith("scala3-library_3-") || file.getName.startsWith("scala-library-")

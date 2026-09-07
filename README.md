@@ -297,8 +297,9 @@ The current implementation provides bounded evidence for:
 - a restricted, opt-in generic-trait target profile used by one contextual
   companion-method fixture.
 
-Composition is fail closed. Every participant must opt in, share the same
-target profile, preserve remaining handled annotations exactly, and satisfy
+Legacy source-annotation composition is fail closed. Every participant must opt in,
+independently admit the concrete target under its profile, preserve remaining
+handled annotations exactly, and satisfy
 the plugin's output and rollback invariants. The coordinator is generic, but
 positive evidence remains bounded to the combinations in the test suite.
 
@@ -341,8 +342,9 @@ positive evidence remains bounded to the combinations in the test suite.
   coordinate. Released `0.1.1` includes the bounded direct-body and type-
   structure views but has no implied release cadence or production support
   commitment.
-- Public object-target routing and a versioned role-aware public handler
-  contract remain post-`0.1.1` development work. General public U-style
+- Released `0.1.1` has no public object-target routing. Current `0.2.0-SNAPSHOT`
+  supports one ordinary top-level object through the role-aware handler API,
+  with immutable helper composition inside one handler. General public U-style
   existing-definition transformation authoring is not a released API.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
@@ -389,3 +391,6 @@ as `0.1.1`; compiler-facing artifacts use exact full crossing for Scala 3.3.8,
 3.8.4, and 3.9.0. Current `0.2.0-SNAPSHOT` development is not published
 remotely. Internal fixtures, tests, examples, consumers, and spikes remain
 unpublished.
+
+See [Expansion model and composition](docs/EXPANSION_MODEL_AND_COMPOSITION.md)
+for mandatory primary roles, optional opposites, lease omission, and atomic helper programs.

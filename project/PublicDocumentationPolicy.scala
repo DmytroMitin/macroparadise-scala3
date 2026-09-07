@@ -24,6 +24,7 @@ object PublicDocumentationPolicy {
     "docs/QUASIQUOTE_ARCHITECTURE.md",
     "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md",
     "docs/EXTERNAL_HANDLER_AUTHORING.md",
+    "docs/EXPANSION_MODEL_AND_COMPOSITION.md",
     "docs/DIAGNOSTICS.md",
     "docs/COMPATIBILITY.md",
     "docs/VERSIONING_AND_STABILITY.md"

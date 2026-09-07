@@ -10,6 +10,7 @@ object PublicDocumentationPolicySpec {
 
   def run(): Unit = {
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/QUASIQUOTE_ARCHITECTURE.md"))
+    assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EXPANSION_MODEL_AND_COMPOSITION.md"))
     val clean = fixture()
     try {
       val result = PublicDocumentationPolicy.verify(clean, PublicDocumentationPolicy.RequiredPaths)

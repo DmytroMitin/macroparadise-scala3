@@ -88,17 +88,20 @@ type-resolution evidence, not as a Macro-Paradise-generated compiler cycle.
 
 ### Target rejected before invocation
 
-The common profile admits a bounded top-level class. The restricted trait
+The legacy common profile admits a bounded top-level class. The restricted trait
 profile has its own exact one-type-parameter envelope. Case classes, generic
 classes under the common profile, nested/local definitions, objects, enums, and
-unsupported trait shapes are rejected before handler execution.
+unsupported trait shapes are rejected before legacy handler execution. The
+role-aware contract separately admits one ordinary top-level object.
 
 ### Malformed handler result
 
 The plugin validates primary/companion identity, output ordering, duplicate and
 package conflicts, nulls, supported structured roles, fallback identity, and
 annotation preservation. It does not repair a malformed result. The original
-class and leased companion are restored on failure.
+class and leased companion are restored on legacy failure. Role-aware failures
+restore the original object primary and class/trait opposite; successful helper
+proposals still pass terminal capability and annotation-lineage validation.
 
 ### Ordinary typer diagnostic
 

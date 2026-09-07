@@ -50,9 +50,10 @@ annotation consumption, commit, and exact rollback authority remain
 plugin-owned. This first slice rejects multiple role-aware participants and
 fresh/generated handled object annotations; public object R1/R2 lineage,
 source-ordered multi-participant object composition, and public role-aware
-class/trait primary routing remain separately gated. Role-aware generated-member
-helpers are also deferred, so expert handlers currently use narrow raw-tree
-copying. Quasiquotes remains an optional authoring layer and is not a Macro
+class/trait primary routing remain separately gated. Immutable edit states now
+compose generated-member helpers across both sides inside one invocation. See
+[Expansion model and composition](EXPANSION_MODEL_AND_COMPOSITION.md).
+Quasiquotes remains an optional authoring layer and is not a Macro
 production dependency.
 
 Start with a user-defined `@identity` annotation. It is the smallest supported
@@ -594,7 +595,9 @@ Use the narrowest operation whose ownership matches the work:
 | `ScalametaDefinitionUntypedBridge.lower` (Quasiquotes) | A fresh, source-free exact `MemberDef` for structural/intermediate work | Direct insertion readiness; Macro-Paradise rejects a result with neither root source nor span |
 | `ScalametaDefinitionGeneratedOriginBridge.lower` (Quasiquotes) | A positioned generated-origin concrete `DefDef`/`ValDef` ready to hand to Macro placement | Target admission, placement, conflict handling, or rollback |
 | `ScalametaDefinitionClassMemberAppendBridge.append` (Quasiquotes) | The accepted request-074 hybrid: rebuild one admitted existing class while preserving exact old-member identity and appending one generated Scalameta Definition | General class editing, multi-member transactions, or Macro lifecycle replacement |
-| `ExpansionHelpers.placeMembersInPrimary` | Atomically append a non-empty concrete `DefDef`/`ValDef` batch to an admitted primary | Object-primary support, overload resolution, or source repair |
+| `ExpansionHelpers.placeMembersInPrimary` | Atomically append a non-empty concrete `DefDef`/`ValDef` batch to an admitted primary | Broader object shapes, overload resolution, or source repair |
+| `LegacyExpansionEdit` / `RoleAwareExpansionEdit` | Compose helper edits inside one invocation and finalize once | Inter-handler scheduling, primary deletion, role conversion, or explicit opposite deletion |
+| `ExpansionHelpers.placeMembersInOpposite` | Edit/create the role-aware object primary's class/trait opposite with explicit missing policy | Automatic capability, kind or placement inference |
 | `ExpansionHelpers.placeMembersInCompanion` | Atomically create/merge the leased companion and append the same batch | Semantic companion lookup or partial success |
 | `ExpansionHelpers.addMethodToCompanion` | Place one `DefDef` with explicit `PreserveExisting` or `Reject` behavior | Generic batch semantics or typed overload matching |
 | `ExpansionHelpers.addTypeToCompanion` | Place one already-lowered `TypeDef` in the type namespace | Generic Definition lowering or arbitrary `MemberDef` placement |

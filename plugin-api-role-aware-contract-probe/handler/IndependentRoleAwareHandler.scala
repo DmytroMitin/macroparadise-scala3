@@ -3,125 +3,73 @@ package roleawareprobe
 import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
-import dotty.tools.dotc.core.Flags.Trait
 import dotty.tools.dotc.core.Names.{termName, typeName}
+import dotty.tools.dotc.util.SourceFile
 import paradise3.api.*
+import paradise3.api.helpers.*
 
-final class IndependentRoleAwareHandler
-    extends RoleAwareParadiseAnnotationExpander:
-  val annotationName: String = "roleawareprobe.IndependentRoleAwareMarker"
-
-  override val oppositeCapability: RoleAwareOppositeCapability =
-    RoleAwareOppositeCapability.LeaseOrCreateClassOrTrait
-
-  def expand(
-      input: RoleAwareExpansionInput
-  )(using Context): RoleAwareExpansionOutcome =
-    input.primary match
-      case ExpansionPrimaryRole.Object(primary) =>
-        val primaryName = primary.name.toString
-        val rewritten =
-          if primaryName == "ObjectEdit" then
-            appendStringMethod(primary, "foo", "ok")
-          else primary
-        val opposite =
-          (primaryName, input.leasedOpposite) match
-            case ("ExistingClass", Some(ExpansionOppositeRole.Class(value))) =>
-              OppositeChange.Replace(
-                ExpansionOppositeRole.Class(
-                  appendStringMethod(value, "foo", "class-replaced")
-                )
-              )
-            case ("ExistingTrait", Some(ExpansionOppositeRole.Trait(value))) =>
-              OppositeChange.Replace(
-                ExpansionOppositeRole.Trait(
-                  appendStringMethod(value, "foo", "trait-replaced")
-                )
-              )
-            case ("CreateClass", None) =>
-              OppositeChange.Create(
-                ExpansionOppositeRole.Class(
-                  freshOpposite(primaryName, primary.source, asTrait = false, "class-created")
-                ),
-                OppositePlacement.BeforePrimary
-              )
-            case ("CreateTrait", None) =>
-              OppositeChange.Create(
-                ExpansionOppositeRole.Trait(
-                  freshOpposite(primaryName, primary.source, asTrait = true, "trait-created")
-                ),
-                OppositePlacement.AfterPrimary
-              )
-            case _ => OppositeChange.Preserve
-        RoleAwareExpansionOutcome.Expanded(
-          RoleAwareExpansionOutput(
-            ExpansionPrimaryRole.Object(rewritten),
-            opposite
-          )
-        )
-      case _ =>
-        RoleAwareExpansionOutcome.Rejected(
-          List(ExpansionDiagnostic("expected object primary", input.currentAnnotation.sourcePos))
-        )
-
-  private def appendStringMethod(
-      value: untpd.ModuleDef,
-      name: String,
-      result: String
-  )(using Context): untpd.ModuleDef =
-    val rewritten = appendStringMethod(value.impl, value.source, name, result)
-    untpd.cpy.ModuleDef(value)(value.name, rewritten)
-
-  private def appendStringMethod(
-      value: untpd.TypeDef,
-      name: String,
-      result: String
-  )(using Context): untpd.TypeDef =
-    value.rhs match
-      case template: untpd.Template =>
-        untpd.cpy.TypeDef(value)(
-          value.name,
-          appendStringMethod(template, value.source, name, result)
-        )
-      case _ => value
-
-  private def appendStringMethod(
-      template: untpd.Template,
-      source: dotty.tools.dotc.util.SourceFile,
-      name: String,
-      result: String
-  )(using Context): untpd.Template =
-    given dotty.tools.dotc.util.SourceFile = source
-    val method = untpd.DefDef(
-      termName(name),
-      Nil,
-      untpd.Ident(typeName("String")),
-      untpd.Literal(Constant(result))
-    )
-    untpd.cpy.Template(template)(
-      template.constr,
-      template.parentsOrDerived,
-      template.derived,
-      template.self,
-      template.body :+ method
+private object AuthoredMembers:
+  def batch(result: String, source: SourceFile)(using Context): List[untpd.MemberDef] =
+    given SourceFile = source
+    List(
+      ExpansionHelpers.stringReturningMethod("foo", result, source),
+      untpd.ValDef(termName("answer"), untpd.Ident(typeName("Int")), untpd.Literal(Constant(42)))
     )
 
-  private def freshOpposite(
-      name: String,
-      source: dotty.tools.dotc.util.SourceFile,
-      asTrait: Boolean,
-      methodResult: String
-  )(using Context): untpd.TypeDef =
-    given dotty.tools.dotc.util.SourceFile = source
-    val method = untpd.DefDef(
-      termName("foo"),
-      Nil,
-      untpd.Ident(typeName("String")),
-      untpd.Literal(Constant(methodResult))
-    )
-    val raw = untpd.TypeDef(
-      typeName(name),
-      untpd.Template(untpd.emptyConstructor, Nil, Nil, untpd.EmptyValDef, method :: Nil)
-    )
-    if asTrait then raw.withMods(untpd.Modifiers(Trait)).asInstanceOf[untpd.TypeDef]
-    else raw
+final class IndependentRoleAwareHandler extends RoleAwareParadiseAnnotationExpander:
+  val annotationName = "roleawareprobe.IndependentRoleAwareMarker"
+  override val oppositeCapability = RoleAwareOppositeCapability.LeaseOrCreateClassOrTrait
+
+  def expand(input: RoleAwareExpansionInput)(using Context): RoleAwareExpansionOutcome =
+    val primary = input.primary.asInstanceOf[ExpansionPrimaryRole.Object].tree
+    val name = primary.name.toString
+    val program = for
+      e0 <- RoleAwareExpansionEdit.start(input)
+      e1 <- ExpansionHelpers.placeMembersInPrimary(e0, AuthoredMembers.batch("ok", primary.source))
+      e2 <- name match
+        case "ObjectEdit" => Right(e1)
+        case _ =>
+          val (result, policy) = name match
+            case "ExistingClass" => ("class-replaced", RoleAwareMissingOppositePolicy.Reject)
+            case "ExistingTrait" => ("trait-replaced", RoleAwareMissingOppositePolicy.Reject)
+            case "CreateClass" => ("class-created", RoleAwareMissingOppositePolicy.CreateClass(OppositePlacement.BeforePrimary))
+            case "CreateTrait" => ("trait-created", RoleAwareMissingOppositePolicy.CreateTrait(OppositePlacement.AfterPrimary))
+          val batch = AuthoredMembers.batch(result, primary.source)
+          // Two transitions also prove a created opposite keeps its creation intent.
+          ExpansionHelpers.placeMembersInOpposite(e1, batch.take(1), policy)
+            .flatMap(e => ExpansionHelpers.placeMembersInOpposite(e, batch.drop(1), RoleAwareMissingOppositePolicy.Reject))
+    yield e2
+    RoleAwareExpansionEdit.finish(program)
+
+abstract class IndependentLegacyCompositeHandler extends ParadiseAnnotationExpander:
+  override val consumesExistingCompanion = true
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    val program = for
+      e0 <- LegacyExpansionEdit.start(input)
+      e1 <- ExpansionHelpers.addStringMethodToClass(e0, "a", "A")
+      e2 <- ExpansionHelpers.placeMembersInPrimary(e1, AuthoredMembers.batch("primary", input.annotatedClass.source))
+      e3 <- ExpansionHelpers.placeMembersInCompanion(e2, AuthoredMembers.batch("companion", input.annotatedClass.source))
+    yield e3
+    LegacyExpansionEdit.finish(input, program)
+
+final class IndependentLegacyClassHandler extends IndependentLegacyCompositeHandler:
+  val annotationName = "roleawareprobe.LegacyClassMarker"
+
+final class IndependentLegacyTraitHandler extends IndependentLegacyCompositeHandler:
+  val annotationName = "roleawareprobe.LegacyTraitMarker"
+  override val targetProfile = ExpansionTargetProfile.PlainZeroParameterTrait
+
+/** Regression for the existing complete versus intermediate omission contract. */
+final class IndependentOmittingHandler extends ParadiseAnnotationExpander:
+  val annotationName = "roleawareprobe.OmitMarker"
+  override val consumesExistingCompanion = true
+  override val compositionPolicy = ExpansionCompositionPolicy.SourceOrdered
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionHelpers.addStringMethodToClass(input, "omissionProof", "ok")
+
+final class IndependentRetainingHandler extends ParadiseAnnotationExpander:
+  val annotationName = "roleawareprobe.RetainMarker"
+  override val consumesExistingCompanion = true
+  override val compositionPolicy = ExpansionCompositionPolicy.SourceOrdered
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    LegacyExpansionEdit.finish(input, LegacyExpansionEdit.start(input))

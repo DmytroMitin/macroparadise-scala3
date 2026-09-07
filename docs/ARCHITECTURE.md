@@ -33,9 +33,11 @@ typed.
 - Compatibility and same-module projects are isolated evidence lanes rather
   than additional production plugin artifacts.
 
-All projects remain unpublished.
+The exact-cross plugin/API pair and sbt integration have an immutable `0.1.1`
+release. Current `0.2.0-SNAPSHOT` development is source-built/local-only.
+Fixture modules remain unpublished.
 
-## External handler flow
+## Legacy external handler flow
 
 An external marker carries runtime metadata naming an already compiled handler:
 
@@ -53,7 +55,7 @@ The handler contract exposes raw untyped Dotty trees and a small helper layer.
 The helpers reduce repeated decoding and common class/companion/sibling
 construction, but they do not make the boundary compiler independent.
 
-## Input and output ownership
+## Legacy input and output ownership
 
 The plugin owns:
 
@@ -64,7 +66,7 @@ The plugin owns:
 - package conflicts, output validation, rollback, and diagnostics;
 - final ordering and splicing before typer.
 
-A handler owns its bounded transformation. It may use a decoded read-only class
+A legacy handler owns its bounded transformation. It may use a decoded read-only class
 view and return either:
 
 - ordered raw replacement/output trees;
@@ -110,3 +112,12 @@ See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
 [quasiquote and pre-typer AST architecture](QUASIQUOTE_ARCHITECTURE.md)
 distinguishes current typed quasiquotes from proposed neutral authoring and
 hypothetical raw-untyped syntax.
+
+## Role-aware and intra-handler composition
+
+Current development also routes one ordinary top-level object using
+`RoleAwareExpansionInput` and `RoleAwareExpansionOutcome`, with explicit
+Preserve/Replace/Create opposite intent. Creation can precede or follow the
+primary. Both API families support immutable helper programs inside one handler.
+See [Expansion model and composition](EXPANSION_MODEL_AND_COMPOSITION.md) for
+the exact terminal and topology distinctions.
