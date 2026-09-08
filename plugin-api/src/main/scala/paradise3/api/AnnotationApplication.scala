@@ -110,16 +110,15 @@ object AnnotationApplication:
   def fromInput(
       input: ExpansionInput
   )(using Context): Either[ExpansionDiagnostic, AnnotationApplication] =
-    input.currentAnnotation match
+    Option(input.currentAnnotation) match
       case None =>
         Left(
           ExpansionDiagnostic(
             s"@${input.annotationName} annotation application is unavailable: current raw annotation tree is missing",
-            input.annotatedClass.sourcePos
+            input.primary.tree.sourcePos
           )
         )
-      case Some(rawTree) =>
-        fromRawTree(input.annotationName, rawTree)
+      case Some(rawTree) => fromRawTree(input.annotationName, rawTree)
 
   private final case class RawConstructor(
       annotationName: String,

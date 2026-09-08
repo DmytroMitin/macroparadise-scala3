@@ -1,70 +1,39 @@
 package surfaceprobe
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{
-  AnnotationApplication,
-  ExpansionDiagnostic,
-  ExpansionInput,
-  ExpansionOutcome,
-  ParadiseAnnotationExpander,
-  StructuredExpansionOutput
-}
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.*
 
-final class DefaultSurfaceProbeHandler extends ParadiseAnnotationExpander:
-  val annotationName: String = "surfaceProbeDefault"
+final class IsolatedSurfaceProbeHandler extends ExpansionHandler:
+  val annotationName = "surfaceProbe"
+  val admissions = List(
+    ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate),
+    ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OrdinaryTemplate),
+    ExpansionAdmission(ExpansionTargetKind.Object, ExpansionShapeProfile.NoTypeOrValueParameters)
+  )
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    SurfaceProbeContracts.expand(input)
+    ExpansionEdit.finish(ExpansionEdit.start(input))
 
-final class IsolatedSurfaceProbeHandler extends ParadiseAnnotationExpander:
-  val annotationName: String = "surfaceProbe"
-  override val consumesExistingCompanion: Boolean = true
+  def rawPowerEscapeHatch: ExpansionOutcome = ExpansionOutcome.Expanded(Nil)
 
-  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    SurfaceProbeContracts.expand(input)
+  def structuredPower(changes: ExpansionChanges): ExpansionOutcome =
+    ExpansionOutcome.Structured(changes)
 
-  def rawPowerEscapeHatch: ExpansionOutcome =
-    ExpansionOutcome.Expanded(Nil)
-
-  def structuredPower(output: StructuredExpansionOutput): ExpansionOutcome =
-    ExpansionOutcome.Structured(output)
-
-  def diagnosticRoundTrip(
-      diagnostic: ExpansionDiagnostic
-  ): ExpansionDiagnostic = diagnostic
-
-private object SurfaceProbeContracts:
-  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.withAnnotatedClassView(input): _ =>
-      val application = AnnotationApplication.fromInput(input)
-      application match
-        case Right(_) =>
-          ExpansionHelpers.structured(input.annotatedClass)
-        case Left(diagnostic) =>
-          ExpansionHelpers.rejected(diagnostic, input.annotatedClass)
+  def diagnosticRoundTrip(diagnostic: ExpansionDiagnostic): ExpansionDiagnostic = diagnostic
 
 object IsolatedPluginApiSurfaceRuntime:
   def main(args: Array[String]): Unit =
     val handler = new IsolatedSurfaceProbeHandler()
-    val defaultHandler = new DefaultSurfaceProbeHandler()
-    val api = classOf[ParadiseAnnotationExpander]
+    val api = classOf[ExpansionHandler]
     val handlerClass = handler.getClass
-    val expand = handlerClass.getMethod(
-      "expand",
-      classOf[ExpansionInput],
-      classOf[Context]
-    )
+    val expand = handlerClass.getMethod("expand", classOf[ExpansionInput], classOf[Context])
     val annotationName = handlerClass.getMethod("annotationName")
-    val consumes = handlerClass.getMethod("consumesExistingCompanion")
-    val apiIdentityShared = api.isAssignableFrom(handlerClass)
+    val admissions = handlerClass.getMethod("admissions")
 
-    require(apiIdentityShared, "handler does not implement the shared pluginApi interface")
+    require(api.isAssignableFrom(handlerClass), "handler does not implement the shared pluginApi interface")
     require(handler.annotationName == "surfaceProbe")
-    require(handler.consumesExistingCompanion)
-    require(!defaultHandler.consumesExistingCompanion)
+    require(handler.admissions.map(_.targetKind).toSet == ExpansionTargetKind.values.toSet)
     require(annotationName.getReturnType == classOf[String])
-    require(consumes.getReturnType == java.lang.Boolean.TYPE)
     require(expand.getReturnType == classOf[ExpansionOutcome])
 
     def loaderName(value: Class[?]): String =
@@ -83,7 +52,7 @@ object IsolatedPluginApiSurfaceRuntime:
     println(s"apiLoader=${loaderName(api)}")
     println(s"apiCodeSource=${codeSource(api)}")
     println(s"annotationName=${handler.annotationName}")
-    println(s"defaultConsumesExistingCompanion=${defaultHandler.consumesExistingCompanion}")
-    println(s"overrideConsumesExistingCompanion=${handler.consumesExistingCompanion}")
-    println(s"apiIdentityShared=$apiIdentityShared")
+    println(s"admissionCount=${handler.admissions.size}")
+    println(s"admissionsReturnType=${admissions.getReturnType.getName}")
+    println(s"apiIdentityShared=${api.isAssignableFrom(handlerClass)}")
     println(s"expandDescriptor=$expandDescriptor")

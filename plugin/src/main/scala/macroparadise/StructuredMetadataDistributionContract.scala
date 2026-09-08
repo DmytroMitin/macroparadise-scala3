@@ -1,7 +1,7 @@
 package macroparadise
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.ParadiseAnnotationExpander
+import paradise3.api.ExpansionHandler
 import paradise3.api.expander
 import scala.jdk.CollectionConverters.*
 import scala.quoted.Quotes
@@ -94,7 +94,7 @@ private[macroparadise] object StructuredMetadataDistributionContract:
               classOf[Inspector],
               classOf[Quotes],
               classOf[expander],
-              classOf[ParadiseAnnotationExpander]
+              classOf[ExpansionHandler]
             )
           )
           handlerEvidence <- verifySameIdentities(
@@ -104,7 +104,7 @@ private[macroparadise] object StructuredMetadataDistributionContract:
               classOf[Context],
               classOf[Quotes],
               classOf[expander],
-              classOf[ParadiseAnnotationExpander]
+              classOf[ExpansionHandler]
             )
           )
         yield activeArtifactEvidence ::: pluginEvidence ::: handlerEvidence

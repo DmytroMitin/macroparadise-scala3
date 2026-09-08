@@ -1,6 +1,6 @@
 package macroparadise
 
-import paradise3.api.ParadiseAnnotationExpander
+import paradise3.api.ExpansionHandler
 
 private[macroparadise] object ExternalHandlerDiagnostics:
   enum Stage(val label: String):
@@ -25,7 +25,7 @@ private[macroparadise] object ExternalHandlerDiagnostics:
       actualClass: Class[?],
       requestedLoader: ClassLoader
   ): String =
-    val expectedApi = classOf[ParadiseAnnotationExpander]
+    val expectedApi = classOf[ExpansionHandler]
     sameNamedContract(actualClass, expectedApi.getName) match
       case Some(actualApi) if actualApi ne expectedApi =>
         render(

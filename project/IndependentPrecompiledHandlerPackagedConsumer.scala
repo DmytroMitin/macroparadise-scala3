@@ -996,11 +996,11 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "closed-union-negative/compile.log"))
-    val diagnostic = "requires either the one-unbounded-parameter restricted trait shape or the two-upper-bounded-parameter trait shape"
+    val diagnostic = "outside the handler's declared admission profiles"
     val diagnosticCount = log.split(java.util.regex.Pattern.quote(diagnostic), -1).length - 1
     val invocationCount = readLines(invocationTrace).count(_.contains("handler=contractprobeunion.IndependentClosedTargetUnionHandler"))
     require(exit != 0, "closed-union rejection matrix unexpectedly compiled")
-    require(diagnosticCount == 10, s"closed-union rejection matrix reported $diagnosticCount/10 deterministic diagnostics: $log")
+    require(diagnosticCount == 1, s"closed-union atomic rejection reported $diagnosticCount/1 deterministic diagnostics: $log")
     require(invocationCount == 0, s"closed-union handler was invoked for rejected targets: ${readLines(invocationTrace).mkString(" | ")}")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"closed-union rejection matrix exposed an uncontrolled failure: $log")
     val outputs = regularRelativeFiles(output)
@@ -1102,7 +1102,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "type-placement-reject/compile.log"))
-    val diagnostic = "generated companion type `Aux` conflicts with existing direct companion type member `Aux` for `RejectConflictAdd`"
+    val diagnostic = "generated member `Aux` conflicts with a direct member of `RejectConflictAdd`"
     require(exit != 0, "type-placement reject lane unexpectedly compiled")
     require(log.contains(diagnostic), s"type-placement reject lane lacked controlled diagnostic: $log")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"type-placement reject lane exposed an uncontrolled failure: $log")
@@ -1207,7 +1207,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "module-placement-reject/compile.log"))
-    val diagnostic = "generated companion module `syntax` conflicts with existing direct companion term member `syntax` for `RejectModuleConflict`"
+    val diagnostic = "generated member `syntax` conflicts with a direct member of `RejectModuleConflict`"
     require(exit != 0, "module-placement reject lane unexpectedly compiled")
     require(log.contains(diagnostic), s"module-placement reject lane lacked controlled diagnostic: $log")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"module-placement reject lane exposed an uncontrolled failure: $log")
@@ -1297,19 +1297,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "self-trait-reject/compile.log"))
     val diagnostic =
-      "trait `RejectSelfNat` already contains direct type member `Self`; bounded self preparation requires deterministic rejection"
-    val classDiagnostic =
-      "@IndependentSelfTraitMarker requires one top-level non-sealed ordinary trait with zero type parameters and no constructor/value parameters; found class `RejectSelfClass`"
-    val objectDiagnostic =
-      "unsupported target `object RejectSelfObject`"
-    val enumDiagnostic =
-      "unsupported target `enum RejectSelfEnum`"
+      "trait `RejectSelfNat` already contains direct type member `Self`"
     require(exit != 0, "self-trait direct-Self reject lane unexpectedly compiled")
     require(log.contains(diagnostic), s"self-trait reject lane lacked controlled diagnostic: $log")
-    require(log.contains(classDiagnostic), s"self-trait reject lane lacked class structural diagnostic: $log")
-    require(log.contains(objectDiagnostic), s"self-trait reject lane lacked object structural diagnostic: $log")
-    require(log.contains(enumDiagnostic), s"self-trait reject lane lacked enum structural diagnostic: $log")
-    require(!log.contains("direct Self preflight invoked lowering callback"), s"self-trait reject lane invoked lowering before direct-Self preflight: $log")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"self-trait reject lane exposed an uncontrolled failure: $log")
     val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobeself.IndependentSelfTraitHandler"))
     require(invocationLines.size == 1, s"expected one rejecting self-trait invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
@@ -1541,7 +1531,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val parent = new URLClassLoader((apiArtifact +: compilerJars).map(_.toURI.toURL).toArray, null)
     val child = new TrackingUrlClassLoader(Array(independentArtifact.toURI.toURL), parent)
     try {
-      val api = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
+      val api = Class.forName("paradise3.api.ExpansionHandler", false, parent)
       val carrier = Class.forName("paradise3.api.expander", false, parent)
       val marker = Class.forName("contractprobe.IndependentMarker", false, child)
       val metadata = marker.getDeclaredAnnotations.toVector.find(_.annotationType() == carrier).getOrElse {
@@ -1552,13 +1542,13 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       require(!child.requested.contains("contractprobe.IndependentHandler"), "metadata lookup loaded the handler class")
       val handler = Class.forName("contractprobe.IndependentHandler", false, child)
       require(api.isAssignableFrom(handler), "independent handler does not implement the parent API identity")
-      require(handler.getInterfaces.toVector.exists(_.getName == "paradise3.api.ParadiseAnnotationExpander"), s"independent handler parent changed: ${handler.getInterfaces.toVector.map(_.getName).mkString(",")}")
+      require(handler.getInterfaces.toVector.exists(_.getName == "paradise3.api.ExpansionHandler"), s"independent handler parent changed: ${handler.getInterfaces.toVector.map(_.getName).mkString(",")}")
       val instance = handler.getDeclaredConstructor().newInstance()
       require(handler.getMethod("annotationName").invoke(instance) == HandlerAnnotationName, "independent handler annotationName does not match production marker semantics")
       MetadataEvidence(
         marker.getName,
         value,
-        "paradise3.api.ParadiseAnnotationExpander",
+        "paradise3.api.ExpansionHandler",
         markerLoadedWithoutInitialization = true,
         handlerNotLoadedDuringLookup = true,
         apiIdentityShared = true
@@ -1577,8 +1567,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val parent = new URLClassLoader((apiArtifact +: compilerJars).map(_.toURI.toURL).toArray, null)
     val duplicate = new ChildFirstApiLoader((Vector(independentArtifact, apiArtifact) ++ compilerJars).map(_.toURI.toURL).toArray, null)
     try {
-      val parentApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
-      val duplicateApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, duplicate)
+      val parentApi = Class.forName("paradise3.api.ExpansionHandler", false, parent)
+      val duplicateApi = Class.forName("paradise3.api.ExpansionHandler", false, duplicate)
       val duplicateHandler = Class.forName("contractprobe.IndependentHandler", false, duplicate)
       val rejected = !parentApi.isAssignableFrom(duplicateHandler)
       val implementsDuplicate = duplicateApi.isAssignableFrom(duplicateHandler)

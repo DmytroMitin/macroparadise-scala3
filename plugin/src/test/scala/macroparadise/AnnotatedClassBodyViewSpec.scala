@@ -6,10 +6,10 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{Name, typeName}
 import dotty.tools.dotc.config.Properties
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{AnnotatedClassBodyView, ExpansionInput}
-import paradise3.api.AnnotatedClassBodyView.*
+import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind}
+import paradise3.api.ExpansionTargetBodyView.*
 
-class AnnotatedClassBodyViewSpec extends munit.FunSuite:
+class ExpansionTargetBodyViewSpec extends munit.FunSuite:
   test("decodes the representative Monoid body as ordered abstract methods") {
     val decoded = body(
       """trait Monoid[A]:
@@ -132,7 +132,7 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
         List(missingMethod)
       )
     val missingPrimary = cpy.TypeDef(primary)(primary.name, missingTemplate)
-    val missing = AnnotatedClassBodyView.decode(missingPrimary).fold(error => fail(error.message), identity)
+    val missing = ExpansionTargetBodyView.decode(missingPrimary).fold(error => fail(error.message), identity)
 
     assertEquals(unsupportedKind(methodMap(missing)("missing").resultType), "inferred-or-missing-type")
 
@@ -150,7 +150,7 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
       )
     val missingParameterPrimary = cpy.TypeDef(primary)(primary.name, missingParameterTemplate)
     val missingParameterView =
-      AnnotatedClassBodyView.decode(missingParameterPrimary).fold(error => fail(error.message), identity)
+      ExpansionTargetBodyView.decode(missingParameterPrimary).fold(error => fail(error.message), identity)
 
     assertEquals(
       unsupportedKind(methodMap(missingParameterView)("missing").parameterClauses.head.parameters.head.parameterType),
@@ -179,7 +179,7 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
       )
     val recoveredPrimary = cpy.TypeDef(primary)(primary.name, recoveredTemplate)
 
-    val recovered = AnnotatedClassBodyView.decode(recoveredPrimary).fold(error => fail(error.message), identity)
+    val recovered = ExpansionTargetBodyView.decode(recoveredPrimary).fold(error => fail(error.message), identity)
     val shape = methodMap(recovered)("missing").parameterClauses.head.parameters.head.parameterType
     assertEquals(unsupportedKind(shape), "unqualified-reference")
   }
@@ -205,7 +205,7 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
       )
     val hostilePrimary = cpy.TypeDef(primary)(primary.name, hostileTemplate)
 
-    val hostile = AnnotatedClassBodyView.decode(hostilePrimary).fold(error => fail(error.message), identity)
+    val hostile = ExpansionTargetBodyView.decode(hostilePrimary).fold(error => fail(error.message), identity)
     val shape = methodMap(hostile)("hostile").parameterClauses.head.parameters.head.parameterType
     assertEquals(unsupportedKind(shape), "unqualified-reference")
   }
@@ -370,9 +370,9 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     val malformed = TypeDef(typeName("Malformed"), Ident(typeName("String")))
 
     val failures = List(
-      AnnotatedClassBodyView.decode(null),
-      AnnotatedClassBodyView.decode(wrongKind),
-      AnnotatedClassBodyView.decode(malformed)
+      ExpansionTargetBodyView.decode(null),
+      ExpansionTargetBodyView.decode(wrongKind),
+      ExpansionTargetBodyView.decode(malformed)
     )
     assert(failures.forall(_.isLeft))
     assert(failures.forall(_.left.toOption.exists(_.message.nonEmpty)))
@@ -382,20 +382,27 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     val (stats, context) = parsedStats("trait Input[A]:\n  def empty: A")
     given Context = context
     val target = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail("missing trait"))
-    val input = ExpansionInput("instanceProbe", target, None, Set("Input"), None)
+    val input = ExpansionInput(
+      "instanceProbe",
+      ExpansionTarget.Trait(target),
+      None,
+      ExpansionContainerContext(Set("Input")),
+      target,
+      ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OrdinaryTemplate)
+    )
 
-    assertEquals(input.annotatedClassBodyView.map(_.members.map(_.name)), Right(List("empty")))
+    assertEquals(input.targetBodyView.map(_.members.map(_.name)), Right(List("empty")))
   }
 
-  private def body(code: String): AnnotatedClassBodyView =
+  private def body(code: String): ExpansionTargetBodyView =
     val (stats, context) = parsedStats(code)
     given Context = context
     val candidate = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail(s"missing TypeDef in $stats"))
-    AnnotatedClassBodyView.decode(candidate) match
+    ExpansionTargetBodyView.decode(candidate) match
       case Right(value) => value
       case Left(diagnostic) => fail(diagnostic.message)
 
-  private def methodMap(view: AnnotatedClassBodyView): scala.collection.immutable.ListMap[String, DirectMethod] =
+  private def methodMap(view: ExpansionTargetBodyView): scala.collection.immutable.ListMap[String, DirectMethod] =
     scala.collection.immutable.ListMap.from(view.members.flatMap(member => member.method.map(method => member.name -> method)))
 
   private def enclosingName(shape: DirectTypeShape): String = shape match
@@ -416,7 +423,7 @@ class AnnotatedClassBodyViewSpec extends munit.FunSuite:
     case other => fail(s"expected unsupported type shape, found $other")
 
   private def parsedStats(code: String): (List[Tree], Context) =
-    val unit = CompilationUnit("AnnotatedClassBodyViewSpec.scala", code)
+    val unit = CompilationUnit("ExpansionTargetBodyViewSpec.scala", code)
     val context = ContextBase().initialCtx.fresh.setCompilationUnit(unit)
     val parsed = new Parsers.Parser(unit.source)(using context).parse()
     val stats = parsed match

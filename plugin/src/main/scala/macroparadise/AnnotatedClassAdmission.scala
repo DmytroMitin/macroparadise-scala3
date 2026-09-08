@@ -4,12 +4,12 @@ import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.util.SrcPos
-import paradise3.api.AnnotatedClassView
-import paradise3.api.AnnotatedClassView.{ConstructorClause, DefinitionKind, Variance}
+import paradise3.api.ExpansionTargetView
+import paradise3.api.ExpansionTargetView.{ConstructorClause, DefinitionKind, Variance}
 
 /** Plugin-owned admission policy over the shared raw syntactic class view.
   *
-  * `AnnotatedClassView` owns normalization. This object owns only the common
+  * `ExpansionTargetView` owns normalization. This object owns only the common
   * annotation envelope, the current `@gen` support decision, diagnostic text,
   * and diagnostic position selection. No parameter flags or class modifiers
   * are decoded here.
@@ -17,17 +17,17 @@ import paradise3.api.AnnotatedClassView.{ConstructorClause, DefinitionKind, Vari
 private[macroparadise] object AnnotatedClassAdmission:
   final case class Rejection(message: String, pos: SrcPos)
 
-  def decode(typeDef: TypeDef)(using Context): Either[Rejection, AnnotatedClassView] =
-    AnnotatedClassView.decode(typeDef).left.map(diagnostic => Rejection(diagnostic.message, diagnostic.pos))
+  def decode(typeDef: TypeDef)(using Context): Either[Rejection, ExpansionTargetView] =
+    ExpansionTargetView.decode(typeDef).left.map(diagnostic => Rejection(diagnostic.message, diagnostic.pos))
 
   def commonRejection(
-      view: AnnotatedClassView,
+      view: ExpansionTargetView,
       annotationLabel: String
   ): Option[Rejection] =
     if view.definitionKind != DefinitionKind.Class then
       Some(
         Rejection(
-          s"$annotationLabel currently supports only top-level classes; unsupported target `trait ${view.className}`",
+          s"$annotationLabel currently supports only admitted package-scope classes; unsupported target `trait ${view.className}`",
           view.classPos
         )
       )
@@ -50,7 +50,7 @@ private[macroparadise] object AnnotatedClassAdmission:
     else None
 
   def restrictedGenericTraitApplyRejection(
-      view: AnnotatedClassView,
+      view: ExpansionTargetView,
       annotationLabel: String
   ): Option[Rejection] =
     val requirement =
@@ -96,7 +96,7 @@ private[macroparadise] object AnnotatedClassAdmission:
       else None
 
   def twoUpperBoundedGenericTraitRejection(
-      view: AnnotatedClassView,
+      view: ExpansionTargetView,
       annotationLabel: String
   ): Option[Rejection] =
     val requirement =
@@ -144,7 +144,7 @@ private[macroparadise] object AnnotatedClassAdmission:
             case None => None
 
   def restrictedOrTwoUpperBoundedGenericTraitRejection(
-      view: AnnotatedClassView,
+      view: ExpansionTargetView,
       annotationLabel: String
   ): Option[Rejection] =
     val restrictedRejection =
@@ -171,7 +171,7 @@ private[macroparadise] object AnnotatedClassAdmission:
         )
 
   def plainZeroParameterTraitRejection(
-      view: AnnotatedClassView,
+      view: ExpansionTargetView,
       annotationLabel: String
   ): Option[Rejection] =
     val requirement =
@@ -200,7 +200,7 @@ private[macroparadise] object AnnotatedClassAdmission:
       )
     else None
 
-  def genRejection(view: AnnotatedClassView): Option[Rejection] =
+  def genRejection(view: ExpansionTargetView): Option[Rejection] =
     val requirement =
       "current @gen prototype requires one non-contextual primary-constructor clause containing exactly `name: String` (bare or val, non-var, without a default) on a concrete class with an accessible constructor"
 
@@ -266,7 +266,7 @@ private[macroparadise] object AnnotatedClassAdmission:
             )
           )
 
-  def modifierSummary(view: AnnotatedClassView): List[String] =
+  def modifierSummary(view: ExpansionTargetView): List[String] =
     List(
       Option.when(view.modifiers.isCase)("case"),
       Option.when(view.modifiers.isAbstract)("abstract"),

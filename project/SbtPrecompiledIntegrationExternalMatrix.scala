@@ -213,8 +213,8 @@ object SbtPrecompiledIntegrationExternalMatrix {
     write(
       handlerSourceFile,
       initialHandlerSource.replace(
-        "ExpansionHelpers.addStringMethodToClass(input, \"generatedValue\", DependencyValue.current)",
-        "ExpansionHelpers.addStringMethodToClass(input, \"generatedValue\", \"handler-v2:\" + DependencyValue.current)"
+        "HandlerSupport.expand(input, \"generatedValue\", DependencyValue.current)",
+        "HandlerSupport.expand(input, \"generatedValue\", \"handler-v2:\" + DependencyValue.current)"
       )
     )
     val handlerLog = new File(evidence, "handler-edited.log")
@@ -594,6 +594,10 @@ object SbtPrecompiledIntegrationExternalMatrix {
        |  "task-product-repository" at "${scalaString(repository.toURI.toString)}",
        |  Resolver.mavenCentral
        |)
+       |ThisBuild / externalResolvers := Seq(
+       |  "task-product-repository" at "${scalaString(repository.toURI.toString)}",
+       |  Resolver.mavenCentral
+       |)
        |ThisBuild / credentials := Nil
        |ThisBuild / publish / skip := true
        |
@@ -703,20 +707,31 @@ object SbtPrecompiledIntegrationExternalMatrix {
   private def multiHandlerSource(suffix: String): String =
     s"""package fixture.handler
        |
+       |import dotty.tools.dotc.ast.untpd.*
+       |import dotty.tools.dotc.core.Constants.Constant
        |import dotty.tools.dotc.core.Contexts.Context
+       |import dotty.tools.dotc.core.Names.*
        |import fixture.runtime.SharedRuntime
-       |import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+       |import paradise3.api.*
        |import paradise3.api.helpers.ExpansionHelpers
        |
-       |final class Handler$suffix extends ParadiseAnnotationExpander:
-       |  override def annotationName: String = "fixture.marker.marker$suffix"
-       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-       |    ExpansionHelpers.addStringMethodToClass(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
+       |private object HandlerSupport:
+       |  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
+       |  def expand(input: ExpansionInput, name: String, value: String)(using Context): ExpansionOutcome =
+       |    val member = DefDef(termName(name), Nil, Ident(typeName("String")), Literal(Constant(value)))
+       |    ExpansionEdit.finish(ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInPrimary(edit, member)))
        |
-       |final class AlternateHandler$suffix extends ParadiseAnnotationExpander:
+       |final class Handler$suffix extends ExpansionHandler:
        |  override def annotationName: String = "fixture.marker.marker$suffix"
+       |  override val admissions = HandlerSupport.admissions
        |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-       |    ExpansionHelpers.addStringMethodToClass(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
+       |    HandlerSupport.expand(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
+       |
+       |final class AlternateHandler$suffix extends ExpansionHandler:
+       |  override def annotationName: String = "fixture.marker.marker$suffix"
+       |  override val admissions = HandlerSupport.admissions
+       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+       |    HandlerSupport.expand(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
        |""".stripMargin
 
   private val multiConsumerSource =
@@ -743,6 +758,10 @@ object SbtPrecompiledIntegrationExternalMatrix {
        |ThisBuild / scalaVersion := "${config.scalaVersion}"
        |ThisBuild / version := "${config.projectVersion}"
        |ThisBuild / resolvers := Seq(
+       |  "task-product-repository" at "${scalaString(repository.toURI.toString)}",
+       |  Resolver.mavenCentral
+       |)
+       |ThisBuild / externalResolvers := Seq(
        |  "task-product-repository" at "${scalaString(repository.toURI.toString)}",
        |  Resolver.mavenCentral
        |)
@@ -847,20 +866,31 @@ object SbtPrecompiledIntegrationExternalMatrix {
   private val handlerSource =
     """package fixture.handler
       |
+      |import dotty.tools.dotc.ast.untpd.*
+      |import dotty.tools.dotc.core.Constants.Constant
       |import dotty.tools.dotc.core.Contexts.Context
+      |import dotty.tools.dotc.core.Names.*
       |import fixture.runtime.DependencyValue
-      |import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+      |import paradise3.api.*
       |import paradise3.api.helpers.ExpansionHelpers
       |
-      |final class GeneratedHandler extends ParadiseAnnotationExpander:
-      |  override def annotationName: String = "fixture.marker.generated"
-      |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-      |    ExpansionHelpers.addStringMethodToClass(input, "generatedValue", DependencyValue.current)
+      |private object HandlerSupport:
+      |  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
+      |  def expand(input: ExpansionInput, name: String, value: String)(using Context): ExpansionOutcome =
+      |    val member = DefDef(termName(name), Nil, Ident(typeName("String")), Literal(Constant(value)))
+      |    ExpansionEdit.finish(ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInPrimary(edit, member)))
       |
-      |final class AlternateHandler extends ParadiseAnnotationExpander:
+      |final class GeneratedHandler extends ExpansionHandler:
       |  override def annotationName: String = "fixture.marker.generated"
+      |  override val admissions = HandlerSupport.admissions
       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-      |    ExpansionHelpers.addStringMethodToClass(input, "generatedValue", "marker-v2:" + DependencyValue.current)
+      |    HandlerSupport.expand(input, "generatedValue", DependencyValue.current)
+      |
+      |final class AlternateHandler extends ExpansionHandler:
+      |  override def annotationName: String = "fixture.marker.generated"
+      |  override val admissions = HandlerSupport.admissions
+      |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+      |    HandlerSupport.expand(input, "generatedValue", "marker-v2:" + DependencyValue.current)
       |""".stripMargin
 
   private val consumerSource =
@@ -886,6 +916,7 @@ object SbtPrecompiledIntegrationExternalMatrix {
     val command = Vector(
       "sbt",
       "-batch",
+      "-Dsbt.ivy.home=" + new File(directory, ".task-ivy-home").getCanonicalPath,
       "-Dmatrix.slot=" + slot,
       "-Dmacroparadise.exactScalaVersion=" + config.scalaVersion
     ) ++ commands

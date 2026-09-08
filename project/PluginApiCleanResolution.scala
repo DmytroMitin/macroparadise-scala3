@@ -196,7 +196,7 @@ object PluginApiCleanResolution {
           val artifact = artifacts.head
           val entries = jarEntries(artifact.toFile)
           val requiredEntries = Set(
-            "paradise3/api/ParadiseAnnotationExpander.class",
+            "paradise3/api/ExpansionHandler.class",
             "paradise3/api/ExpansionInput.class",
             "paradise3/api/ExpansionOutcome.class",
             "paradise3/api/expander.class"

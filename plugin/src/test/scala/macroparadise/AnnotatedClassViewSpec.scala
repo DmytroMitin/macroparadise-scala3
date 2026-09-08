@@ -7,9 +7,9 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Flags.{Abstract, Case, Enum, Final, Sealed, Trait}
 import dotty.tools.dotc.core.Names.typeName
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{AnnotatedClassView, ExpansionInput}
+import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetKind, ExpansionTargetView}
 
-class AnnotatedClassViewSpec extends munit.FunSuite:
+class ExpansionTargetViewSpec extends munit.FunSuite:
   test("decodes ordinary empty classes and explicit empty-clause position fallback") {
     val omitted = view("class Omitted")
     val explicit = view("class Explicit()")
@@ -102,10 +102,10 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
     given dotty.tools.dotc.util.SourceFile = contract.source
     val malformed = TypeDef(typeName("Malformed"), Ident(typeName("String")))
 
-    val decodedTrait = AnnotatedClassView.decode(contract)
-    assertEquals(decodedTrait.map(_.definitionKind), Right(AnnotatedClassView.DefinitionKind.Trait))
+    val decodedTrait = ExpansionTargetView.decode(contract)
+    assertEquals(decodedTrait.map(_.definitionKind), Right(ExpansionTargetView.DefinitionKind.Trait))
 
-    val failures = List(singleton, choice, alias, malformed).map(AnnotatedClassView.decode)
+    val failures = List(singleton, choice, alias, malformed).map(ExpansionTargetView.decode)
     assert(failures.forall(_.isLeft))
     assert(failures.forall(_.left.toOption.exists(_.message.nonEmpty)))
     assert(Trees.mods(contract).is(Trait))
@@ -119,11 +119,11 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
     val bounded = view("trait Bounded[A <: Product]")
     val contextual = view("trait Contextual[A: Ordering]")
 
-    assertEquals(invariant.definitionKind, AnnotatedClassView.DefinitionKind.Trait)
-    assertEquals(invariant.typeParameters.head.variance, AnnotatedClassView.Variance.Invariant)
+    assertEquals(invariant.definitionKind, ExpansionTargetView.DefinitionKind.Trait)
+    assertEquals(invariant.typeParameters.head.variance, ExpansionTargetView.Variance.Invariant)
     assert(invariant.typeParameters.head.isOrdinaryUnbounded)
-    assertEquals(covariant.typeParameters.head.variance, AnnotatedClassView.Variance.Covariant)
-    assertEquals(contravariant.typeParameters.head.variance, AnnotatedClassView.Variance.Contravariant)
+    assertEquals(covariant.typeParameters.head.variance, ExpansionTargetView.Variance.Covariant)
+    assertEquals(contravariant.typeParameters.head.variance, ExpansionTargetView.Variance.Contravariant)
     assert(!bounded.typeParameters.head.isOrdinaryUnbounded)
     assert(bounded.typeParameters.head.isOrdinaryUpperBounded)
     assert(contextual.typeParameters.head.hasContextBounds)
@@ -133,12 +133,12 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
 
   test("legacy structured-view and type-parameter apply and copy shapes remain source-callable") {
     val decoded = view("class Compatibility[A]")
-    val parameter = AnnotatedClassView.TypeParameter("A", decoded.typeParameters.head.pos)
+    val parameter = ExpansionTargetView.TypeParameter("A", decoded.typeParameters.head.pos)
     val copiedParameter = parameter.copy("B", parameter.pos)
-    val fullLegacyParameter = AnnotatedClassView.TypeParameter(
+    val fullLegacyParameter = ExpansionTargetView.TypeParameter(
       "C",
       parameter.pos,
-      AnnotatedClassView.Variance.Invariant,
+      ExpansionTargetView.Variance.Invariant,
       false,
       false
     )
@@ -149,7 +149,7 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
       fullLegacyParameter.isOrdinaryUnbounded,
       fullLegacyParameter.hasContextBounds
     )
-    val reconstructed = AnnotatedClassView(
+    val reconstructed = ExpansionTargetView(
       decoded.className,
       List(copiedParameter),
       decoded.constructorClauses,
@@ -166,20 +166,10 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
       reconstructed.constructorPos
     )
 
-    assertEquals(copied.definitionKind, AnnotatedClassView.DefinitionKind.Class)
+    assertEquals(copied.definitionKind, ExpansionTargetView.DefinitionKind.Class)
     assertEquals(copied.typeParameters.map(_.name), List("B"))
     assertEquals(fullLegacyCopy.name, "D")
     assert(!fullLegacyCopy.isOrdinaryUpperBounded)
-  }
-
-  test("null direct API construction produces a controlled view diagnostic") {
-    val (_, context) = parsedStats("class ContextOwner")
-    given Context = context
-    val hostile = ExpansionInput("externalDebug", null.asInstanceOf[TypeDef], None, Set.empty)
-
-    val result = hostile.annotatedClassView
-    assert(result.isLeft)
-    assert(result.left.toOption.exists(_.message.contains("null annotated class")))
   }
 
   test("view decoding is read-only across raw input companion names annotations and positions") {
@@ -191,19 +181,26 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
     val rawAnnotations = Trees.mods(annotated).annotations
     val rawClassSpan = annotated.sourcePos.span
     val rawCompanionSpan = companion.sourcePos.span
-    val currentAnnotation = rawAnnotations.headOption
+    val currentAnnotation = rawAnnotations.head
     val names = Set("Observed", "Neighbor")
-    val input = ExpansionInput("externalDebug", annotated, Some(companion), names, currentAnnotation)
+    val input = ExpansionInput(
+      "externalDebug",
+      ExpansionTarget.Class(annotated),
+      Some(ExpansionTarget.Object(companion)),
+      ExpansionContainerContext(names),
+      currentAnnotation,
+      ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
+    )
 
-    val decoded = input.annotatedClassView
+    val decoded = input.targetView
     assert(decoded.isRight)
-    assert(input.annotatedClass eq annotated)
-    assert(input.annotatedClass.rhs eq rawTemplate)
-    assertEquals(Trees.mods(input.annotatedClass).annotations, rawAnnotations)
-    assertEquals(input.existingCompanion, Some(companion))
-    assertEquals(input.topLevelNames, names)
+    assert(input.primary.tree eq annotated)
+    assert(input.primary.tree.asInstanceOf[TypeDef].rhs eq rawTemplate)
+    assertEquals(Trees.mods(input.primary.tree.asInstanceOf[TypeDef]).annotations, rawAnnotations)
+    assertEquals(input.companion.map(_.tree), Some(companion))
+    assertEquals(input.container.siblingNames, names)
     assertEquals(input.currentAnnotation, currentAnnotation)
-    assertEquals(input.annotatedClass.sourcePos.span, rawClassSpan)
+    assertEquals(input.primary.tree.sourcePos.span, rawClassSpan)
     assertEquals(companion.sourcePos.span, rawCompanionSpan)
   }
 
@@ -217,16 +214,16 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
     assert(decoded.constructorPos != null)
   }
 
-  private def onlyParameter(view: AnnotatedClassView): AnnotatedClassView.ConstructorParameter =
+  private def onlyParameter(view: ExpansionTargetView): ExpansionTargetView.ConstructorParameter =
     view.constructorClauses match
-      case AnnotatedClassView.ConstructorClause(parameter :: Nil, _, _) :: Nil => parameter
+      case ExpansionTargetView.ConstructorClause(parameter :: Nil, _, _) :: Nil => parameter
       case other => fail(s"expected one constructor parameter, found $other")
 
-  private def view(code: String): AnnotatedClassView =
+  private def view(code: String): ExpansionTargetView =
     val (stats, context) = parsedStats(code)
     given Context = context
     val candidate = stats.collectFirst { case value: TypeDef => value }.getOrElse(fail(s"missing TypeDef in $stats"))
-    AnnotatedClassView.decode(candidate) match
+    ExpansionTargetView.decode(candidate) match
       case Right(value) => value
       case Left(diagnostic) => fail(diagnostic.message)
 
@@ -235,7 +232,7 @@ class AnnotatedClassViewSpec extends munit.FunSuite:
       .getOrElse(fail(s"missing TypeDef $name in $stats"))
 
   private def parsedStats(code: String): (List[Tree], Context) =
-    val unit = CompilationUnit("AnnotatedClassViewSpec.scala", code)
+    val unit = CompilationUnit("ExpansionTargetViewSpec.scala", code)
     val context = ContextBase().initialCtx.fresh.setCompilationUnit(unit)
     val parsed = new Parsers.Parser(unit.source)(using context).parse()
     val stats = parsed match

@@ -1,263 +1,80 @@
-# Expansion model and composition
+# Expansion model and scheduling
 
-The released `0.1.1` API supports legacy class/trait handlers. Current
-`0.2.0-SNAPSHOT` additionally supports one role-aware handler on an ordinary
-top-level object, and immutable helper composition inside either handler family.
-All compiler trees and helpers are exact-version experimental APIs on Scala
-3.3.8, 3.8.4, and 3.9.0. Plugin admission still decides which source shapes run.
+MacroParadise 0.2.0-SNAPSHOT has one experimental, exact-Scala-version handler API. A handler implements `ExpansionHandler`, declares the annotation identity and a list of `ExpansionAdmission` values, and transforms one `ExpansionInput` into one `ExpansionOutcome`.
 
-## Input, edit state, terminal outcome
+The public model is intentionally orthogonal:
 
-**An Outcome is not the next Input.** Input contains plugin-owned annotation
-identity, target admission, lease, and neighboring-name context. An outcome
-cannot reconstruct that context. There is no Outcome-to-Input conversion.
+- target kind is `Class`, `Trait`, or `Object`;
+- `primary`, `companion`, and `sibling` describe relationships in the current invocation revision;
+- shape admission is independent of target kind;
+- the compiler plugin discovers relationships and owns scheduling and atomic application.
 
-```text
-real Input -> start immutable Edit -> helper -> helper -> finish -> Outcome
-```
+The API is compiled against compiler internals and must use the artifact for the exact active Scala line: 3.3.8, 3.8.4, or 3.9.0.
 
-`LegacyExpansionEdit.start` and `RoleAwareExpansionEdit.start` return
-`Either[ExpansionDiagnostic, Edit]`. Successful transitions retain the original
-invocation context, mandatory current primary, and optional current opposite.
-They validate before copying a Template and never commit package changes.
-Construction is restricted to factories in the supported Scala source API.
-Scala compiler-generated JVM constructor visibility is not an isolation boundary
-against Java/reflection or code impersonating the API package.
-Use one finalizer after a short-circuiting program:
+## Input and admission
 
-```scala
-import paradise3.api.*
-import paradise3.api.helpers.*
+`ExpansionTarget` is a closed representation of the currently implemented Class/Trait/Object slice. `ExpansionAdmission(targetKind, shapeProfile)` lets a handler opt into one or more exact supported target shapes. The profiles preserve the existing bounded grammar; they do not authorize arbitrary Scala definitions or nested/local targets.
 
-val edited = for
-  e0 <- LegacyExpansionEdit.start(input)
-  e1 <- ExpansionHelpers.addStringMethodToClass(e0, "a", "A")
-  e2 <- ExpansionHelpers.placeMembersInPrimary(e1, primaryMembers)
-  e3 <- ExpansionHelpers.placeMembersInCompanion(e2, companionMembers)
-yield e3
-LegacyExpansionEdit.finish(input, edited)
-```
+`ExpansionInput.primary` is the annotated occurrence selected from the current staged package. `companion` is present only when the current staged program has a compatible class-or-trait/object definition with the same decoded name in the same enclosing scope and compilation unit. Definitions need not be adjacent. `container` exposes only bounded sibling-name information, not mutable container state.
 
-Here `input` is the real `ExpansionInput`; the caller has already authored
-`primaryMembers` and `companionMembers`. The original input is needed at this
-finalizer because a failed `Either` contains a diagnostic but no mandatory
-legacy fallback tree. `finish(edit)` also accepts a successful state directly.
-The original input must be the same invocation object, not a reconstructed copy.
+The target, body, and type-structure views provide normalized read-only syntax for the supported handler use cases. Raw tree construction remains the handler or Quasiquotes caller's responsibility.
 
-```scala
-val edited = for
-  e0 <- RoleAwareExpansionEdit.start(input)
-  e1 <- ExpansionHelpers.placeMembersInPrimary(e0, objectMembers)
-  e2 <- ExpansionHelpers.placeMembersInOpposite(
-    e1, oppositeMembers,
-    RoleAwareMissingOppositePolicy.CreateTrait(OppositePlacement.AfterPrimary)
-  )
-yield e2
-RoleAwareExpansionEdit.finish(edited)
-```
+## Structured sparse changes
 
-This `input` is `RoleAwareExpansionInput`. The missing policy is explicitly
-`Reject`, `CreateClass(placement)`, or `CreateTrait(placement)`. An existing
-class/trait is edited in its existing kind. Repeated edits to a newly created
-opposite retain `Create` and the original placement. Editing either side first
-preserves the changes when editing the other side. Primary-only edits preserve
-the opposite by default. No deletion or role/focus conversion is an edit operation.
+`ExpansionOutcome.Structured(ExpansionChanges(...))` describes a transaction against the input revision. Each domain is sparse:
 
-The narrow string-method edit retains the established rule that an existing
-same-name method wins. Generic batch placement instead rejects any direct raw
-term-name conflict, including one introduced by an earlier edit.
+- `PrimaryChange`: Preserve, Merge, Replace, or Delete;
+- `CompanionChange`: Preserve, Merge, Replace, Create, or Delete;
+- `SiblingChange`: Create, or an addressed Merge, Replace, or Delete;
+- omitting a sibling change preserves that sibling exactly.
 
-The role-aware input one-shot `placeMembersInPrimary` and
-`placeMembersInOpposite` overloads are single-edit wrappers around this engine.
-Existing legacy terminal helpers retain their historical behavior, including
-companion omission by primary-only helpers. Their behavior has not been changed
-to match the new state semantics.
+Merge contains a nonempty ordered list of `TargetPatch` operations. The current patch vocabulary appends members, replaces annotations, or sets/removes a trait self value. Unmentioned patch domains remain unchanged.
 
-## A. Legacy raw output
+`CompanionChange.Create` is a dedicated relationship request. It is legal only when the input has no companion, the resulting primary survives, and the created definition is its real final companion. `SiblingChange.Create` cannot be used to disguise that request.
 
-These are structural statuses under `RawExpansionOutputValidator`, assuming
-legal same-name role trees and conflict-free named additions. They do not prove
-admission, annotation lifecycle, transaction legality, or ordinary typing.
+Primary/companion/sibling labels are input addresses, not durable output roles. All requested changes resolve against the same revision and apply to a private staged copy. Generic Replace may change kind and name. After application the plugin discards the old labels, recomputes companions from the final definitions, and validates collisions, tree ownership, and structure atomically. For example, replacing `class A` with `class B` while preserving `object A` may make an existing `object B` the new companion.
 
-| Raw `Expanded` trees | Structural status |
-| --- | --- |
-| `[]` | Invalid: non-empty output required |
-| `[primary]` | Valid shape |
-| `[primary, sameNameCompanion]` | Valid shape |
-| `[sameNameCompanion]` | Invalid: mandatory first TypeDef primary absent |
-| `[primary, other, sameNameCompanion]` | Invalid: companion must immediately follow primary |
-| Two same-name TypeDef primaries | Invalid: exactly one primary |
-| Two same-name ModuleDef companions | Invalid: at most one companion |
-| Same-name object described by the author as “additional” | Raw output has no additional-role field: immediately following means canonical companion; any other position fails |
-| Duplicate/conflicting additional named outputs | Invalid |
+## Immutable edits and helpers
 
-```scala
-ExpansionOutcome.Expanded(List(input.annotatedClass) ++ input.existingCompanion.toList)
-// Valid structural shape when the lease is the legal same-name object.
-ExpansionOutcome.Expanded(List(input.annotatedClass))
-// Valid structural shape; omission semantics depend on coordinator context.
-ExpansionOutcome.Expanded(input.existingCompanion.toList)
-// Invalid: empty for None, or companion-only for Some.
-ExpansionOutcome.Expanded(Nil)
-// Invalid: empty output.
-```
+For composable structured authoring, start once with `ExpansionEdit.start(input)`, thread the immutable edit through helpers, and finish once with `ExpansionEdit.finish`.
 
-The raw validator does not itself check class/trait kind or classify unknown
-additional raw tree kinds. Structured validation and transaction validation
-provide stronger role/kind checks; raw representability is not support for
-primary deletion or conversion.
+The generic helpers are:
 
-## B. Legacy structured output
+- `placeMember(s)InPrimary`;
+- `placeMember(s)InCompanion`;
+- `replacePrimaryAnnotations`;
+- `replaceCompanionAnnotations`;
+- `createSibling`;
+- `prepareTraitSelf`.
 
-| Field or relationship | Requirement |
-| --- | --- |
-| `primary` | Mandatory non-null same-name TypeDef |
-| Primary raw kind | Same class/trait kind; enum and non-class-type distinctions are also checked |
-| `companion` | Optional, but Option container must be non-null |
-| `Some(companion)` | Non-null same-name ModuleDef |
-| Same-name object | Belongs only in `companion` |
-| `additionalTopLevelDefinitions` | Non-null list of non-null TypeDef/ModuleDef only |
-| Additional primary/companion role | Cannot reintroduce either same-name role |
-| Additional names | Unique and conflict-free |
+One `MemberConflictPolicy` covers member kinds. `MissingCompanionPolicy` makes missing-companion creation explicit. Creating a missing companion and then adding more members stays one normalized `CompanionChange.Create` with the updated tree. Any helper error propagates through the edit and becomes a rejected outcome at `finish`.
 
-```scala
-StructuredExpansionOutput(
-  primary = input.annotatedClass,
-  companion = input.existingCompanion,
-  additionalTopLevelDefinitions = Nil
-)
-// Positive when role/name/kind checks hold.
+## Raw exact replacement
 
-StructuredExpansionOutput(
-  primary = input.annotatedClass,
-  companion = None,
-  additionalTopLevelDefinitions = Nil
-)
-// Structurally valid; terminal omission semantics remain context-sensitive.
+`ExpansionOutcome.Expanded(trees)` is the expert escape hatch. It replaces exactly the invocation primary and its verified current companion, even when they are nonadjacent. The returned list may contain zero or more supported Class/Trait/Object definitions:
 
-StructuredExpansionOutput(
-  primary = input.annotatedClass,
-  companion = None,
-  additionalTopLevelDefinitions = input.existingCompanion.toList
-)
-// Invalid when Some: same-name companion cannot masquerade as additional.
-// With None this is simply the valid primary-only example.
-```
+- `Expanded(Nil)` deletes the entire owned region;
+- one result need not match the old kind or name;
+- many results retain their exact order;
+- no returned element is a distinguished continuation primary.
 
-Validated structured output is canonicalized to primary, optional companion,
-then caller-ordered additions. Raw validation runs again as defense in depth.
+The owned definitions are removed and the output list is inserted at the earlier owned position, or at the primary position when no companion exists. Unrelated siblings keep their relative order. The final program is validated and all relationships are recomputed before scheduling continues.
 
-## C. Legacy lease and omission
+## Current-staged-tree scheduler
 
-| Context | Companion effect |
-| --- | --- |
-| Not leased to this handler | Handler does not own/remove it |
-| Leased and explicitly returned | Preserved or replaced by the returned tree |
-| Leased and omitted in a complete standalone terminal result | Historical `DropCurrent` |
-| Leased and omitted in intermediate source-ordered composition | Historical `RetainCurrent` |
-| New immutable edit state | Preserved by state semantics; omission is not an edit command |
+Stacked annotations need no policy or handler opt-in. After every successful stage the plugin validates the complete staged package, discards stale positional and relationship conclusions, and rescans the current trees from the deterministic beginning. Selection order is container statement order, tree preorder, then annotation-list order from left to right.
 
-“Standalone” describes a complete result without further coordinator-owned
-requests, not just the descriptor's policy value. A sole `SourceOrdered`
-participant can produce a complete standalone result.
+A private identity ledger prevents the same physical annotation tree from running twice. It is not an immutable work queue. Therefore:
 
-Conceptual **Preserve / Replace / Create / Delete** apply to the legacy pair,
-but the terminal legacy protocol expresses them through complete output trees
-and coordinator context rather than a public intent enum. The new edit API
-supports preserving, replacing through member insertion, and creating an object
-companion. Explicit composable Delete remains deferred. Historical leased
-companion removal through complete-result omission remains compatible.
+- a later annotation runs only if it still exists after earlier changes;
+- fresh handled annotations on replaced targets, created siblings, or recomputed companions are ordinary work;
+- a freshly constructed syntax-equivalent annotation is eligible;
+- deleting a definition also deletes all pending work owned by that definition.
 
-## D. Role-aware topology
+MacroParadise does not attempt a semantic termination proof. A 32-success operational budget protects the compiler process; exhaustion is a diagnostic and causes rollback.
 
-| Property / operation | Current status |
-| --- | --- |
-| Routed primary | Mandatory ordinary top-level Object |
-| Opposite | Optional same-name Class or Trait |
-| Primary name and role/kind | Invariant |
-| `Preserve` | Supported; also preserves an existing unleased opposite |
-| `Replace` | Existing same-name same-kind lease plus descriptor capability |
-| `Create` | No discovered opposite, explicit Class/Trait and placement, plus capability |
-| `Delete` | Not in the public outcome or edit API |
-| Primary delete | Not represented/supported |
-| Primary role change or focus transfer | Not supported |
-| Role-aware Class/Trait primary | Algebra cases exist; routing deferred |
-| Object opposite with Object primary | Illegal |
+## Atomicity and current limits
 
-`leasedOpposite=None` may mean the handler did not request a lease. It does not
-prove the package lacks an opposite or authorize creation. The plugin validates
-discovery and capability at finalization. `ExpansionPrimaryRole.Class/Trait`
-and `ExpansionOppositeRole.Object` represent closed common-model cases; their
-existence does not widen current routed admission.
+All stages in one compilation unit operate on private staged state. A rejection, invalid output, thrown handler failure, collision, stale/duplicate address, or budget exhaustion returns the original unit; no successful prefix escapes.
 
-## E. Three distinct composition layers
-
-| Layer | Owner and current support |
-| --- | --- |
-| Inside one handler / one annotation | Immutable edit program; this is helper composition |
-| Between handlers / source annotations | Plugin scheduler; bounded legacy `SourceOrdered`; multiple role-aware object participants remain fail closed |
-| Fresh/generated handled annotations | Plugin R1/R2 lineage scheduler; role-aware object R1/R2 remains fail closed |
-
-A sole role-aware `SourceOrdered` participant may run. This does not establish
-multi-participant object composition. No helper step creates a new invocation.
-
-## F. Transformation examples
-
-These annotation names illustrate behavior a correctly wired handler could
-request; they are not built-in annotation implementations.
-
-| Source example | Status |
-| --- | --- |
-| `@identity class A; object A` | Supported legacy identity in the admitted boundary; return a leased companion explicitly or use preserve-by-default state |
-| `class A; @identity object A` | Supported role-aware object identity |
-| `@addCompanion class A` | Supported bounded object-companion creation |
-| `@removeCompanion class A; object A` | Historically possible with a leased companion omitted from a complete legacy result; no explicit composable delete |
-| `@transformMeToCompanion class A` | Unsupported if it deletes primary or changes class to object |
-| `@transformMeToCompanion object A` | Unsupported object-to-class/trait focus conversion |
-
-Trait-primary legacy examples additionally require an admitted trait profile.
-A primary remains mandatory even if an author can construct a raw tree with a
-different role. Lifecycle validators reject unsupported topology changes.
-
-## Exact generated trees, atomicity, and ownership
-
-Each generic batch must be a non-null, non-empty list of non-null `untpd.DefDef`
-or `untpd.ValDef` entries, with usable non-constructor raw term names and usable
-root source attachment or span. Duplicate generated names, direct existing
-term-name conflicts, and pre-typer overloads reject before Template/shell copy.
-Exact supplied members are appended; they are not parsed, rebuilt, repaired,
-typed, symbol-resolved, or checked against inherited members. Generic batches
-do not admit TypeDef/ModuleDef.
-
-An edit state is an immutable proposal. Raw compiler trees remain shared expert
-values: callers must not mutate them. A failed later transition leaves earlier
-states and original trees unchanged. Short-circuiting finalization returns one
-Rejected outcome, with no earlier partial output. A successful proposal still
-passes plugin-owned terminal validation. Capability, name, kind, conflict, or
-annotation-lineage failure rolls back the original primary/opposite/package
-snapshot. Ordinary typer errors after commit remain ordinary compiler errors.
-
-Legacy finish consumes only the exact current annotation; older direct inputs
-with no current annotation retain the historical all-annotation cleanup rule.
-Role-aware finish keeps annotation identities for plugin canonicalization.
-The plugin consumes the current handled annotation once, preserves later
-original annotations in exact identity/order, and rejects counterfeit or fresh
-handled annotations. Helpers cannot bypass this validation.
-
-New sibling/opposite creation is primarily generation plus Macro lifecycle
-placement. Modifying an existing raw primary/opposite is an existing-tree
-structural transformation use case, naturally related to U-style authoring.
-Deleting an opposite changes source topology; deleting/changing a primary or
-transferring focus requires a future scheduler and annotation-ownership contract.
-This description makes no public U-support claim.
-
-Quasiquotes/U or expert raw code authors/transforms exact trees. Macro-Paradise
-owns target admission, leasing, legal topology, annotation lifecycle, conflicts,
-commit, and rollback. No production Quasiquotes, Scalameta, AUXify, controller,
-or peer-checkout dependency is introduced.
-
-Executable anchors: `RawExpansionOutputValidatorSpec`,
-`StructuredExpansionOutputValidatorSpec`, `RoleAwareTransactionKernelSpec`,
-`ExpansionEditSpec`, `GeneratedMemberPlacementHelperSpec`,
-`RoleAwarePublicObjectCompilerSpec`, and the independently packaged handler and
-typed/runtime consumer in `plugin-api-role-aware-contract-probe`.
+The current implementation remains limited to the established package-level Class/Trait/Object grammar and exact admission profiles. Nested, inner, local, enum, enum-case, method, value, variable, type, parameter, given, and extension targets are not enabled. This model does not widen source grammar, provide semantic typing, or move tree authoring into MacroParadise.

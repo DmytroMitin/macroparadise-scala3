@@ -1116,7 +1116,7 @@ object IndependentExternalSbtConsumer {
        |  if (!file.isFile || !file.getName.endsWith(\".jar\")) false
        |  else {
        |    val jar = new JarFile(file)
-       |    try jar.getEntry(\"paradise3/api/ParadiseAnnotationExpander.class\") != null
+       |    try jar.getEntry(\"paradise3/api/ExpansionHandler.class\") != null
        |    finally jar.close()
        |  }
        |}
@@ -1360,9 +1360,9 @@ object IndependentExternalSbtConsumer {
     val parent = new URLClassLoader((plugin +: compilerJars).map(_.toURI.toURL).toArray, null)
     val child = new URLClassLoader(Array(handler.toURI.toURL), parent)
     try {
-      val expectedApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
+      val expectedApi = Class.forName("paradise3.api.ExpansionHandler", false, parent)
       val handlerClass = Class.forName(ExpectedHandler, false, child)
-      val childApi = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, child)
+      val childApi = Class.forName("paradise3.api.ExpansionHandler", false, child)
       val singular = expectedApi eq childApi
       val assignable = expectedApi.isAssignableFrom(handlerClass)
       val codeSource = expectedApi.getProtectionDomain.getCodeSource.getLocation.toURI

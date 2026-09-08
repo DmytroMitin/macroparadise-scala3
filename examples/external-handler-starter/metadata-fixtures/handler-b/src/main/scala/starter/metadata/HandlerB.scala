@@ -1,10 +1,11 @@
 package starter.metadata
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+import paradise3.api.*
 
-final class HandlerB extends ParadiseAnnotationExpander:
+final class HandlerB extends ExpansionHandler:
   val annotationName: String = "starter.metadata.handlerB"
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionOutcome.NotApplicable
+    ExpansionOutcome.Structured(ExpansionChanges())

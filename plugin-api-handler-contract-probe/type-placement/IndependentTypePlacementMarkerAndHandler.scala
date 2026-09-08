@@ -5,8 +5,8 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Flags.Param
 import dotty.tools.dotc.core.Names.typeName
-import paradise3.api.{ExpansionInput, ExpansionOutcome, ExpansionTargetProfile, ParadiseAnnotationExpander, expander}
-import paradise3.api.helpers.{CompanionTypeConflictPolicy, ExpansionHelpers}
+import paradise3.api.{DefinitionPlacement, ExpansionAdmission, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetKind, expander}
+import paradise3.api.helpers.{ExpansionHelpers, MemberConflictPolicy, MissingCompanionPolicy}
 import scala.annotation.StaticAnnotation
 
 @expander("contractprobetype.IndependentTypePlacementHandler")
@@ -15,21 +15,22 @@ final class IndependentTypePlacementMarker extends StaticAnnotation
 @expander("contractprobetype.IndependentTypePlacementRejectHandler")
 final class IndependentTypePlacementRejectMarker extends StaticAnnotation
 
-final class IndependentTypePlacementHandler extends ParadiseAnnotationExpander:
+final class IndependentTypePlacementHandler extends ExpansionHandler:
   val annotationName: String = "IndependentTypePlacementMarker"
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.TwoUpperBoundedGenericTrait
-  override val consumesExistingCompanion: Boolean = true
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.addTypeToCompanion(
-      input,
-      generatedType(input),
-      CompanionTypeConflictPolicy.PreserveExisting
+    ExpansionEdit.finish(
+      ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInCompanion(
+        edit,
+        generatedType(input),
+        MissingCompanionPolicy.Create(ExpansionTargetKind.Object, DefinitionPlacement.AfterPrimary),
+        MemberConflictPolicy.PreserveExisting
+      ))
     )
 
   private[contractprobetype] def generatedType(input: ExpansionInput)(using Context): untpd.TypeDef =
-    given dotty.tools.dotc.util.SourceFile = input.annotatedClass.source
+    given dotty.tools.dotc.util.SourceFile = input.primary.tree.source
 
     def upperBounded(name: String): untpd.TypeDef =
       untpd.TypeDef(
@@ -39,7 +40,7 @@ final class IndependentTypePlacementHandler extends ParadiseAnnotationExpander:
 
     val appliedTarget =
       untpd.AppliedTypeTree(
-        untpd.Ident(input.annotatedClass.name),
+        untpd.Ident(typeName(input.primary.name)),
         List(untpd.Ident(typeName("N")), untpd.Ident(typeName("M")))
       )
     val refinedTarget =
@@ -56,15 +57,16 @@ final class IndependentTypePlacementHandler extends ParadiseAnnotationExpander:
       )
     )
 
-final class IndependentTypePlacementRejectHandler extends ParadiseAnnotationExpander:
+final class IndependentTypePlacementRejectHandler extends ExpansionHandler:
   val annotationName: String = "IndependentTypePlacementRejectMarker"
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.TwoUpperBoundedGenericTrait
-  override val consumesExistingCompanion: Boolean = true
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.addTypeToCompanion(
-      input,
-      new IndependentTypePlacementHandler().generatedType(input),
-      CompanionTypeConflictPolicy.Reject
+    ExpansionEdit.finish(
+      ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInCompanion(
+        edit,
+        new IndependentTypePlacementHandler().generatedType(input),
+        MissingCompanionPolicy.Create(ExpansionTargetKind.Object, DefinitionPlacement.AfterPrimary),
+        MemberConflictPolicy.Reject
+      ))
     )

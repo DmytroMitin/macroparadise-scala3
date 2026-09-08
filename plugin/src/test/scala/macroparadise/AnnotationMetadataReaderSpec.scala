@@ -318,7 +318,7 @@ class AnnotationMetadataReaderSpec extends munit.FunSuite:
         assert(evidence.exists(_.contains("identity=scala.tasty.inspector.Inspector")))
         assert(evidence.exists(_.contains("identity=scala.quoted.Quotes")))
         assert(evidence.exists(_.contains("identity=paradise3.api.expander")))
-        assert(evidence.exists(_.contains("identity=paradise3.api.ParadiseAnnotationExpander")))
+        assert(evidence.exists(_.contains("identity=paradise3.api.ExpansionHandler")))
       case other =>
         fail(s"expected ready structured metadata distribution audit, got $other")
   }

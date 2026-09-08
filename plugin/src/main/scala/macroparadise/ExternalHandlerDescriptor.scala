@@ -1,19 +1,13 @@
 package macroparadise
 
-import paradise3.api.{
-  ExpansionCompositionPolicy,
-  ExpansionTargetProfile,
-  ParadiseAnnotationExpander
-}
+import paradise3.api.{ExpansionAdmission, ExpansionHandler}
 
 import scala.util.control.NonFatal
 
 private[macroparadise] final case class ExternalHandlerDescriptor(
     handlerClassName: String,
     annotationName: String,
-    targetProfile: ExpansionTargetProfile,
-    compositionPolicy: ExpansionCompositionPolicy,
-    consumesExistingCompanion: Boolean
+    admissions: List[ExpansionAdmission]
 )
 
 private[macroparadise] trait LoadedExternalHandlerContract:
@@ -21,12 +15,22 @@ private[macroparadise] trait LoadedExternalHandlerContract:
   def annotationName: String
 
 private[macroparadise] final case class LoadedExternalHandler(
-    instance: ParadiseAnnotationExpander,
+    instance: ExpansionHandler,
     descriptor: ExternalHandlerDescriptor,
     metadataFailureAlreadyReported: Boolean = false
 ) extends LoadedExternalHandlerContract:
   def handlerClassName: String = descriptor.handlerClassName
   def annotationName: String = descriptor.annotationName
+
+private[macroparadise] enum ExternalHandlerClassClassification:
+  case Handler
+  case Invalid
+
+private[macroparadise] object ExternalHandlerClassClassification:
+  def classify(handlerClass: Class[?]): ExternalHandlerClassClassification =
+    if classOf[ExpansionHandler].isAssignableFrom(handlerClass) then
+      ExternalHandlerClassClassification.Handler
+    else ExternalHandlerClassClassification.Invalid
 
 private[macroparadise] object ExternalHandlerDescriptor:
   final case class LoaderOwnership(
@@ -37,7 +41,7 @@ private[macroparadise] object ExternalHandlerDescriptor:
   final case class Failure(diagnostic: String)
 
   def capture(
-      instance: ParadiseAnnotationExpander,
+      instance: ExpansionHandler,
       requestedLoader: ClassLoader
   ): Either[Failure, LoadedExternalHandler] =
     val handlerClass = instance.getClass
@@ -45,49 +49,28 @@ private[macroparadise] object ExternalHandlerDescriptor:
     val ownership = LoaderOwnership(requestedLoader, handlerClass.getClassLoader)
 
     for
-      annotationName <- readAccessor(
-        handlerClassName,
-        "annotationName",
-        ownership
-      )(instance.annotationName)
+      annotationName <- readAccessor(handlerClassName, "annotationName", ownership)(
+        instance.annotationName
+      )
       validatedAnnotationName <- validateAnnotationName(
         handlerClassName,
         annotationName,
         ownership
       )
-      targetProfile <- readAccessor(
+      admissions <- readAccessor(handlerClassName, "admissions", ownership)(
+        instance.admissions
+      )
+      validatedAdmissions <- validateAdmissions(
         handlerClassName,
-        "targetProfile",
-        ownership
-      )(instance.targetProfile)
-      validatedTargetProfile <- validateTargetProfile(
-        handlerClassName,
-        targetProfile,
+        admissions,
         ownership
       )
-      compositionPolicy <- readAccessor(
-        handlerClassName,
-        "compositionPolicy",
-        ownership
-      )(instance.compositionPolicy)
-      validatedCompositionPolicy <- validateCompositionPolicy(
-        handlerClassName,
-        compositionPolicy,
-        ownership
-      )
-      consumesExistingCompanion <- readAccessor(
-        handlerClassName,
-        "consumesExistingCompanion",
-        ownership
-      )(instance.consumesExistingCompanion)
     yield LoadedExternalHandler(
       instance,
       ExternalHandlerDescriptor(
         handlerClassName,
         validatedAnnotationName,
-        validatedTargetProfile,
-        validatedCompositionPolicy,
-        consumesExistingCompanion
+        validatedAdmissions
       )
     )
 
@@ -97,72 +80,33 @@ private[macroparadise] object ExternalHandlerDescriptor:
       ownership: LoaderOwnership
   ): Either[Failure, String] =
     if annotationName == null then
-      Left(
-        invalidDeclaration(
-          handlerClassName,
-          "INVALID_HANDLER_ANNOTATION_NAME",
-          "annotationName",
-          ownership,
-          "handler returned null"
-        )
-      )
+      Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ANNOTATION_NAME", "annotationName", ownership, "handler returned null"))
     else if annotationName.trim.isEmpty then
-      Left(
-        invalidDeclaration(
-          handlerClassName,
-          "INVALID_HANDLER_ANNOTATION_NAME",
-          "annotationName",
-          ownership,
-          "handler returned an empty or whitespace-only annotation name"
-        )
-      )
+      Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ANNOTATION_NAME", "annotationName", ownership, "handler returned an empty or whitespace-only annotation name"))
     else
       SyntacticAnnotationIdentity.fromDeclaredName(annotationName) match
         case Right(identity) => Right(identity.value)
         case Left(detail) =>
-          Left(
-            invalidDeclaration(
-              handlerClassName,
-              "INVALID_HANDLER_ANNOTATION_NAME",
-              "annotationName",
-              ownership,
-              s"handler returned `$annotationName`; $detail"
-            )
-          )
+          Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ANNOTATION_NAME", "annotationName", ownership, s"handler returned `$annotationName`; $detail"))
 
-  private def validateTargetProfile(
+  private def validateAdmissions(
       handlerClassName: String,
-      targetProfile: ExpansionTargetProfile,
+      admissions: List[ExpansionAdmission],
       ownership: LoaderOwnership
-  ): Either[Failure, ExpansionTargetProfile] =
-    if targetProfile == null then
-      Left(
-        invalidDeclaration(
-          handlerClassName,
-          "NULL_TARGET_PROFILE",
-          "targetProfile",
-          ownership,
-          "handler returned null"
-        )
-      )
-    else Right(targetProfile)
-
-  private def validateCompositionPolicy(
-      handlerClassName: String,
-      compositionPolicy: ExpansionCompositionPolicy,
-      ownership: LoaderOwnership
-  ): Either[Failure, ExpansionCompositionPolicy] =
-    if compositionPolicy == null then
-      Left(
-        invalidDeclaration(
-          handlerClassName,
-          "NULL_COMPOSITION_POLICY",
-          "compositionPolicy",
-          ownership,
-          "handler returned null"
-        )
-      )
-    else Right(compositionPolicy)
+  ): Either[Failure, List[ExpansionAdmission]] =
+    val failure =
+      if admissions == null then Some("handler returned null")
+      else if admissions.isEmpty then Some("handler returned an empty admission list")
+      else if admissions.exists(_ == null) then Some("handler returned a null admission")
+      else if admissions.exists(value => value.targetKind == null || value.shapeProfile == null) then
+        Some("handler returned an admission with a null target kind or shape profile")
+      else if admissions.distinct.size != admissions.size then
+        Some("handler returned duplicate admissions")
+      else None
+    failure match
+      case Some(detail) =>
+        Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ADMISSIONS", "admissions", ownership, detail))
+      case None => Right(admissions)
 
   private def readAccessor[A](
       handlerClassName: String,
@@ -171,35 +115,16 @@ private[macroparadise] object ExternalHandlerDescriptor:
   )(value: => A): Either[Failure, A] =
     try Right(value)
     catch
-      case error: LinkageError =>
-        Left(accessorFailure(handlerClassName, accessor, ownership, error))
       case NonFatal(error) =>
-        Left(accessorFailure(handlerClassName, accessor, ownership, error))
-
-  private def accessorFailure(
-      handlerClassName: String,
-      accessor: String,
-      ownership: LoaderOwnership,
-      error: Throwable
-  ): Failure =
-    Failure(
-      ExternalHandlerDiagnostics.render(
-        ExternalHandlerDiagnostics.Stage.Loading,
-        "HANDLER_DECLARATION_FAILURE",
-        "handler" -> handlerClassName,
-        "accessor" -> accessor,
-        "loaderPolicy" -> "parent-first",
-        "requestedLoader" -> ExternalHandlerDiagnostics.loaderIdentity(
-          ownership.requestedLoader
-        ),
-        "handlerLoader" -> ExternalHandlerDiagnostics.loaderIdentity(
-          ownership.handlerLoader
-        ),
-        "cause" -> error.getClass.getName,
-        "message" -> ExternalHandlerDiagnostics.normalize(error.getMessage),
-        "detail" -> s"external annotation handler `$handlerClassName` failed while evaluating `$accessor`"
-      )
-    )
+        Left(
+          invalidDeclaration(
+            handlerClassName,
+            "HANDLER_ACCESSOR_FAILURE",
+            accessor,
+            ownership,
+            s"${error.getClass.getName}: ${Option(error.getMessage).getOrElse("")}"
+          )
+        )
 
   private def invalidDeclaration(
       handlerClassName: String,
@@ -214,13 +139,8 @@ private[macroparadise] object ExternalHandlerDescriptor:
         category,
         "handler" -> handlerClassName,
         "accessor" -> accessor,
-        "loaderPolicy" -> "parent-first",
-        "requestedLoader" -> ExternalHandlerDiagnostics.loaderIdentity(
-          ownership.requestedLoader
-        ),
-        "handlerLoader" -> ExternalHandlerDiagnostics.loaderIdentity(
-          ownership.handlerLoader
-        ),
+        "requestedLoader" -> ExternalHandlerDiagnostics.loaderIdentity(ownership.requestedLoader),
+        "handlerLoader" -> ExternalHandlerDiagnostics.loaderIdentity(ownership.handlerLoader),
         "detail" -> detail
       )
     )

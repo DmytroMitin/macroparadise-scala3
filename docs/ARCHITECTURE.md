@@ -37,46 +37,46 @@ The exact-cross plugin/API pair and sbt integration have an immutable `0.1.1`
 release. Current `0.2.0-SNAPSHOT` development is source-built/local-only.
 Fixture modules remain unpublished.
 
-## Legacy external handler flow
+## Unified external handler flow
 
 An external marker carries runtime metadata naming an already compiled handler:
 
 ```text
 marker class metadata
   -> exact syntactic annotation identity
-  -> immutable handler descriptor and metadata binding
+  -> unified handler descriptor and metadata binding
   -> parent-first handler class loader
-  -> one ExpansionInput
-  -> one ExpansionOutcome
-  -> plugin-owned output validation
+  -> current staged-tree target and companion discovery
+  -> one ExpansionInput / ExpansionOutcome transaction
+  -> final-program validation and complete rescan
 ```
 
 The handler contract exposes raw untyped Dotty trees and a small helper layer.
 The helpers reduce repeated decoding and common class/companion/sibling
 construction, but they do not make the boundary compiler independent.
 
-## Legacy input and output ownership
+## Input, output, and scheduling ownership
 
 The plugin owns:
 
 - annotation matching and target admission;
 - handler discovery, loading, descriptor capture, and failure adaptation;
-- companion leasing;
-- source-ordered composition and handled-annotation closure;
+- current-revision companion discovery and final relationship recomputation;
+- deterministic current-staged-tree annotation scheduling;
 - package conflicts, output validation, rollback, and diagnostics;
 - final ordering and splicing before typer.
 
-A legacy handler owns its bounded transformation. It may use a decoded read-only class
-view and return either:
+A handler owns its bounded transformation. It may use normalized read-only
+target views and return either:
 
-- ordered raw replacement/output trees;
-- a structured primary, optional companion, and ordered additional definitions;
-- a rejection with diagnostics and a fallback;
-- a not-applicable outcome, which is an error after matching and admission.
+- exact zero-or-more raw replacement trees for the owned primary/companion region;
+- sparse structured primary, companion, and sibling changes;
+- a nonempty controlled diagnostic rejection.
 
-The plugin canonicalizes structured output as primary, companion, then
-additional definitions. Raw output remains an expert escape hatch and still
-passes structural validation.
+Structured labels address the current input revision only. The plugin applies
+the complete change set privately, discards the old labels, recomputes real
+companions, validates the final program, and rescans it. Any later failure rolls
+the whole compilation unit back.
 
 ## Class loading and exact compiler identity
 
@@ -113,11 +113,10 @@ See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
 distinguishes current typed quasiquotes from proposed neutral authoring and
 hypothetical raw-untyped syntax.
 
-## Role-aware and intra-handler composition
+## Orthogonal targets and relationships
 
-Current development also routes one ordinary top-level object using
-`RoleAwareExpansionInput` and `RoleAwareExpansionOutcome`, with explicit
-Preserve/Replace/Create opposite intent. Creation can precede or follow the
-primary. Both API families support immutable helper programs inside one handler.
-See [Expansion model and composition](EXPANSION_MODEL_AND_COMPOSITION.md) for
-the exact terminal and topology distinctions.
+One `ExpansionHandler` protocol covers Class, Trait, and Object targets.
+Target-kind admissions are independent of the primary, companion, and sibling
+relationships. Sparse Merge/Replace/Create/Delete operations and raw exact
+replacement share one current-tree scheduler; stacked and generated handled
+annotations require no policy opt-in. See [Expansion model and scheduling](EXPANSION_MODEL_AND_COMPOSITION.md).

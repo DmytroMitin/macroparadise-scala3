@@ -1,7 +1,7 @@
 package macroparadise
 
 import dotty.tools.dotc.config.Properties
-import paradise3.api.ParadiseAnnotationExpander
+import paradise3.api.ExpansionHandler
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -48,7 +48,7 @@ object ExternalHandlerPrecheckMain:
       |
       |Compact derived witnesses:
       |  plugin: executing ExternalHandlerPrecheckMain code source
-      |  runtime plugin-api: parent-loaded ParadiseAnnotationExpander code source (embedded in a self-contained plugin)
+      |  runtime plugin-api: parent-loaded ExpansionHandler code source (embedded in a self-contained plugin)
       |  authoring plugin-api: the unique contract JAR on handler-compile-classpath
       |  marker-class: canonical expected-annotation identity
       |
@@ -56,7 +56,7 @@ object ExternalHandlerPrecheckMain:
       |  plugin: packaged production compiler plugin containing this command
       |  plugin-api: packaged experimental handler contract
       |  marker: separately compiled annotation and runtime handler metadata
-      |  handler: separately compiled ParadiseAnnotationExpander implementation
+      |  handler: separately compiled ExpansionHandler implementation
       |  handler-compile-classpath: plugin-api plus the exact compiler/runtime artifacts used to compile the handler
       |
       |Preconsumer guarantee:
@@ -313,7 +313,7 @@ object ExternalHandlerPrecheckMain:
     for
       plugin <- artifactPathFromCodeSource(getClass, "plugin")
       pluginApi <- artifactPathFromCodeSource(
-        classOf[ParadiseAnnotationExpander],
+        classOf[ExpansionHandler],
         "plugin-api"
       )
     yield RuntimeArtifacts(plugin, pluginApi)
@@ -328,7 +328,7 @@ object ExternalHandlerPrecheckMain:
     if runtimeApi != plugin then Right(runtimeApi)
     else
       val requiredEntries = Set(
-        "paradise3/api/ParadiseAnnotationExpander.class",
+        "paradise3/api/ExpansionHandler.class",
         "paradise3/api/expander.class"
       )
       val candidates = handlerCompileClasspath

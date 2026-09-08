@@ -1,6 +1,6 @@
 package macroparadise
 
-import paradise3.api.{ParadiseAnnotationExpander, expander}
+import paradise3.api.{ExpansionHandler, expander}
 
 import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
@@ -16,7 +16,7 @@ import scala.util.control.NonFatal
   * The retained command entrypoint is deliberately narrower than the compiler
   * plugin. It validates packaged authoring inputs before a consumer compilation
   * starts and reuses the plugin's existing declaration and binding authorities.
-  * It never calls `ParadiseAnnotationExpander.expand`.
+  * It never calls `ExpansionHandler.expand`.
   */
 private[macroparadise] object ExternalHandlerPrecheck:
   final case class Failure(category: String, detail: String):
@@ -213,7 +213,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
         pluginApi,
         "pluginApi",
         Set(
-          "paradise3/api/ParadiseAnnotationExpander.class",
+          "paradise3/api/ExpansionHandler.class",
           "paradise3/api/expander.class"
         )
       )
@@ -295,7 +295,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
       request: Request,
       artifacts: ValidatedArtifacts
   ): Either[Failure, Success] =
-    val parent = Option(request.parentLoader).getOrElse(classOf[ParadiseAnnotationExpander].getClassLoader)
+    val parent = Option(request.parentLoader).getOrElse(classOf[ExpansionHandler].getClassLoader)
     val loader = URLClassLoader(
       Array(
         artifacts.marker.path.toUri.toURL,
@@ -307,13 +307,13 @@ private[macroparadise] object ExternalHandlerPrecheck:
     try
       for
         parentApi <- loadClass(
-          classOf[ParadiseAnnotationExpander].getName,
+          classOf[ExpansionHandler].getName,
           initialize = false,
           parent,
           "HANDLER_CONTRACT_IDENTITY_FAILURE"
         )
         childApi <- loadClass(
-          classOf[ParadiseAnnotationExpander].getName,
+          classOf[ExpansionHandler].getName,
           initialize = false,
           loader,
           "HANDLER_CONTRACT_IDENTITY_FAILURE"
@@ -324,7 +324,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
             Left(
               Failure(
                 "HANDLER_CONTRACT_IDENTITY_FAILURE",
-                "handler child loader resolved a second ParadiseAnnotationExpander identity"
+                "handler child loader resolved a second ExpansionHandler identity"
               )
             )
         markerClass <- loadClass(
@@ -389,7 +389,7 @@ private[macroparadise] object ExternalHandlerPrecheck:
                 context.render(
                   failureStage = "handler-contract",
                   metadataHandler = Some(metadata.value()),
-                  detail = s"handler `${handlerClass.getName}` does not implement the supplied parent-first ParadiseAnnotationExpander identity"
+                  detail = s"handler `${handlerClass.getName}` does not implement the supplied parent-first ExpansionHandler identity"
                 )
               )
             )
@@ -496,13 +496,13 @@ private[macroparadise] object ExternalHandlerPrecheck:
 
   private def constructHandler(
       handlerClass: Class[?]
-  ): Either[Failure, ParadiseAnnotationExpander] =
+  ): Either[Failure, ExpansionHandler] =
     try
       Right(
         handlerClass
           .getDeclaredConstructor()
           .newInstance()
-          .asInstanceOf[ParadiseAnnotationExpander]
+          .asInstanceOf[ExpansionHandler]
       )
     catch
       case error: LinkageError =>

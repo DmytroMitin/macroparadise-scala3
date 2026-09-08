@@ -85,9 +85,6 @@ lazy val verifyConsumerReleaseConfiguration =
 lazy val verifyPublicProductBoundary =
   taskKey[Unit]("Run the canonical self-contained public-product build boundary")
 
-lazy val verifyIndependentRoleAwareHandlerPackagedConsumer =
-  taskKey[Unit]("Verify the independent role-aware marker, handler, and consumer artifacts")
-
 verifyJdkVersionEnforcement := {
   JdkVersionEnforcementSpec.run()
   val detected = JdkVersionEnforcement.currentDetectedVersion()
@@ -218,10 +215,7 @@ verifyPublicProductBoundary := Def
     plugin / Compile / packageBin,
     verifyExperimentalPluginApiSurfaceBaseline,
     verifyExperimentalHandlerContractArtifact,
-    Def.sequential(
-      verifyIndependentPrecompiledHandlerPackagedConsumer,
-      verifyIndependentRoleAwareHandlerPackagedConsumer
-    ),
+    verifyIndependentPrecompiledHandlerPackagedConsumer,
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
     verifySbtPrecompiledIntegrationModule,
@@ -787,39 +781,6 @@ verifyIndependentPrecompiledHandlerPackagedConsumer := {
   )
   streams.value.log.info(
     s"independent precompiled handler packaged consumer verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
-  )
-}
-
-verifyIndependentRoleAwareHandlerPackagedConsumer := {
-  val releasedApiArtifact =
-    (Legacy011Compatibility / dependencyClasspath).value.files.find { file =>
-      file.getName == s"macroparadise-scala3-plugin-api_${scalaVersion.value}-0.1.1.jar"
-    }.getOrElse(sys.error("published 0.1.1 exact-line plugin-api artifact was not resolved"))
-  val result = IndependentRoleAwareHandlerPackagedConsumer.verify(
-    baseDirectory.value,
-    (pluginApi / Compile / packageBin).value,
-    (plugin / Compile / packageBin).value,
-    releasedApiArtifact,
-    (pluginApi / Compile / dependencyClasspath).value.files,
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "handler" /
-      "IndependentRoleAwareHandler.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "marker" /
-      "IndependentRoleAwareMarker.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "consumer" /
-      "IndependentRoleAwareConsumer.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-handler" /
-      "LegacyBinaryHandlers.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-marker" /
-      "LegacyBinaryMarkers.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-consumer" /
-      "LegacyBinaryConsumer.scala",
-    baseDirectory.value / "plugin-api-role-aware-contract-probe" / "legacy-0.1.1-object-negative" /
-      "LegacyBinaryObjectNegative.scala",
-    target.value / "independent-role-aware-handler-packaged-consumer",
-    IndependentRoleAwareHandlerPackagedConsumer.Config(scalaVersion.value, version.value)
-  )
-  streams.value.log.info(
-    s"independent role-aware handler packaged consumer verified: ${result.render} evidence=${result.evidenceDirectory.getAbsolutePath}"
   )
 }
 

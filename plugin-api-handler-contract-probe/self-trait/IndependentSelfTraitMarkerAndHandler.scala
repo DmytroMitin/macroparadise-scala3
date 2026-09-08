@@ -1,34 +1,30 @@
 package contractprobeself
 
 import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Names.{termName, typeName}
-import paradise3.api.{ExpansionInput, ExpansionOutcome, ExpansionTargetProfile, ParadiseAnnotationExpander, expander}
-import paradise3.api.helpers.{ExpansionHelpers, TraitSelfPreparation}
+import paradise3.api.{ExpansionAdmission, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetKind, expander}
+import paradise3.api.helpers.ExpansionHelpers
 import scala.annotation.StaticAnnotation
 
 @expander("contractprobeself.IndependentSelfTraitHandler")
 final class IndependentSelfTraitMarker extends StaticAnnotation
 
-final class IndependentSelfTraitHandler extends ParadiseAnnotationExpander:
+final class IndependentSelfTraitHandler extends ExpansionHandler:
   val annotationName: String = "IndependentSelfTraitMarker"
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.PlainZeroParameterTrait
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.NoTypeOrValueParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.addPreparedSelfTypeToTrait(input): preparation =>
-      if input.className == "RejectSelfNat" then
-        throw new IllegalStateException("direct Self preflight invoked lowering callback")
-      generatedSelfType(input, preparation)
-
-  private def generatedSelfType(
-      input: ExpansionInput,
-      preparation: TraitSelfPreparation
-  )(using Context): untpd.TypeDef =
-    given dotty.tools.dotc.util.SourceFile = input.annotatedClass.source
-    untpd.TypeDef(
-      typeName("Self"),
-      untpd.SingletonTypeTree(
-        untpd.Ident(termName(preparation.selfAliasName))
-      )
-    )
+    input.primary match
+      case ExpansionTarget.Trait(tree) =>
+        given dotty.tools.dotc.util.SourceFile = tree.source
+        val template = tree.rhs.asInstanceOf[Template]
+        val self =
+          if template.self != EmptyValDef then template.self
+          else untpd.ValDef(termName("$macroparadise$self"), untpd.Ident(typeName(input.primary.name)), EmptyTree)
+        val generated = untpd.TypeDef(typeName("Self"), untpd.SingletonTypeTree(untpd.Ident(self.name)))
+        ExpansionEdit.finish(
+          ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.prepareTraitSelf(edit, self, List(generated)))
+        )
+      case _ => ExpansionOutcome.Rejected(Nil)

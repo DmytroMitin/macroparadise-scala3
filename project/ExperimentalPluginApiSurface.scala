@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "30b48ab62b7ade15eab9eda6ec130f8852c3472a22e18b5075311a577d86d61d",
-    "3.8.4" -> "e654c1b7594326628e67211c8144feceda154fef5ad26f9be71a5512afa934a8",
-    "3.9.0" -> "cf8bb021f133192f899aa59f3aa15b0dcc5eeb3d9d6e75e66f0019fe045c6dfe"
+    "3.3.8" -> "4b1fab77723f8c7e87859134f1f9b8156c08983314bf321f4ce8e6836b3c60c7",
+    "3.8.4" -> "25b59a27210c2a95d8c0406d75c1d08f5e3b0de973333259772753059948b911",
+    "3.9.0" -> "1372cde40ac7da2c7437f2d7b4746b0433f4f5007ee17bc0a8b14ebe38c2f8de"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -290,8 +290,8 @@ object ExperimentalPluginApiSurface {
     require(runtimeExit == 0, s"isolated runtime linkage failed: $runtimeOutput")
     Vector(
       "annotationName=surfaceProbe",
-      "defaultConsumesExistingCompanion=false",
-      "overrideConsumesExistingCompanion=true",
+      "admissionCount=3",
+      "admissionsReturnType=scala.collection.immutable.List",
       "apiIdentityShared=true",
       "expandDescriptor=(paradise3.api.ExpansionInput,dotty.tools.dotc.core.Contexts$Context)paradise3.api.ExpansionOutcome",
       s"apiCodeSource=${contractArtifact.getCanonicalPath}"
@@ -731,31 +731,26 @@ object ExperimentalPluginApiSurface {
     if (exactScalaVersion == "3.8.4") released384Surface
     else {
       val enumEntries = Set(
-        "paradise3/api/AnnotatedClassBodyView$DirectMemberKind.class",
-        "paradise3/api/AnnotatedClassBodyView$DirectMethodStatus.class",
-        "paradise3/api/AnnotatedClassBodyView$DirectTypeShape.class",
-        "paradise3/api/AnnotatedClassBodyView$DirectVisibility.class",
-        "paradise3/api/AnnotatedClassTypeStructureView$Bound.class",
-        "paradise3/api/AnnotatedClassTypeStructureView$DirectTypeMemberKind.class",
-        "paradise3/api/AnnotatedClassView$DefinitionKind.class",
-        "paradise3/api/AnnotatedClassView$Variance.class",
+        "paradise3/api/ExpansionTargetBodyView$DirectMemberKind.class",
+        "paradise3/api/ExpansionTargetBodyView$DirectMethodStatus.class",
+        "paradise3/api/ExpansionTargetBodyView$DirectTypeShape.class",
+        "paradise3/api/ExpansionTargetBodyView$DirectVisibility.class",
+        "paradise3/api/ExpansionTargetTypeStructureView$Bound.class",
+        "paradise3/api/ExpansionTargetTypeStructureView$DirectTypeMemberKind.class",
+        "paradise3/api/ExpansionTargetView$DefinitionKind.class",
+        "paradise3/api/ExpansionTargetView$Variance.class",
         "paradise3/api/AnnotationTermArgument.class",
-        "paradise3/api/ExpansionCompositionPolicy.class",
-        "paradise3/api/ExpansionOppositeRole.class",
+        "paradise3/api/CompanionChange.class",
+        "paradise3/api/DefinitionPlacement.class",
         "paradise3/api/ExpansionOutcome.class",
-        "paradise3/api/ExpansionPrimaryRole.class",
+        "paradise3/api/ExpansionShapeProfile.class",
+        "paradise3/api/ExpansionTarget.class",
         "paradise3/api/ExpansionTargetKind.class",
-        "paradise3/api/ExpansionTargetProfile.class",
-        "paradise3/api/OppositeChange.class",
-        "paradise3/api/OppositePlacement.class",
-        "paradise3/api/RoleAwareExpansionOutcome.class",
-        "paradise3/api/RoleAwareOppositeCapability.class",
-        "paradise3/api/RoleAwareShapeProfile.class",
-        "paradise3/api/RoleAwareTargetAdmission.class",
-        "paradise3/api/helpers/CompanionModuleConflictPolicy.class",
-        "paradise3/api/helpers/CompanionMethodConflictPolicy.class",
-        "paradise3/api/helpers/CompanionTypeConflictPolicy.class",
-        "paradise3/api/helpers/RoleAwareMissingOppositePolicy.class",
+        "paradise3/api/PrimaryChange.class",
+        "paradise3/api/SiblingChange.class",
+        "paradise3/api/TargetPatch.class",
+        "paradise3/api/helpers/MemberConflictPolicy.class",
+        "paradise3/api/helpers/MissingCompanionPolicy.class",
         "paradise3/api/helpers/SelfAliasOrigin.class"
       )
       released384Surface.map {
@@ -770,7 +765,7 @@ object ExperimentalPluginApiSurface {
                 .replace(" implements java.io.Serializable", "")
             else fields(3)
           fields.take(3).mkString("|") + "|" +
-            withoutObsoleteModuleSerializable.replace(",", ", ")
+            withoutObsoleteModuleSerializable.replaceAll(",(?!\\s)", ", ")
         case line if exactScalaVersion == "3.3.8" && line.startsWith("CLASS|") =>
           val fields = line.split("\\|", 4)
           if (

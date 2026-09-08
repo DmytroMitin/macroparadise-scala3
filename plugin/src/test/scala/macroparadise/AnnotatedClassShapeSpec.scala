@@ -15,20 +15,20 @@ import dotty.tools.dotc.core.Flags.{
   Trait
 }
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.AnnotatedClassView
+import paradise3.api.ExpansionTargetView
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 
 class AnnotatedClassAdmissionSpec extends munit.FunSuite:
-  test("plugin admission delegates normalization to the shared AnnotatedClassView decoder") {
+  test("plugin admission delegates normalization to the shared ExpansionTargetView decoder") {
     val source =
       Files.readString(
         Path.of("plugin/src/main/scala/macroparadise/AnnotatedClassAdmission.scala"),
         StandardCharsets.UTF_8
       )
 
-    assert(source.contains("AnnotatedClassView.decode(typeDef)"))
+    assert(source.contains("ExpansionTargetView.decode(typeDef)"))
     assert(!source.contains("Trees.mods"))
     assert(!source.contains("ParamAccessor"))
     assert(!source.contains("termParamss.map"))
@@ -433,10 +433,10 @@ class AnnotatedClassAdmissionSpec extends munit.FunSuite:
   }
 
   private def onlyParameter(
-      shape: AnnotatedClassView
-  ): AnnotatedClassView.ConstructorParameter =
+      shape: ExpansionTargetView
+  ): ExpansionTargetView.ConstructorParameter =
     shape.constructorClauses match
-      case AnnotatedClassView.ConstructorClause(parameter :: Nil, _, _) :: Nil =>
+      case ExpansionTargetView.ConstructorClause(parameter :: Nil, _, _) :: Nil =>
         parameter
       case other =>
         fail(s"expected one constructor parameter, found $other")
@@ -447,7 +447,7 @@ class AnnotatedClassAdmissionSpec extends munit.FunSuite:
       case Select(_, name) => name.toString
       case other => other.getClass.getSimpleName
 
-  private def shape(code: String): AnnotatedClassView =
+  private def shape(code: String): ExpansionTargetView =
     val (stats, context) = parsedStats(code)
     given Context = context
     val typeDef =

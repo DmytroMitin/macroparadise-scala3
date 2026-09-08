@@ -12,16 +12,19 @@ import dotty.tools.dotc.core.Names.*
 import dotty.tools.dotc.core.Symbols.NoSymbol
 
 import paradise3.api.{
-  AnnotatedClassView,
+  ExpansionTargetView,
+  DefinitionPlacement,
+  ExpansionAdmission,
   ExpansionDiagnostic,
+  ExpansionEdit,
   ExpansionInput,
   ExpansionOutcome,
-  ExpansionTargetProfile,
-  ParadiseAnnotationExpander,
-  StructuredExpansionOutput,
+  ExpansionHandler,
+  ExpansionShapeProfile,
+  ExpansionTargetKind,
   expander
 }
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.helpers.{ExpansionHelpers, MemberConflictPolicy, MissingCompanionPolicy}
 import quasiquotes.definitions.dotty.{
   GeneratedOriginDefinitionResult,
   PublicContextualMethodGeneratedOriginAdapter
@@ -66,69 +69,64 @@ final class PositionedContextualMethodHandler extends FriendHandlerBase:
     HandlerLifecycleTrace.append(s"descriptor|instance=$instanceId|field=annotationName")
     "PositionedContextualApply"
 
-  override val targetProfile: ExpansionTargetProfile =
-    HandlerLifecycleTrace.append(s"descriptor|instance=$instanceId|field=targetProfile")
-    ExpansionTargetProfile.RestrictedGenericTraitApply
+  override val admissions =
+    HandlerLifecycleTrace.append(s"descriptor|instance=$instanceId|field=admissions")
+    List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OneInvariantUnboundedTypeParameter))
 
-  override val consumesExistingCompanion: Boolean =
-    HandlerLifecycleTrace.append(
-      s"descriptor|instance=$instanceId|field=consumesExistingCompanion"
-    )
-    true
-
-  protected def recordExpansion(view: AnnotatedClassView): Unit =
+  protected def recordExpansion(view: ExpansionTargetView): Unit =
     HandlerLifecycleTrace.append(
       s"expand|instance=$instanceId|target=${view.className}"
     )
 
 final class MismatchedBindingHandler extends FriendHandlerBase:
   val annotationName: String = "DifferentPositionedContextualApply"
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.RestrictedGenericTraitApply
-  override val consumesExistingCompanion: Boolean = true
-  protected def recordExpansion(view: AnnotatedClassView): Unit = ()
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OneInvariantUnboundedTypeParameter))
+  protected def recordExpansion(view: ExpansionTargetView): Unit = ()
 
-abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
-  protected def recordExpansion(view: AnnotatedClassView): Unit
+abstract class FriendHandlerBase extends ExpansionHandler:
+  protected def recordExpansion(view: ExpansionTargetView): Unit
 
   final def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.withAnnotatedClassView(input): view =>
-      recordExpansion(view)
-      val outcome =
-        for
-          method <- construct(view)
-          lowered <- lower(method, virtualSourceName(view))
-          value <- Option(lowered).toRight("adapter returned a null result")
-          tree <- validateGeneratedOrigin(value, method, view)
-        yield tree
-      outcome match
-        case Right(method) =>
-          recordIdentity(method, input, view)
-          val primary = stripCurrentAnnotation(input)
-          val companion =
-            input.existingCompanion match
-              case Some(existing) => mergeExactMethod(existing, method)
-              case None => freshCompanion(input, method :: Nil)
-          ExpansionOutcome.Structured(
-            StructuredExpansionOutput(primary, Some(companion), Nil)
-          )
-        case Left(message) =>
-          ExpansionOutcome.Rejected(
-            List(
-              ExpansionDiagnostic(
-                s"Quasiquotes contextual-method friend rejection: $message",
-                input.annotatedClass.sourcePos
-              )
-            ),
-            input.annotatedClass
-          )
+    input.targetView match
+      case Left(diagnostic) => ExpansionOutcome.Rejected(List(diagnostic))
+      case Right(view) =>
+        recordExpansion(view)
+        val outcome =
+          for
+            method <- construct(view)
+            lowered <- lower(method, virtualSourceName(view))
+            value <- Option(lowered).toRight("adapter returned a null result")
+            tree <- validateGeneratedOrigin(value, method, view)
+          yield tree
+        outcome match
+          case Right(method) =>
+            recordIdentity(method, input, view)
+            ExpansionEdit.finish(
+              for
+                start <- ExpansionEdit.start(input)
+                stripped <- ExpansionHelpers.replacePrimaryAnnotations(
+                  start,
+                  Trees.mods(input.primary.tree.asInstanceOf[TypeDef]).annotations.filterNot(_ eq input.currentAnnotation)
+                )
+                edited <- ExpansionHelpers.placeMemberInCompanion(
+                  stripped,
+                  method,
+                  MissingCompanionPolicy.Create(ExpansionTargetKind.Object, DefinitionPlacement.AfterPrimary),
+                  MemberConflictPolicy.PreserveExisting
+                )
+              yield edited
+            )
+          case Left(message) =>
+            ExpansionOutcome.Rejected(
+              List(ExpansionDiagnostic(s"Quasiquotes contextual-method friend rejection: $message", input.primary.tree.sourcePos))
+            )
 
-  protected def traitName(view: AnnotatedClassView): String =
+  protected def traitName(view: ExpansionTargetView): String =
     if sys.props.get("macroparadise.contextualMethodFailureMode").contains("public-construction")
     then "invalid trait name"
     else view.className
 
-  protected def virtualSourceName(view: AnnotatedClassView): String =
+  protected def virtualSourceName(view: ExpansionTargetView): String =
     if sys.props.get("macroparadise.contextualMethodFailureMode").contains("generated-origin")
     then ""
     else
@@ -144,7 +142,7 @@ abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
       .map(_.message)
 
   private def construct(
-      view: AnnotatedClassView
+      view: ExpansionTargetView
   ): Either[String, DefinitionResultView] =
     val typeParameterName = view.typeParameters.head.name
     for
@@ -168,7 +166,7 @@ abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
   private def validateGeneratedOrigin(
       result: GeneratedOriginDefinitionResult,
       method: DefinitionResultView,
-      view: AnnotatedClassView
+      view: ExpansionTargetView
   )(using Context): Either[String, untpd.DefDef] =
     val binder = view.typeParameters.head.name
     val expected =
@@ -252,16 +250,6 @@ abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
       case value: untpd.AppliedTypeTree => value.tpt +: value.args.toVector
       case _ => Vector.empty
 
-  private def stripCurrentAnnotation(input: ExpansionInput)(using Context): TypeDef =
-    val currentMods = Trees.mods(input.annotatedClass)
-    val preserved =
-      input.currentAnnotation match
-        case Some(current) => currentMods.annotations.filterNot(_ eq current)
-        case None => Nil
-    input.annotatedClass
-      .withMods(currentMods.withAnnotations(preserved))
-      .asInstanceOf[TypeDef]
-
   private def mergeExactMethod(
       existing: ModuleDef,
       method: untpd.DefDef
@@ -290,16 +278,16 @@ abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
       input: ExpansionInput,
       body: List[untpd.Tree]
   )(using Context): ModuleDef =
-    given dotty.tools.dotc.util.SourceFile = input.annotatedClass.source
+    given dotty.tools.dotc.util.SourceFile = input.primary.tree.source
     ModuleDef(
-      termName(input.className),
+      termName(input.primary.name),
       Template(emptyConstructor, Nil, Nil, EmptyValDef, body)
     )
 
   private def recordIdentity(
       method: untpd.DefDef,
       input: ExpansionInput,
-      view: AnnotatedClassView
+      view: ExpansionTargetView
   )(using Context): Unit =
     sys.props.get("macroparadise.contextualMethodIdentityTrace").foreach: rawPath =>
       val context = summon[Context]
@@ -311,11 +299,11 @@ abstract class FriendHandlerBase extends ParadiseAnnotationExpander:
         "PublicContextualMethodGeneratedOriginAdapter" ->
           PublicContextualMethodGeneratedOriginAdapter.getClass,
         "GeneratedOriginDefinitionResult" -> classOf[GeneratedOriginDefinitionResult],
-        "ParadiseAnnotationExpander" -> classOf[ParadiseAnnotationExpander],
+        "ExpansionHandler" -> classOf[ExpansionHandler],
         "independentHandler" -> getClass,
         "activeContext.runtime" -> context.getClass,
-        "annotatedTree.runtime" -> input.annotatedClass.getClass,
-        "AnnotatedClassView.runtime" -> view.getClass
+        "annotatedTree.runtime" -> input.primary.tree.getClass,
+        "ExpansionTargetView.runtime" -> view.getClass
       )
       val rendered = values.map: (label, clazz) =>
         val loader = Option(clazz.getClassLoader).fold("bootstrap")(_.toString)

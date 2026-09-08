@@ -2,10 +2,13 @@ package macroparadise
 
 import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.{
+  ExpansionAdmission,
+  ExpansionChanges,
+  ExpansionHandler,
   ExpansionInput,
   ExpansionOutcome,
-  ExpansionTargetProfile,
-  ParadiseAnnotationExpander
+  ExpansionShapeProfile,
+  ExpansionTargetKind
 }
 
 class MetadataHandlerRunCacheSpec extends munit.FunSuite:
@@ -30,8 +33,7 @@ class MetadataHandlerRunCacheSpec extends munit.FunSuite:
     assertEquals(first.origin, cache.Origin.Discovered)
     assertEquals(second.origin, cache.Origin.Discovered)
     assertEquals(handler.annotationReads, 1)
-    assertEquals(handler.profileReads, 1)
-    assertEquals(handler.companionReads, 1)
+    assertEquals(handler.admissionsReads, 1)
   }
 
   test("explicit seed is the exact instance across unit-level calls") {
@@ -147,22 +149,17 @@ class MetadataHandlerRunCacheSpec extends munit.FunSuite:
       case Left(failure) => fail(failure.diagnostic)
 
   private final class InstrumentedHandler(declaredAnnotationName: String)
-      extends ParadiseAnnotationExpander:
+      extends ExpansionHandler:
     var annotationReads = 0
-    var profileReads = 0
-    var companionReads = 0
+    var admissionsReads = 0
 
     def annotationName: String =
       annotationReads += 1
       declaredAnnotationName
 
-    override def targetProfile: ExpansionTargetProfile =
-      profileReads += 1
-      ExpansionTargetProfile.CommonClassOnly
-
-    override def consumesExistingCompanion: Boolean =
-      companionReads += 1
-      false
+    override def admissions: List[ExpansionAdmission] =
+      admissionsReads += 1
+      List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
     def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-      ExpansionOutcome.NotApplicable
+      ExpansionOutcome.Structured(ExpansionChanges())

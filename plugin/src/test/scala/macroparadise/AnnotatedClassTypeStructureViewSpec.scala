@@ -5,11 +5,11 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{TypeName, typeName}
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{AnnotatedClassBodyView, AnnotatedClassTypeStructureView, AnnotatedClassView, ExpansionInput}
-import paradise3.api.AnnotatedClassBodyView.DirectTypeShape
-import paradise3.api.AnnotatedClassTypeStructureView.*
+import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, ExpansionTargetView}
+import paradise3.api.ExpansionTargetBodyView.DirectTypeShape
+import paradise3.api.ExpansionTargetTypeStructureView.*
 
-class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
+class ExpansionTargetTypeStructureViewSpec extends munit.FunSuite:
   test("normalizes canonical enclosing and direct abstract type-member bounds in source order") {
     val decoded = structure(
       """trait Nat
@@ -19,7 +19,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     )
 
     assertEquals(decoded.typeParameters.map(_.name), List("N", "M"))
-    assertEquals(decoded.typeParameters.map(_.variance), List.fill(2)(AnnotatedClassView.Variance.Invariant))
+    assertEquals(decoded.typeParameters.map(_.variance), List.fill(2)(ExpansionTargetView.Variance.Invariant))
     assert(decoded.typeParameters.forall(_.lowerBound == Bound.Absent))
     assertEquals(decoded.typeParameters.map(parameter => namedBound(parameter.upperBound)), List("Nat", "Nat"))
 
@@ -31,7 +31,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     assertEquals(out.lowerBound, Bound.Absent)
     assertEquals(namedBound(out.upperBound), "Nat")
     assertEquals(out.aliasTarget, None)
-    assertEquals(out.modifiers.visibility, AnnotatedClassBodyView.DirectVisibility.Public)
+    assertEquals(out.modifiers.visibility, ExpansionTargetBodyView.DirectVisibility.Public)
     assertEquals(out.modifiers.annotationCount, 0)
     assertEquals(out.modifiers.unsupportedFlags, Nil)
     assert(out.pos.span.exists)
@@ -61,7 +61,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     assertEquals(poly.typeParameters.map(_.name), List("X"))
     assertEquals(namedBound(poly.upperBound), "Nat")
 
-    assertEquals(modified.modifiers.visibility, AnnotatedClassBodyView.DirectVisibility.Protected)
+    assertEquals(modified.modifiers.visibility, ExpansionTargetBodyView.DirectVisibility.Protected)
     assert(modified.modifiers.unsupportedFlags.contains("protected"))
 
     assertEquals(applied.kind, DirectTypeMemberKind.AbstractBounds)
@@ -100,7 +100,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
         |""".stripMargin
     ).directTypeMembers.map(member => member.name -> member).toMap
 
-    assertEquals(members("PrivateItem").modifiers.visibility, AnnotatedClassBodyView.DirectVisibility.Private)
+    assertEquals(members("PrivateItem").modifiers.visibility, ExpansionTargetBodyView.DirectVisibility.Private)
     assertEquals(members("PrivateItem").modifiers.annotationCount, 1)
     assert(members("PrivateItem").modifiers.hasAnnotations)
     assertEquals(members("PrivateItem").modifiers.unsupportedFlags, List("private"))
@@ -126,9 +126,9 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     assertEquals(
       body.members.map(_.kind),
       List(
-        AnnotatedClassBodyView.DirectMemberKind.Method,
-        AnnotatedClassBodyView.DirectMemberKind.Type,
-        AnnotatedClassBodyView.DirectMemberKind.Val
+        ExpansionTargetBodyView.DirectMemberKind.Method,
+        ExpansionTargetBodyView.DirectMemberKind.Type,
+        ExpansionTargetBodyView.DirectMemberKind.Val
       )
     )
   }
@@ -151,7 +151,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     )
     val hostilePrimary = cpy.TypeDef(primary)(primary.name, hostileTemplate)
 
-    val decoded = AnnotatedClassTypeStructureView.decode(hostilePrimary).fold(error => fail(error.message), identity)
+    val decoded = ExpansionTargetTypeStructureView.decode(hostilePrimary).fold(error => fail(error.message), identity)
     val member = only(decoded.directTypeMembers)
     assertEquals(member.kind, DirectTypeMemberKind.Unsupported)
     assertEquals(member.name, "<unknown>")
@@ -166,9 +166,9 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     val malformed = TypeDef(typeName("Malformed"), Ident(typeName("String")))
 
     val failures = List(
-      AnnotatedClassTypeStructureView.decode(null),
-      AnnotatedClassTypeStructureView.decode(wrongKind),
-      AnnotatedClassTypeStructureView.decode(malformed)
+      ExpansionTargetTypeStructureView.decode(null),
+      ExpansionTargetTypeStructureView.decode(wrongKind),
+      ExpansionTargetTypeStructureView.decode(malformed)
     )
     assert(failures.forall(_.isLeft))
     assert(failures.forall(_.left.toOption.exists(_.message.nonEmpty)))
@@ -178,22 +178,29 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     val (stats, context) = parsedStats("trait Nat\ntrait Input[N <: Nat]:\n  type Out <: Nat")
     given Context = context
     val target = only(stats.collect { case definition: TypeDef if definition.name.toString == "Input" => definition })
-    val input = ExpansionInput("instanceProbe", target, None, Set("Input"), None)
+    val input = ExpansionInput(
+      "instanceProbe",
+      ExpansionTarget.Trait(target),
+      None,
+      ExpansionContainerContext(Set("Input")),
+      target,
+      ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OrdinaryTemplate)
+    )
 
-    assertEquals(input.annotatedClassTypeStructureView.map(_.directTypeMembers.map(_.name)), Right(List("Out")))
+    assertEquals(input.targetTypeStructureView.map(_.directTypeMembers.map(_.name)), Right(List("Out")))
   }
 
-  private def structure(code: String): AnnotatedClassTypeStructureView =
+  private def structure(code: String): ExpansionTargetTypeStructureView =
     val (stats, context) = parsedStats(code)
     given Context = context
     val candidate = stats.collect { case definition: TypeDef if definition.name.toString != "Nat" => definition }.last
-    AnnotatedClassTypeStructureView.decode(candidate).fold(error => fail(error.message), identity)
+    ExpansionTargetTypeStructureView.decode(candidate).fold(error => fail(error.message), identity)
 
-  private def bodyView(code: String): AnnotatedClassBodyView =
+  private def bodyView(code: String): ExpansionTargetBodyView =
     val (stats, context) = parsedStats(code)
     given Context = context
     val candidate = stats.collect { case definition: TypeDef if definition.name.toString != "Nat" => definition }.last
-    AnnotatedClassBodyView.decode(candidate).fold(error => fail(error.message), identity)
+    ExpansionTargetBodyView.decode(candidate).fold(error => fail(error.message), identity)
 
   private def namedBound(bound: Bound): String = namedType(typeShape(bound).getOrElse(fail("expected present bound")))
 
@@ -223,7 +230,7 @@ class AnnotatedClassTypeStructureViewSpec extends munit.FunSuite:
     values.head
 
   private def parsedStats(code: String): (List[Tree], Context) =
-    val unit = CompilationUnit("AnnotatedClassTypeStructureViewSpec.scala", code)
+    val unit = CompilationUnit("ExpansionTargetTypeStructureViewSpec.scala", code)
     val context = ContextBase().initialCtx.fresh.setCompilationUnit(unit)
     val parsed = new Parsers.Parser(unit.source)(using context).parse()
     val stats = parsed match

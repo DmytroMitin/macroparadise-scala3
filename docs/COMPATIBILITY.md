@@ -48,37 +48,16 @@ binary descriptors may change between compiler builds. The experimental
 handler API therefore makes no cross-version binary or source compatibility
 promise.
 
-Released `0.1.1` exposes a bounded syntactic pre-typer
-read-only direct-body view and a separate additive type-structure view. The
-type-structure view reports enclosing type-parameter bounds and ordered direct
-type members without changing existing case-class arities. It distinguishes an
-absent source bound from a present supported or present unsupported bound, and
-distinguishes abstract bounded members from aliases, polymorphic members, and
-modifier-bearing forms. Its tiny shared type algebra distinguishes a syntactic
-reference to an enclosing class type parameter from one syntactic unqualified
-simple type name such as `String` or `Nat`. The latter is not resolved to a package,
-symbol, alias, fully qualified identity, or semantically equal type. Applied,
-qualified, refined, function, and other broader forms remain unsupported; the
-view does not type trees or perform symbol/owner lookup, inheritance, alias
-expansion, or overload analysis. The raw `ExpansionInput.annotatedClass` tree
-remains the advanced exact-line escape hatch. Current `0.2.0-SNAPSHOT`
-development retains this API.
+Current `0.2.0-SNAPSHOT` exposes bounded syntactic target, body, and
+type-structure views. They report source shape only: no typing, symbol/owner
+lookup, inheritance, alias expansion, subtyping, or overload analysis occurs.
+Raw `ExpansionInput.primary.tree` is the advanced exact-line escape hatch.
 
-The same released line includes exact-compiler-sensitive placement of one
-already-created companion `untpd.TypeDef` plus a structural
-`TwoUpperBoundedGenericTrait` admission profile. Placement conflict checks are
-limited to direct raw `TypeDef` names in the type namespace; Macro-Paradise
-does not construct or interpret alias/refinement syntax and does not expose an
-arbitrary `MemberDef` placement API. Current `0.2.0-SNAPSHOT` development
-retains these surfaces.
-
-It also includes the additive
-`RestrictedOrTwoUpperBoundedGenericTrait` target-profile enum case. That case
-is exactly the closed union of the two pre-existing syntactic trait profiles;
-it does not change the `targetProfile: ExpansionTargetProfile` method or add a
-general composition representation. Adding the enum case intentionally moves
-the exact-line experimental API/TASTy surface. It is included in released
-`0.1.1` and retained on current `main`.
+The 0.2.0-SNAPSHOT protocol is intentionally source-breaking from 0.1.1. It has
+one `ExpansionHandler`, orthogonal target-kind/shape admissions, generic member
+placement, sparse structured changes, and exact zero-or-more raw replacement.
+Old handler binaries must be rebuilt and migrated; no protocol compatibility
+shim is provided. Released 0.1.1 artifacts themselves remain immutable.
 
 ## Marker metadata compatibility
 

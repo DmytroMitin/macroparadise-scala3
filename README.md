@@ -58,18 +58,31 @@ The handler uses the public experimental helper API:
 package com.example.`macro`.handlers
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{ExpansionInput, ExpansionOutcome, ParadiseAnnotationExpander}
+import dotty.tools.dotc.ast.untpd.*
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Names.*
+import paradise3.api.*
 import paradise3.api.helpers.ExpansionHelpers
 
-final class GenHandler extends ParadiseAnnotationExpander:
+final class GenHandler extends ExpansionHandler:
   override def annotationName: String =
     "com.example.macro.annotations.gen"
 
+  override val admissions = List(
+    ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
+  )
+
   override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionHelpers.addStringMethodToClass(
-      input,
-      methodName = "generatedHello",
-      value = s"hello ${input.className}"
+    val member = DefDef(
+      termName("generatedHello"),
+      Nil,
+      Ident(typeName("String")),
+      Literal(Constant(s"hello ${input.primary.name}"))
+    )
+    ExpansionEdit.finish(
+      ExpansionEdit.start(input).flatMap(edit =>
+        ExpansionHelpers.placeMemberInPrimary(edit, member)
+      )
     )
 ```
 
@@ -333,7 +346,7 @@ positive evidence remains bounded to the combinations in the test suite.
   polymorphic, modifier-bearing, and unsupported forms. Its shared simple
   named-type case records only an unqualified syntactic name such as `String`
   or `Nat`; applied, qualified, refined, function, and broader shapes remain
-  unsupported. Raw `ExpansionInput.annotatedClass` remains the exact-compiler
+  unsupported. Raw `ExpansionInput.primary.tree` remains the exact-compiler
   escape hatch.
 - Quasiquotes integration is optional cross-project research, not a product
   build dependency.

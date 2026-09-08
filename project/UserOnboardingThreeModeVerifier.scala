@@ -52,6 +52,7 @@ object UserOnboardingThreeModeVerifier {
     val evidence = new File(taskRoot, "evidence")
     val productRepository = new File(taskRoot, "product-repository")
     val producerRepository = new File(taskRoot, "producer-repository")
+    val taskIvyHome = new File(taskRoot, "ivy-home")
     sbt.IO.createDirectory(evidence)
     sbt.IO.createDirectory(producerRepository)
     stageProduct(productRepository, pluginApiJar, pluginApiPom, "macroparadise-scala3-plugin-api", config)
@@ -61,7 +62,13 @@ object UserOnboardingThreeModeVerifier {
     val integrationDirectory = new File(repositoryRoot, "sbt-integration")
     val pluginInstalledFromSource = run(
       integrationDirectory,
-      Vector("sbt", "-batch", "verifyIntegrationPolicy", "publishLocal"),
+      Vector(
+        "sbt",
+        "-batch",
+        "-Dsbt.ivy.home=" + taskIvyHome.getCanonicalPath,
+        "verifyIntegrationPolicy",
+        "publishLocal"
+      ),
       installLog
     ) == 0
     require(pluginInstalledFromSource, "source-built sbt plugin installation failed")
@@ -332,6 +339,7 @@ object UserOnboardingThreeModeVerifier {
     Vector(
       "sbt",
       "-batch",
+      "-Dsbt.ivy.home=" + new File(productRepository.getParentFile, "ivy-home").getCanonicalPath,
       "-Dmacroparadise.exactScalaVersion=" + config.scalaVersion,
       "-Dmacroparadise.productRepository=" + productRepository.getAbsolutePath,
       "-Dmacroparadise.producerRepository=" + producerRepository.getAbsolutePath

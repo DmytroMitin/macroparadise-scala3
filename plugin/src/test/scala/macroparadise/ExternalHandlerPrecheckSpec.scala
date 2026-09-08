@@ -76,7 +76,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         Vector(
           ClasspathArtifact(
             pluginApi,
-            Set("paradise3/api/ParadiseAnnotationExpander.class"),
+            Set("paradise3/api/ExpansionHandler.class"),
             Set.empty
           ),
           ClasspathArtifact(
@@ -104,7 +104,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         Vector(
           ClasspathArtifact(
             pluginApi,
-            Set("paradise3/api/ParadiseAnnotationExpander.class"),
+            Set("paradise3/api/ExpansionHandler.class"),
             Set.empty
           ),
           ClasspathArtifact(
@@ -133,7 +133,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
               "plugin.properties" -> Array[Byte](1)
             )),
             pluginApi = jar(root.resolve("plugin-api.jar"), Map(
-              "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+              "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
               "paradise3/api/expander.class" -> Array[Byte](1)
             )),
             marker = marker,
@@ -161,7 +161,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         "plugin.properties" -> Array[Byte](1)
       ))
       val pluginApi = jar(root.resolve("plugin-api.jar"), Map(
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1)
       ))
       val marker = jarFromResources(
@@ -326,7 +326,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
 
     assert(usage.contains("--compact"), usage)
     assert(usage.contains("plugin: executing ExternalHandlerPrecheckMain code source"), usage)
-    assert(usage.contains("plugin-api: parent-loaded ParadiseAnnotationExpander code source"), usage)
+    assert(usage.contains("plugin-api: parent-loaded ExpansionHandler code source"), usage)
     assert(usage.contains("marker-class: canonical expected-annotation identity"), usage)
   }
 
@@ -441,11 +441,11 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         "plugin.properties" -> Array[Byte](1)
       ))
       val runtimeApi = jar(root.resolve("runtime-api.jar"), Map(
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1)
       ))
       val echoedApi = jar(root.resolve("echoed-api.jar"), Map(
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1)
       ))
       val marker = jar(root.resolve("marker.jar"), Map(
@@ -489,12 +489,12 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
       val plugin = jar(root.resolve("plugin.jar"), Map(
         "macroparadise/MacroParadisePlugin.class" -> Array[Byte](1),
         "macroparadise/ExternalHandlerPrecheckMain.class" -> Array[Byte](1),
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1),
         "plugin.properties" -> Array[Byte](1)
       ))
       val authoringApi = jar(root.resolve("plugin-api.jar"), Map(
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1)
       ))
       val compiler = jar(root.resolve("compiler.jar"), Map(
@@ -537,7 +537,7 @@ class ExternalHandlerPrecheckSpec extends munit.FunSuite:
         "plugin.properties" -> Array[Byte](1)
       ))
       val pluginApi = jar(root.resolve("plugin-api.jar"), Map(
-        "paradise3/api/ParadiseAnnotationExpander.class" -> Array[Byte](1),
+        "paradise3/api/ExpansionHandler.class" -> Array[Byte](1),
         "paradise3/api/expander.class" -> Array[Byte](1)
       ))
       val marker = jarFromResources(root.resolve("marker.jar"), List(markerResource))

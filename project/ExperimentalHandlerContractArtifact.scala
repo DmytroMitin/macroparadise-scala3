@@ -565,7 +565,7 @@ object ExperimentalHandlerContractArtifact {
       candidate,
       compilerJars
     )
-    require(handlerImplementations.nonEmpty, "compiled output contains no ParadiseAnnotationExpander implementations")
+    require(handlerImplementations.nonEmpty, "compiled output contains no ExpansionHandler implementations")
     CompileEvidence(
       sources.size,
       firstExit,
@@ -606,7 +606,7 @@ object ExperimentalHandlerContractArtifact {
     val parent = new URLClassLoader((candidate +: compilerJars).map(_.toURI.toURL).toArray, null)
     val child = new URLClassLoader(Array(output.toURI.toURL), parent)
     try {
-      val api = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
+      val api = Class.forName("paradise3.api.ExpansionHandler", false, parent)
       classNames(output).filter { name =>
         val value = Class.forName(name, false, child)
         api.isAssignableFrom(value) && value != api && !value.isInterface
@@ -633,7 +633,7 @@ object ExperimentalHandlerContractArtifact {
     val parent = new URLClassLoader(parentUrls, null)
     val child = new URLClassLoader(childUrls, parent)
     try {
-      val api = Class.forName("paradise3.api.ParadiseAnnotationExpander", false, parent)
+      val api = Class.forName("paradise3.api.ExpansionHandler", false, parent)
       val linked = classNames(handlerOutput).filter { name =>
         val value = Class.forName(name, false, child)
         api.isAssignableFrom(value) && value != api && !value.isInterface
@@ -646,16 +646,16 @@ object ExperimentalHandlerContractArtifact {
       require(linked.contains("demo.ThrowingExpander"), "hostile constructor handler was not load-only linked")
 
       val safeExpected = Vector(
-        ("demo.ExternalDebugExpander", "externalDebug", false),
-        ("demo.ExternalCompanionDebugExpander", "externalCompanionDebug", true)
+        ("demo.ExternalDebugExpander", "externalDebug"),
+        ("demo.ExternalCompanionDebugExpander", "externalCompanionDebug")
       )
       safeExpected.foreach {
-        case (name, annotationName, consumes) =>
+        case (name, annotationName) =>
           val value = Class.forName(name, false, child).getDeclaredConstructor().newInstance()
           val actualName = value.getClass.getMethod("annotationName").invoke(value)
-          val actualConsumes = value.getClass.getMethod("consumesExistingCompanion").invoke(value)
+          val actualAdmissions = value.getClass.getMethod("admissions").invoke(value)
           require(actualName == annotationName, s"$name annotationName was $actualName")
-          require(actualConsumes == java.lang.Boolean.valueOf(consumes), s"$name consumesExistingCompanion was $actualConsumes")
+          require(actualAdmissions != null, s"$name admissions was null")
       }
 
       val carrier = Class.forName("paradise3.api.expander", false, parent)

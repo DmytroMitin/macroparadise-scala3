@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Metadata annotation for precompiled marker annotations.
  *
  * <p>Place {@code @expander("fully.qualified.HandlerClass")} on a marker annotation to let the
- * plugin discover which precompiled {@link ParadiseAnnotationExpander} class should handle that
+ * plugin discover which precompiled {@link ExpansionHandler} class should handle that
  * marker. The handler class must still be compiled before use and reachable through the explicit
  * handler classpath.
  *

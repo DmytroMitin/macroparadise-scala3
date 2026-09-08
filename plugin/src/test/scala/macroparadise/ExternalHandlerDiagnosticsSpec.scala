@@ -1,6 +1,6 @@
 package macroparadise
 
-import paradise3.api.ParadiseAnnotationExpander
+import paradise3.api.ExpansionHandler
 
 import java.lang.reflect.{InvocationHandler, Method, Proxy}
 import java.net.{URL, URLClassLoader}
@@ -51,25 +51,25 @@ class ExternalHandlerDiagnosticsSpec extends munit.FunSuite:
     assert(diagnostic.contains("stage=loading"), diagnostic)
     assert(diagnostic.contains("category=HANDLER_TYPE_MISMATCH"), diagnostic)
     assert(diagnostic.contains("loaderPolicy=parent-first"), diagnostic)
-    assert(diagnostic.contains("does not implement paradise3.api.ParadiseAnnotationExpander"), diagnostic)
+    assert(diagnostic.contains("does not implement paradise3.api.ExpansionHandler"), diagnostic)
   }
 
   test("same binary API name from a child loader is classified as identity mismatch") {
     val apiLocation =
-      classOf[ParadiseAnnotationExpander]
+      classOf[ExpansionHandler]
         .getProtectionDomain
         .getCodeSource
         .getLocation
     val duplicateLoader =
       ChildFirstApiLoader(
         Array(apiLocation),
-        classOf[ParadiseAnnotationExpander].getClassLoader
+        classOf[ExpansionHandler].getClassLoader
       )
 
     try
       val duplicateApi =
-        duplicateLoader.loadClass("paradise3.api.ParadiseAnnotationExpander")
-      assert(duplicateApi ne classOf[ParadiseAnnotationExpander])
+        duplicateLoader.loadClass("paradise3.api.ExpansionHandler")
+      assert(duplicateApi ne classOf[ExpansionHandler])
       val proxy =
         Proxy.newProxyInstance(
           duplicateLoader,

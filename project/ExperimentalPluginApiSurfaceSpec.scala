@@ -57,9 +57,8 @@ object ExperimentalPluginApiSurfaceSpec {
     }
     check("3.3.8 normalizes helper enum encodings") {
       val enumRecords = Vector(
-        "CompanionModuleConflictPolicy",
-        "CompanionMethodConflictPolicy",
-        "CompanionTypeConflictPolicy",
+        "MemberConflictPolicy",
+        "MissingCompanionPolicy",
         "SelfAliasOrigin"
       ).map { name =>
         s"CLASS|paradise3/api/helpers/$name.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.$name implements scala.reflect.Enum"
@@ -78,12 +77,12 @@ object ExperimentalPluginApiSurfaceSpec {
     }
     check("3.3.8 normalizes the bounded structural-view enum encodings") {
       val enumRecords = Vector(
-        "AnnotatedClassBodyView$DirectMemberKind",
-        "AnnotatedClassBodyView$DirectMethodStatus",
-        "AnnotatedClassBodyView$DirectTypeShape",
-        "AnnotatedClassBodyView$DirectVisibility",
-        "AnnotatedClassTypeStructureView$Bound",
-        "AnnotatedClassTypeStructureView$DirectTypeMemberKind"
+        "ExpansionTargetBodyView$DirectMemberKind",
+        "ExpansionTargetBodyView$DirectMethodStatus",
+        "ExpansionTargetBodyView$DirectTypeShape",
+        "ExpansionTargetBodyView$DirectVisibility",
+        "ExpansionTargetTypeStructureView$Bound",
+        "ExpansionTargetTypeStructureView$DirectTypeMemberKind"
       ).map { name =>
         s"CLASS|paradise3/api/$name.class|HANDLER_CONTRACT|public abstract class paradise3.api.$name implements scala.reflect.Enum"
       }

@@ -1,51 +1,52 @@
 package contractprobebody
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{AnnotatedClassBodyView, AnnotatedClassTypeStructureView, ExpansionDiagnostic, ExpansionInput, ExpansionOutcome, ExpansionTargetProfile, ParadiseAnnotationExpander, expander}
-import paradise3.api.AnnotatedClassBodyView.*
-import paradise3.api.AnnotatedClassTypeStructureView.*
-import paradise3.api.AnnotatedClassView.Variance
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.{DefinitionPlacement, ExpansionAdmission, ExpansionDiagnostic, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, expander}
+import paradise3.api.ExpansionTargetBodyView.*
+import paradise3.api.ExpansionTargetTypeStructureView.*
+import paradise3.api.ExpansionTargetView.Variance
+import paradise3.api.helpers.{ExpansionHelpers, MissingCompanionPolicy}
 import scala.annotation.StaticAnnotation
 
 @expander("contractprobebody.IndependentBodyViewHandler")
 final class IndependentBodyViewMarker extends StaticAnnotation
 
-final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
+final class IndependentBodyViewHandler extends ExpansionHandler:
   val annotationName: String = "IndependentBodyViewMarker"
-  override val targetProfile: ExpansionTargetProfile =
-    ExpansionTargetProfile.TwoUpperBoundedGenericTrait
+  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    (input.annotatedClassTypeStructureView, input.annotatedClassBodyView) match
+    (input.targetTypeStructureView, input.targetBodyView) match
       case (Left(diagnostic), _) =>
-        ExpansionOutcome.Rejected(List(diagnostic), input.annotatedClass)
+        ExpansionOutcome.Rejected(List(diagnostic))
       case (_, Left(diagnostic)) =>
-        ExpansionOutcome.Rejected(List(diagnostic), input.annotatedClass)
+        ExpansionOutcome.Rejected(List(diagnostic))
       case (Right(structure), Right(body)) =>
         firstRejectedModifier(structure, body) match
           case Some((modifier, pos)) =>
             ExpansionOutcome.Rejected(
-              List(ExpansionDiagnostic(s"unsupported normalized modifier `$modifier` for IndependentBodyViewMarker", pos)),
-              input.annotatedClass
+              List(ExpansionDiagnostic(s"unsupported normalized modifier `$modifier` for IndependentBodyViewMarker", pos))
             )
           case None if isRepresentativeAdd(structure, body) =>
-            ExpansionHelpers.addStringMethodToCompanion(
-              input,
-              methodName = "independentBodyView",
-              value = (structure.typeParameters.map(_.name) ::: structure.directTypeMembers.map(_.name)).mkString(",")
+            val method = dotty.tools.dotc.ast.untpd.DefDef(
+              dotty.tools.dotc.core.Names.termName("independentBodyView"),
+              Nil,
+              dotty.tools.dotc.ast.untpd.Ident(dotty.tools.dotc.core.Names.typeName("String")),
+              dotty.tools.dotc.ast.untpd.Literal(dotty.tools.dotc.core.Constants.Constant((structure.typeParameters.map(_.name) ::: structure.directTypeMembers.map(_.name)).mkString(",")))
+            )
+            ExpansionEdit.finish(
+              ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInCompanion(edit, method, MissingCompanionPolicy.Create(ExpansionTargetKind.Object, DefinitionPlacement.AfterPrimary)))
             )
           case None =>
             ExpansionOutcome.Rejected(
-              List(ExpansionDiagnostic("unsupported normalized type structure for IndependentBodyViewMarker", structure.pos)),
-              input.annotatedClass
+              List(ExpansionDiagnostic("unsupported normalized type structure for IndependentBodyViewMarker", structure.pos))
             )
 
   private val rejectedModifierFlags = Set("infix", "erased")
 
   private def firstRejectedModifier(
-      structure: AnnotatedClassTypeStructureView,
-      body: AnnotatedClassBodyView
+      structure: ExpansionTargetTypeStructureView,
+      body: ExpansionTargetBodyView
   ) =
     structure.directTypeMembers
       .flatMap(member => member.modifiers.unsupportedFlags.filter(rejectedModifierFlags).map(_ -> member.pos))
@@ -58,8 +59,8 @@ final class IndependentBodyViewHandler extends ParadiseAnnotationExpander:
       )
 
   private def isRepresentativeAdd(
-      structure: AnnotatedClassTypeStructureView,
-      body: AnnotatedClassBodyView
+      structure: ExpansionTargetTypeStructureView,
+      body: ExpansionTargetBodyView
   ): Boolean =
     val parametersMatch = structure.typeParameters match
       case n :: m :: Nil => isCanonicalParameter(n, "N") && isCanonicalParameter(m, "M")
