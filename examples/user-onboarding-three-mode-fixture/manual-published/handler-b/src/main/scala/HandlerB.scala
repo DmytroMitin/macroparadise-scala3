@@ -10,7 +10,6 @@ import paradise3.api.helpers.ExpansionHelpers
 
 final class HandlerB extends ExpansionHandler:
   override def annotationName: String = "fixture.marker.markerB"
-  override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish:

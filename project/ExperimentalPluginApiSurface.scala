@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "4b1fab77723f8c7e87859134f1f9b8156c08983314bf321f4ce8e6836b3c60c7",
-    "3.8.4" -> "25b59a27210c2a95d8c0406d75c1d08f5e3b0de973333259772753059948b911",
-    "3.9.0" -> "1372cde40ac7da2c7437f2d7b4746b0433f4f5007ee17bc0a8b14ebe38c2f8de"
+    "3.3.8" -> "aa5e211a3157b295ccac00dc07d01de9119f7aff53c6f6566dcbd45cf8f5a781",
+    "3.8.4" -> "cf9aaf2476f01f7e28d353b34eb2e389ad4009bf28d50398adc405a90c217a3f",
+    "3.9.0" -> "21227fd2c556d53729ec870f312f60859c6b4913feac7dfba3ab67b4949c2992"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -149,6 +149,7 @@ object ExperimentalPluginApiSurface {
       positiveCompileExit: Int,
       runtimeExit: Int,
       forbiddenImplementationExit: Int,
+      forbiddenInvocationConstructionExit: Int,
       missingPluginApiExit: Int,
       probeClassCount: Int,
       evidenceDirectory: File
@@ -167,6 +168,7 @@ object ExperimentalPluginApiSurface {
         s"contractArtifactSha256=$contractArtifactSha256 markerArtifactSha256=$markerArtifactSha256 " +
         s"positiveCompileExit=$positiveCompileExit " +
         s"runtimeExit=$runtimeExit forbiddenImplementationExit=$forbiddenImplementationExit " +
+        s"forbiddenInvocationConstructionExit=$forbiddenInvocationConstructionExit " +
         s"missingPluginApiExit=$missingPluginApiExit probeClasses=$probeClassCount"
   }
 
@@ -192,6 +194,7 @@ object ExperimentalPluginApiSurface {
       baselineFile: File,
       positiveSource: File,
       forbiddenImplementationSource: File,
+      forbiddenInvocationConstructionSource: File,
       config: Config,
       evidenceDirectory: File
   ): VerificationResult = {
@@ -241,8 +244,9 @@ object ExperimentalPluginApiSurface {
     recreateDirectory(probeRoot.toPath)
     val positiveOutput = new File(probeRoot, "positive-classes")
     val forbiddenOutput = new File(probeRoot, "forbidden-implementation-classes")
+    val forbiddenConstructionOutput = new File(probeRoot, "forbidden-invocation-construction-classes")
     val missingApiOutput = new File(probeRoot, "missing-plugin-api-classes")
-    Seq(positiveOutput, forbiddenOutput, missingApiOutput).foreach(file =>
+    Seq(positiveOutput, forbiddenOutput, forbiddenConstructionOutput, missingApiOutput).foreach(file =>
       Files.createDirectories(file.toPath)
     )
 
@@ -290,8 +294,6 @@ object ExperimentalPluginApiSurface {
     require(runtimeExit == 0, s"isolated runtime linkage failed: $runtimeOutput")
     Vector(
       "annotationName=surfaceProbe",
-      "admissionCount=3",
-      "admissionsReturnType=scala.collection.immutable.List",
       "apiIdentityShared=true",
       "expandDescriptor=(paradise3.api.ExpansionInput,dotty.tools.dotc.core.Contexts$Context)paradise3.api.ExpansionOutcome",
       s"apiCodeSource=${contractArtifact.getCanonicalPath}"
@@ -322,6 +324,30 @@ object ExperimentalPluginApiSurface {
       forbiddenOutputText.contains("macroparadise") &&
         regularRelativeFiles(forbiddenOutput).isEmpty,
       s"forbidden implementation probe lacked focused isolation evidence: $forbiddenOutputText"
+    )
+
+    val forbiddenConstructionCommand = Seq(
+      javaCommand,
+      "-cp",
+      compilerProcessClasspath,
+      "dotty.tools.dotc.Main",
+      "-classpath",
+      isolatedCompileClasspath,
+      "-d",
+      forbiddenConstructionOutput.getAbsolutePath,
+      forbiddenInvocationConstructionSource.getAbsolutePath
+    )
+    val forbiddenConstructionLog = new File(evidenceDirectory, "negative-forbidden-invocation-construction.log")
+    val forbiddenConstructionExit =
+      runProcess(forbiddenConstructionCommand, repositoryRoot, forbiddenConstructionLog)
+    require(forbiddenConstructionExit != 0, "forbidden invocation construction probe unexpectedly compiled")
+    val forbiddenConstructionText = read(forbiddenConstructionLog.toPath)
+    require(
+      forbiddenConstructionText.contains("ExpansionInput") &&
+        forbiddenConstructionText.contains("ExpansionContainerContext") &&
+        forbiddenConstructionText.contains("copy") &&
+        regularRelativeFiles(forbiddenConstructionOutput).isEmpty,
+      s"forbidden invocation construction probe lacked focused boundary evidence: $forbiddenConstructionText"
     )
 
     val missingApiCommand = Seq(
@@ -357,6 +383,7 @@ object ExperimentalPluginApiSurface {
       positiveCompileExit,
       runtimeExit,
       forbiddenExit,
+      forbiddenConstructionExit,
       missingApiExit,
       probeClasses.size,
       evidenceDirectory
@@ -743,7 +770,6 @@ object ExperimentalPluginApiSurface {
         "paradise3/api/CompanionChange.class",
         "paradise3/api/DefinitionPlacement.class",
         "paradise3/api/ExpansionOutcome.class",
-        "paradise3/api/ExpansionShapeProfile.class",
         "paradise3/api/ExpansionTarget.class",
         "paradise3/api/ExpansionTargetKind.class",
         "paradise3/api/PrimaryChange.class",

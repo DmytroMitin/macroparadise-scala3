@@ -32,7 +32,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-closed-target-union-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
-  val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
+  val ExpectedRuntimeOutput = "IndependentConsumerUser\nIndependentConsumerObject\n"
   val ExpectedBodyViewRuntimeOutput = "N,M,Out\n"
   val ExpectedTypePlacementRuntimeOutput = "true\ntrue\n7\npreserved\n"
   val ExpectedModulePlacementRuntimeOutput = "placed\nplaced\n7\npreserved\n"
@@ -327,6 +327,10 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-body-view/IndependentBodyViewConsumer.scala"
     )
+    val targetRejectSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/e2e-target-reject/IndependentTargetRejectConsumer.scala"
+    )
     val bodyViewHandlerSource = new File(
       repositoryRoot,
       "plugin-api-handler-contract-probe/body-view/IndependentBodyViewMarkerAndHandler.scala"
@@ -396,6 +400,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       "plugin-api-handler-contract-probe/e2e-closed-target-union-reject/IndependentClosedTargetUnionRejectConsumer.scala"
     )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
+    require(targetRejectSource.isFile, s"missing target-reject source: $targetRejectSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
     require(bodyViewNegativeSource.isFile, s"missing body-view negative source: $bodyViewNegativeSource")
     require(bodyViewInfixTypeNegativeSource.isFile, s"missing body-view infix-type negative source: $bodyViewInfixTypeNegativeSource")
@@ -697,6 +702,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
+      compileTargetReject(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, targetRejectSource, evidenceDirectory),
       compileUnsupportedBodyView(
         repositoryRoot,
         compilerJars,
@@ -816,6 +822,9 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val required = Set(
       "contractprobeconsumer/IndependentConsumerUser.class",
       "contractprobeconsumer/IndependentConsumerUser.tasty",
+      "contractprobeconsumer/IndependentConsumerObject.class",
+      "contractprobeconsumer/IndependentConsumerObject$.class",
+      "contractprobeconsumer/IndependentConsumerObject.tasty",
       "contractprobeconsumer/IndependentPackagedConsumer.class",
       "contractprobeconsumer/IndependentPackagedConsumer$.class",
       "contractprobeconsumer/IndependentPackagedConsumer.tasty"
@@ -826,14 +835,55 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     val selectionCount = metadataLines.count(line => line.contains("contractprobe.IndependentMarker") && line.contains("Found(contractprobe.IndependentHandler)"))
     require(selectionCount == 1, s"expected one independent metadata selection, found $selectionCount: ${metadataLines.mkString(" | ")}")
     val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobe.IndependentHandler"))
-    require(invocationLines.size == 1, s"expected one independent handler invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    require(invocationLines.size == 2, s"expected two independent handler invocations, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
     val javap = runProcess(
       Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentConsumerUser"),
       repositoryRoot,
       new File(evidenceDirectory, "positive/javap.log")
     )
     require(javap._1 == 0 && javap._2.contains("java.lang.String independentHandlerName()"), s"generated method missing after typer: ${javap._2}")
+    val objectJavap = runProcess(
+      Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, "contractprobeconsumer.IndependentConsumerObject$"),
+      repositoryRoot,
+      new File(evidenceDirectory, "positive/javap-object.log")
+    )
+    require(objectJavap._1 == 0 && objectJavap._2.contains("java.lang.String independentHandlerName()"), s"generated object method missing after typer: ${objectJavap._2}")
     PositiveEvidence(exit, outputs, selectionCount, invocationLines.size, generatedMethodPresent = true)
+  }
+
+  private def compileTargetReject(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      independentArtifact: File,
+      source: File,
+      evidenceDirectory: File
+  ): NegativeEvidence = {
+    val output = new File(evidenceDirectory, "negative-target-reject/classes")
+    recreateDirectory(output.toPath)
+    val invocationTrace = new File(evidenceDirectory, "negative-target-reject/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(independentArtifact),
+      Some(independentArtifact),
+      source,
+      output,
+      Vector(s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}")
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "negative-target-reject/compile.log"))
+    val diagnostic = "IndependentMarker supports class and object primaries, not traits"
+    require(exit != 0, "unsupported-trait lane unexpectedly compiled")
+    require(log.contains(diagnostic), s"unsupported-trait lane lacked controlled handler diagnostic: $log")
+    val invocationLines = readLines(invocationTrace).filter(_.contains("handler=contractprobe.IndependentHandler"))
+    require(invocationLines.size == 1, s"expected one rejecting independent handler invocation, found ${invocationLines.size}: ${invocationLines.mkString(" | ")}")
+    require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"unsupported-trait lane exposed an uncontrolled failure: $log")
+    val outputs = regularRelativeFiles(output)
+    require(outputs.isEmpty, s"unsupported-trait lane emitted partial output: ${outputs.mkString(", ")}")
+    NegativeEvidence("ordinary-expand-target-reject", exit, diagnostic, outputs.size)
   }
 
   private def compileBodyViewPositive(
@@ -996,12 +1046,12 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     )
     validatePluginCommand(command, apiArtifact, pluginArtifact, independentArtifact, requireHandler = true)
     val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "closed-union-negative/compile.log"))
-    val diagnostic = "outside the handler's declared admission profiles"
+    val diagnostic = "IndependentClosedTargetUnionMarker supports either one invariant unbounded trait parameter or two invariant upper-bounded trait parameters"
     val diagnosticCount = log.split(java.util.regex.Pattern.quote(diagnostic), -1).length - 1
     val invocationCount = readLines(invocationTrace).count(_.contains("handler=contractprobeunion.IndependentClosedTargetUnionHandler"))
     require(exit != 0, "closed-union rejection matrix unexpectedly compiled")
     require(diagnosticCount == 1, s"closed-union atomic rejection reported $diagnosticCount/1 deterministic diagnostics: $log")
-    require(invocationCount == 0, s"closed-union handler was invoked for rejected targets: ${readLines(invocationTrace).mkString(" | ")}")
+    require(invocationCount == 1, s"expected one ordinary handler invocation for the first rejected target, found $invocationCount: ${readLines(invocationTrace).mkString(" | ")}")
     require(!log.contains("internal compiler error") && !log.contains("ClassCastException") && !log.contains("Exception in thread"), s"closed-union rejection matrix exposed an uncontrolled failure: $log")
     val outputs = regularRelativeFiles(output)
     require(outputs.isEmpty, s"closed-union rejection matrix emitted partial output: ${outputs.mkString(", ")}")

@@ -7,7 +7,7 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Flags.{Abstract, Case, Enum, Final, Sealed, Trait}
 import dotty.tools.dotc.core.Names.typeName
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetKind, ExpansionTargetView}
+import paradise3.api.{ExpansionContainerContext, ExpansionInput, ExpansionTarget, ExpansionTargetKind, ExpansionTargetView, PluginInvocationMinting}
 
 class ExpansionTargetViewSpec extends munit.FunSuite:
   test("decodes ordinary empty classes and explicit empty-clause position fallback") {
@@ -183,13 +183,11 @@ class ExpansionTargetViewSpec extends munit.FunSuite:
     val rawCompanionSpan = companion.sourcePos.span
     val currentAnnotation = rawAnnotations.head
     val names = Set("Observed", "Neighbor")
-    val input = ExpansionInput(
-      "externalDebug",
+    val input = PluginInvocationMinting.input(
       ExpansionTarget.Class(annotated),
       Some(ExpansionTarget.Object(companion)),
-      ExpansionContainerContext(names),
-      currentAnnotation,
-      ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
+      PluginInvocationMinting.container(names),
+      currentAnnotation
     )
 
     val decoded = input.targetView
@@ -198,7 +196,7 @@ class ExpansionTargetViewSpec extends munit.FunSuite:
     assert(input.primary.tree.asInstanceOf[TypeDef].rhs eq rawTemplate)
     assertEquals(Trees.mods(input.primary.tree.asInstanceOf[TypeDef]).annotations, rawAnnotations)
     assertEquals(input.companion.map(_.tree), Some(companion))
-    assertEquals(input.container.siblingNames, names)
+    assertEquals(input.container.occupiedDefinitionNames, names)
     assertEquals(input.currentAnnotation, currentAnnotation)
     assertEquals(input.primary.tree.sourcePos.span, rawClassSpan)
     assertEquals(companion.sourcePos.span, rawCompanionSpan)

@@ -13,21 +13,24 @@ final class IndependentMarker extends StaticAnnotation
 
 final class IndependentHandler extends ExpansionHandler:
   val annotationName = "IndependentMarker"
-  val admissions = List(
-    ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
-  )
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    ExpansionEdit.finish:
-      for
-        start <- ExpansionEdit.start(input)
-        edited <- ExpansionHelpers.placeMemberInPrimary(
-          start,
-          DefDef(
-            termName("independentHandlerName"),
-            Nil,
-            Ident(typeName("String")),
-            Literal(Constant(input.primary.name))
-          )
+    input.primary match
+      case ExpansionTarget.Class(_) | ExpansionTarget.Object(_) =>
+        ExpansionEdit.finish:
+          for
+            start <- ExpansionEdit.start(input)
+            edited <- ExpansionHelpers.placeMemberInPrimary(
+              start,
+              DefDef(
+                termName("independentHandlerName"),
+                Nil,
+                Ident(typeName("String")),
+                Literal(Constant(input.primary.name))
+              )
+            )
+          yield edited
+      case ExpansionTarget.Trait(_) =>
+        ExpansionOutcome.Rejected(
+          List(ExpansionDiagnostic("IndependentMarker supports class and object primaries, not traits", input.currentAnnotation.sourcePos))
         )
-      yield edited

@@ -1,7 +1,7 @@
 package contractprobebody
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{DefinitionPlacement, ExpansionAdmission, ExpansionDiagnostic, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, expander}
+import paradise3.api.{DefinitionPlacement, ExpansionDiagnostic, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, expander}
 import paradise3.api.ExpansionTargetBodyView.*
 import paradise3.api.ExpansionTargetTypeStructureView.*
 import paradise3.api.ExpansionTargetView.Variance
@@ -13,7 +13,6 @@ final class IndependentBodyViewMarker extends StaticAnnotation
 
 final class IndependentBodyViewHandler extends ExpansionHandler:
   val annotationName: String = "IndependentBodyViewMarker"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     (input.targetTypeStructureView, input.targetBodyView) match

@@ -290,16 +290,12 @@ runtime token for incremental checks:
 package demo
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{ExpansionAdmission, ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetKind}
+import paradise3.api.{ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome}
 import paradise3.api.helpers.ExpansionHelpers
 
 final class SameModuleDebugExpander extends ExpansionHandler:
   override def annotationName: String =
     "demo.sameModuleDebug"
-
-  override val admissions = List(
-    ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
-  )
 
   override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionOutcome.Structured(ExpansionChanges())

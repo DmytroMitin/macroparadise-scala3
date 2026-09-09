@@ -1,32 +1,35 @@
 package starter.handler
 
 import dotty.tools.dotc.core.Contexts.Context
-import dotty.tools.dotc.ast.untpd
-import dotty.tools.dotc.core.Constants.Constant
-import dotty.tools.dotc.core.Names.{termName, typeName}
 import paradise3.api.*
 import paradise3.api.helpers.ExpansionHelpers
+import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
+import scala.meta.*
+import scala.meta.dialects.Scala3
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, StandardOpenOption}
 
 final class GenerateGreetingHandler extends ExpansionHandler:
   val annotationName: String = "starter.marker.generateGreeting"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.NonCaseNonGenericTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     recordExpansion()
     ExpansionEdit.finish:
       for
         edit <- ExpansionEdit.start(input)
-        view <- input.targetView
-        member = untpd.DefDef(
-          termName("generatedGreeting"),
-          Nil,
-          untpd.Ident(typeName("String")),
-          untpd.Literal(Constant(s"Hello, ${view.className}!"))
-        )
-        result <- ExpansionHelpers.placeMemberInPrimary(edit, member)
+        _ <- input.primary match
+          case ExpansionTarget.Class(_) => Right(())
+          case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        lowered <- ScalametaDefinitionGeneratedOriginBridge
+          .lower(
+            definition,
+            "<macroparadise-generated:GenerateGreetingHandler:generatedGreeting>"
+          )
+          .left
+          .map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
+        result <- ExpansionHelpers.placeMemberInPrimary(edit, lowered.tree)
       yield result
 
   private def recordExpansion(): Unit =

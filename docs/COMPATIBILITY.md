@@ -54,8 +54,10 @@ lookup, inheritance, alias expansion, subtyping, or overload analysis occurs.
 Raw `ExpansionInput.primary.tree` is the advanced exact-line escape hatch.
 
 The 0.2.0-SNAPSHOT protocol is intentionally source-breaking from 0.1.1. It has
-one `ExpansionHandler`, orthogonal target-kind/shape admissions, generic member
-placement, sparse structured changes, and exact zero-or-more raw replacement.
+one two-method `ExpansionHandler`, descriptive target kinds with applicability
+inside `expand`, generic member placement, sparse structured changes, and exact
+zero-or-more raw replacement. Invocation values are plugin-minted read-only
+objects without public construction or copy semantics.
 Old handler binaries must be rebuilt and migrated; no protocol compatibility
 shim is provided. Released 0.1.1 artifacts themselves remain immutable.
 

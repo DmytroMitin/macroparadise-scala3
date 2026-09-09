@@ -116,7 +116,8 @@ hypothetical raw-untyped syntax.
 ## Orthogonal targets and relationships
 
 One `ExpansionHandler` protocol covers Class, Trait, and Object targets.
-Target-kind admissions are independent of the primary, companion, and sibling
-relationships. Sparse Merge/Replace/Create/Delete operations and raw exact
-replacement share one current-tree scheduler; stacked and generated handled
-annotations require no policy opt-in. See [Expansion model and scheduling](EXPANSION_MODEL_AND_COMPOSITION.md).
+Target kind is descriptive and handler applicability is decided inside
+`expand`, independently of primary, companion, and sibling relationships.
+Sparse Merge/Replace/Create/Delete operations and raw exact replacement share
+one current-tree scheduler; stacked and generated handled annotations require
+no policy opt-in. See [Expansion model and scheduling](EXPANSION_MODEL_AND_COMPOSITION.md).

@@ -13,13 +13,10 @@ import dotty.tools.dotc.report
 import dotty.tools.dotc.util.SrcPos
 import paradise3.api.{
   ExpansionTargetView,
-  ExpansionAdmission as ExternalExpansionAdmission,
   ExpansionHandler as ExternalExpansionHandler,
   ExpansionInput as ExternalExpansionInput,
   ExpansionOutcome as ExternalExpansionOutcome,
-  ExpansionShapeProfile as ExternalExpansionShapeProfile,
-  ExpansionTarget as ExternalExpansionTarget,
-  ExpansionTargetKind as ExternalExpansionTargetKind
+  ExpansionTarget as ExternalExpansionTarget
 }
 
 import java.io.File
@@ -374,13 +371,6 @@ private object ExternalHandlerLoading:
     uniqueHandlers.result()
 
   private final class InvalidMetadataAnnotationExpander(val annotationName: String) extends ExternalExpansionHandler:
-    override val admissions: List[ExternalExpansionAdmission] =
-      List(
-        ExternalExpansionAdmission(
-          ExternalExpansionTargetKind.Class,
-          ExternalExpansionShapeProfile.NonCaseNonGenericTemplate
-        )
-      )
     def expand(input: ExternalExpansionInput)(using Context): ExternalExpansionOutcome =
       ExternalExpansionOutcome.Rejected(
         List(paradise3.api.ExpansionDiagnostic("metadata handler is unavailable", input.currentAnnotation.sourcePos))
@@ -392,8 +382,7 @@ private object ExternalHandlerLoading:
       instance,
       ExternalHandlerDescriptor(
         handlerClassName = instance.getClass.getName,
-        annotationName = annotationName,
-        admissions = instance.admissions
+        annotationName = annotationName
       ),
       metadataFailureAlreadyReported = true
     )
@@ -556,6 +545,7 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
   import DeferredSameModuleHandlerSupport.*
 
   private var activeExternalHandlers: Option[ExternalHandlerLoading.LoadedHandlers] = None
+  private var activeExpansionBudget: Option[Int] = None
   override val phaseName = "paradiseGen"
   override val description =
     "expands narrow top-level built-in annotations before typer"
@@ -564,19 +554,33 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
   override def runsBefore = Set("typer")
 
   override def runOn(units: List[CompilationUnit])(using ctx: Context): List[CompilationUnit] =
-    RunLocalResourceScope.use(ExternalHandlerLoading.load(options)): loaded =>
-      require(
-        activeExternalHandlers.isEmpty,
-        "macroparadise phase run-local handlers are already active"
-      )
-      activeExternalHandlers = Some(loaded)
-      try super.runOn(units)
-      finally activeExternalHandlers = None
+    ExpansionBudget.parse(options) match
+      case Left(diagnostic) =>
+        report.error(diagnostic)
+        units
+      case Right(budget) =>
+        RunLocalResourceScope.use(ExternalHandlerLoading.load(options)): loaded =>
+          require(
+            activeExternalHandlers.isEmpty && activeExpansionBudget.isEmpty,
+            "macroparadise phase run-local state is already active"
+          )
+          activeExternalHandlers = Some(loaded)
+          activeExpansionBudget = Some(budget)
+          try super.runOn(units)
+          finally
+            activeExpansionBudget = None
+            activeExternalHandlers = None
 
   private def externalHandlers: ExternalHandlerLoading.LoadedHandlers =
     activeExternalHandlers.getOrElse:
       throw IllegalStateException(
         "macroparadise handler state is unavailable outside PluginPhase.runOn"
+      )
+
+  private def expansionBudget: Int =
+    activeExpansionBudget.getOrElse:
+      throw IllegalStateException(
+        "macroparadise expansion budget is unavailable outside PluginPhase.runOn"
       )
 
   override def run(using ctx: Context): Unit =
@@ -591,7 +595,8 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
       case _ =>
         unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
           unit,
-          externalHandlers
+          externalHandlers,
+          expansionBudget
         )
 
   private def handleDeferredConsumer(
@@ -673,7 +678,8 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
             )
           unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
             unit,
-            loadedForUnit
+            loadedForUnit,
+            expansionBudget
           )
         case ExternalHandlerLoading.DeferredLoadResult.Unavailable =>
           logDeferredAttempt(unit, deferred, loader, null, reason, "unavailable")

@@ -6,7 +6,6 @@ import paradise3.api.helpers.ExpansionHelpers
 
 final class SameModuleDebugExpander extends ExpansionHandler:
   val annotationName: String = "sameModuleDebug"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     dotty.tools.dotc.report.echo(

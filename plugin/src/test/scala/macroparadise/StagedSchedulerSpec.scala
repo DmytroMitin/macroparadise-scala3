@@ -78,14 +78,18 @@ class StagedSchedulerSpec extends munit.FunSuite:
       val primary = stats.head.asInstanceOf[TypeDef]
       val companion = stats(1).asInstanceOf[ModuleDef]
       val outputs = List[Tree](
-        cpy.ModuleDef(companion)(termName("X"), companion.impl),
-        cpy.TypeDef(primary)(typeName("Y"), primary.rhs),
-        cpy.TypeDef(primary)(typeName("X"), primary.rhs)
+        cpy.ModuleDef(companion)(termName("X"), freshTemplate(companion.impl)),
+        cpy.TypeDef(primary)(typeName("Y"), freshTemplate(primary.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(primary).withAnnotations(Nil)).asInstanceOf[TypeDef],
+        cpy.TypeDef(primary)(typeName("X"), freshTemplate(primary.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(primary).withAnnotations(Nil)).asInstanceOf[TypeDef]
       )
-      val result = ParadiseTreeRewrite.scheduleForTesting(
+      val evaluated = ParadiseTreeRewrite.scheduleForTesting(
         stats,
         List(handler("raw")(_ => ExpansionOutcome.Expanded(outputs)))
-      ).toOption.get
+      )
+      assert(evaluated.isRight, evaluated.left.toOption.getOrElse(""))
+      val result = evaluated.toOption.get
 
       assertEquals(
         result.map:
@@ -100,7 +104,7 @@ class StagedSchedulerSpec extends munit.FunSuite:
 
   test("structured labels address input occurrences and final companions are recomputed") {
     withStats("@rename class A; object A; object B") { (ctx: Context) ?=> (stats: List[Tree]) =>
-      val result = ParadiseTreeRewrite.scheduleForTesting(
+      val evaluated = ParadiseTreeRewrite.scheduleForTesting(
         stats,
         List(handler("rename") { input =>
           val current = input.primary.tree.asInstanceOf[TypeDef]
@@ -109,7 +113,9 @@ class StagedSchedulerSpec extends munit.FunSuite:
             ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Class(renamed)))
           )
         })
-      ).toOption.get
+      )
+      assert(evaluated.isRight, evaluated.left.toOption.getOrElse(""))
+      val result = evaluated.toOption.get
 
       assertEquals(result.map(definitionName), List("B", "A", "B"))
       assert(result(1) eq stats(1))
@@ -119,12 +125,12 @@ class StagedSchedulerSpec extends munit.FunSuite:
 
   test("dedicated companion creation follows a renamed surviving primary") {
     withStats("@create class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
-      val result = ParadiseTreeRewrite.scheduleForTesting(
+      val evaluated = ParadiseTreeRewrite.scheduleForTesting(
         stats,
         List(handler("create") { input =>
           val current = input.primary.tree.asInstanceOf[TypeDef]
           val renamed = cpy.TypeDef(current)(typeName("B"), current.rhs)
-          val created = ModuleDef(termName("B"), current.rhs.asInstanceOf[Template])
+          val created = ModuleDef(termName("B"), freshTemplate(current.rhs.asInstanceOf[Template]))
           ExpansionOutcome.Structured(
             ExpansionChanges(
               primary = PrimaryChange.Replace(ExpansionTarget.Class(renamed)),
@@ -132,7 +138,9 @@ class StagedSchedulerSpec extends munit.FunSuite:
             )
           )
         })
-      ).toOption.get
+      )
+      assert(evaluated.isRight, evaluated.left.toOption.getOrElse(""))
+      val result = evaluated.toOption.get
 
       assertEquals(result.map(definitionName), List("B", "B"))
     }
@@ -275,10 +283,107 @@ class StagedSchedulerSpec extends munit.FunSuite:
           TargetPatch.ReplaceAnnotations(List(copyAnnotation(input.currentAnnotation)))
         ))))
       }
-      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(recursive))
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(recursive), expansionBudget = 2)
 
-      assert(failure.exists(_.contains("32-success budget")))
+      assert(failure.exists(_.contains("2-success budget")))
       assert(rolledBack.head eq stats.head)
+    }
+  }
+
+  test("the default operational budget admits more than 32 independent successes") {
+    val source = (1 to 33).map(index => s"@a class A$index").mkString("; ")
+    withStats(source) { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var calls = 0
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(handler("a") { _ =>
+          calls += 1
+          ExpansionOutcome.Structured(ExpansionChanges())
+        })
+      )
+
+      assert(result.isRight)
+      assertEquals(calls, 33)
+    }
+  }
+
+  test("container context reports every occupied package definition name") {
+    withStats("val occupied = 1; @a class A; object A; def helper = 2; class Other") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = Set.empty[String]
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(handler("a") { input =>
+        observed = input.container.occupiedDefinitionNames
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }))
+
+      assert(result.isRight)
+      assertEquals(observed, Set("occupied", "A", "helper", "Other"))
+    }
+  }
+
+  test("direct member patches reject source-free generated definitions atomically") {
+    withStats("@a class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val sourceFree =
+        given Context = ContextBase().initialCtx
+        DefDef(termName("missingProvenance"), Nil, Ident(typeName("Int")), Literal(dotty.tools.dotc.core.Constants.Constant(1)))
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(
+        stats,
+        List(handler("a")(_ => ExpansionOutcome.Structured(ExpansionChanges(
+          primary = PrimaryChange.Merge(List(TargetPatch.AppendMembers(List(sourceFree))))
+        ))))
+      )
+
+      assert(failure.exists(_.contains("neither source nor span provenance")))
+      assert(rolledBack.head eq stats.head)
+    }
+  }
+
+  test("raw output rejects source-free target roots atomically") {
+    withStats("@a class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val sourceFree =
+        given Context = ContextBase().initialCtx
+        TypeDef(typeName("B"), Template(emptyConstructor, Nil, Nil, EmptyValDef, Nil))
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(
+        stats,
+        List(handler("a")(_ => ExpansionOutcome.Expanded(List(sourceFree))))
+      )
+
+      assert(failure.exists(_.contains("neither source nor span provenance")))
+      assert(rolledBack.head eq stats.head)
+    }
+  }
+
+  test("recursive alias validation rejects a shared member definition") {
+    withStats("@a class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val original = stats.head.asInstanceOf[TypeDef]
+      val shared = DefDef(termName("shared"), Nil, Ident(typeName("Int")), Literal(dotty.tools.dotc.core.Constants.Constant(1)))
+      def output(name: String): TypeDef =
+        val template = original.rhs.asInstanceOf[Template]
+        cpy.TypeDef(original)(typeName(name), cpy.Template(template)(
+          template.constr, template.parentsOrDerived, template.derived, template.self, List(shared)
+        ))
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(handler("a")(_ => ExpansionOutcome.Expanded(List(output("B"), output("C")))))
+      )
+
+      assert(result.left.toOption.exists(_.contains("same noncanonical raw tree object")))
+    }
+  }
+
+  test("recursive alias validation rejects a shared annotation tree") {
+    withStats("@a class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val original = stats.head.asInstanceOf[TypeDef]
+      val sharedAnnotation = Trees.mods(original).annotations.head
+      def output(name: String): TypeDef =
+        cpy.TypeDef(original)(typeName(name), freshTemplate(original.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(original).withAnnotations(List(sharedAnnotation)))
+          .asInstanceOf[TypeDef]
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(handler("a")(_ => ExpansionOutcome.Expanded(List(output("B"), output("C")))))
+      )
+
+      assert(result.left.toOption.exists(_.contains("same noncanonical raw tree object")))
     }
   }
 
@@ -289,7 +394,7 @@ class StagedSchedulerSpec extends munit.FunSuite:
         ExpansionOutcome.Expanded(List(tree, tree))
       )))
 
-      assert(result.left.toOption.exists(_.contains("same raw tree object")))
+      assert(result.left.toOption.exists(_.contains("same noncanonical raw tree object")))
     }
   }
 
@@ -299,9 +404,6 @@ class StagedSchedulerSpec extends munit.FunSuite:
   private def handler(name: String)(run: ExpansionInput => ExpansionOutcome): ExpansionHandler =
     new ExpansionHandler:
       val annotationName = name
-      val admissions = ExpansionTargetKind.values.toList.map(
-        ExpansionAdmission(_, ExpansionShapeProfile.OrdinaryTemplate)
-      )
       def expand(input: ExpansionInput)(using Context): ExpansionOutcome = run(input)
 
   private def definitionName(tree: Tree): String = tree match
@@ -312,6 +414,15 @@ class StagedSchedulerSpec extends munit.FunSuite:
   private def copyAnnotation(tree: Tree)(using Context): Tree = tree match
     case value: Apply => Apply(value.fun, value.args).withSpan(value.span)
     case other => fail(s"expected parser annotation Apply, found ${other.getClass.getName}")
+
+  private def freshTemplate(template: Template)(using Context): Template =
+    Template(
+      template.constr,
+      template.parentsOrDerived,
+      template.derived,
+      template.self,
+      template.body
+    )
 
   private def withStats[A](source: String)(run: Context ?=> List[Tree] => A): A =
     val unit = CompilationUnit("StagedSchedulerFixture.scala", source)

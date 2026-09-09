@@ -550,7 +550,6 @@ private[macroparadise] object ExternalHandlerPrecheck:
       "pluginTestHandlers/",
       "pluginTestMarkers/",
       "pluginTests/",
-      "quasiquotes/",
       "auxify/"
     )
     val jar = JarFile(handlerArtifact.toFile)
@@ -636,9 +635,10 @@ private[macroparadise] object ExternalHandlerPrecheck:
       "plugin-api-handler-contract-probe",
       "composition-contract",
       "same-module",
-      "quasiquotes",
       "auxify"
-    ).exists(value.contains)
+    ).exists(value.contains) ||
+      (value.contains("quasiquotes") &&
+        !value.contains("/com/github/dmytromitin/quasiquotes-scala3-"))
 
   private def forbiddenReference(value: String): Boolean =
     val normalized = value.replace('.', '/')
@@ -646,7 +646,6 @@ private[macroparadise] object ExternalHandlerPrecheck:
       normalized.startsWith("pluginTestHandlers/") ||
       normalized.startsWith("pluginTestMarkers/") ||
       normalized.startsWith("pluginTests/") ||
-      normalized.startsWith("quasiquotes/") ||
       normalized.startsWith("auxify/") ||
       normalized.contains("composition-contract") ||
       normalized.contains("same-module")

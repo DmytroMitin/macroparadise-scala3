@@ -1,0 +1,6 @@
+package contractprobeconsumernegative
+
+import contractprobe.IndependentMarker
+
+@IndependentMarker
+trait UnsupportedIndependentTrait

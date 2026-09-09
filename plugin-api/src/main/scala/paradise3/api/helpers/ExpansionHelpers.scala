@@ -103,7 +103,7 @@ object ExpansionHelpers:
   )(using Context): Either[ExpansionDiagnostic, ExpansionEdit] =
     if edit == null || target == null || target.tree == null || placement == null then
       Left(diagnostic(edit, "sibling creation requires a non-null edit, target, and placement"))
-    else if edit.original.container.siblingNames.contains(target.name) ||
+    else if edit.original.container.occupiedDefinitionNames.contains(target.name) ||
         edit.changes.siblings.exists:
           case SiblingChange.Create(value, _) => value.name == target.name
           case _                              => false
@@ -168,6 +168,8 @@ object ExpansionHelpers:
           diagnostic(edit, s"member batch entry $index is null")
         case (value, index) if !value.isInstanceOf[MemberDef] =>
           diagnostic(edit, s"member batch entry $index has unsupported raw kind `${value.getClass.getName}`")
+        case (value, index) if !value.source.exists && !value.span.exists =>
+          diagnostic(edit, s"member batch entry $index has neither source nor span provenance")
       match
         case Some(value) => Left(value)
         case None        => Right(members)

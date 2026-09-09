@@ -1,21 +1,29 @@
 # Expansion model and scheduling
 
-MacroParadise 0.2.0-SNAPSHOT has one experimental, exact-Scala-version handler API. A handler implements `ExpansionHandler`, declares the annotation identity and a list of `ExpansionAdmission` values, and transforms one `ExpansionInput` into one `ExpansionOutcome`.
+MacroParadise 0.2.0-SNAPSHOT has one experimental, exact-Scala-version handler API. A handler implements `ExpansionHandler`, declares one annotation identity, and transforms one plugin-minted `ExpansionInput` into one `ExpansionOutcome`.
 
 The public model is intentionally orthogonal:
 
 - target kind is `Class`, `Trait`, or `Object`;
 - `primary`, `companion`, and `sibling` describe relationships in the current invocation revision;
-- shape admission is independent of target kind;
+- target applicability is decided inside `expand`;
 - the compiler plugin discovers relationships and owns scheduling and atomic application.
 
 The API is compiled against compiler internals and must use the artifact for the exact active Scala line: 3.3.8, 3.8.4, or 3.9.0.
 
-## Input and admission
+## Input and applicability
 
-`ExpansionTarget` is a closed representation of the currently implemented Class/Trait/Object slice. `ExpansionAdmission(targetKind, shapeProfile)` lets a handler opt into one or more exact supported target shapes. The profiles preserve the existing bounded grammar; they do not authorize arbitrary Scala definitions or nested/local targets.
+`ExpansionTarget` is a closed representation of the currently implemented
+Class/Trait/Object slice. `ExpansionTargetKind` is descriptive only. A handler
+pattern-matches `input.primary`, applies its own bounded shape checks, and returns
+a controlled nonempty rejection when it does not apply.
 
-`ExpansionInput.primary` is the annotated occurrence selected from the current staged package. `companion` is present only when the current staged program has a compatible class-or-trait/object definition with the same decoded name in the same enclosing scope and compilation unit. Definitions need not be adjacent. `container` exposes only bounded sibling-name information, not mutable container state.
+`ExpansionInput.primary` is the annotated occurrence selected from the current
+staged package. `companion` is present only for the compatible same-name current
+definition. Definitions need not be adjacent.
+`container.occupiedDefinitionNames` is the actual set of all named definitions
+in that staged package container. Inputs and container contexts are read-only
+final values minted by the plugin, with no public construction or copy contract.
 
 The target, body, and type-structure views provide normalized read-only syntax for the supported handler use cases. Raw tree construction remains the handler or Quasiquotes caller's responsibility.
 
@@ -71,10 +79,17 @@ A private identity ledger prevents the same physical annotation tree from runnin
 - a freshly constructed syntax-equivalent annotation is eligible;
 - deleting a definition also deletes all pending work owned by that definition.
 
-MacroParadise does not attempt a semantic termination proof. A 32-success operational budget protects the compiler process; exhaustion is a diagnostic and causes rollback.
+MacroParadise does not attempt a semantic termination proof. The documented
+default is 256 successful stages per unit. Configure a positive limit with
+`-P:macroparadise:expansionBudget=<positive-decimal>`; malformed configuration
+fails before scheduling, and exhaustion is a diagnostic with whole-unit rollback.
 
 ## Atomicity and current limits
 
 All stages in one compilation unit operate on private staged state. A rejection, invalid output, thrown handler failure, collision, stale/duplicate address, or budget exhaustion returns the original unit; no successful prefix escapes.
 
-The current implementation remains limited to the established package-level Class/Trait/Object grammar and exact admission profiles. Nested, inner, local, enum, enum-case, method, value, variable, type, parameter, given, and extension targets are not enabled. This model does not widen source grammar, provide semantic typing, or move tree authoring into MacroParadise.
+The current implementation remains limited to the established package-level
+Class/Trait/Object grammar. Nested, inner, local, enum, enum-case, method, value,
+variable, type, parameter, given, and extension targets are not enabled. This
+model does not widen source grammar, provide semantic typing, or move tree
+authoring into MacroParadise.

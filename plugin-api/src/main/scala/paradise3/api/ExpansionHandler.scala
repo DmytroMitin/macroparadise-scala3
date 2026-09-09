@@ -8,7 +8,6 @@ import dotty.tools.dotc.util.SrcPos
 /** One precompiled handler protocol for every currently supported target kind. */
 trait ExpansionHandler:
   def annotationName: String
-  def admissions: List[ExpansionAdmission]
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome
 
 /** Syntactic target kind, independent of its relationship to the invocation. */
@@ -49,30 +48,17 @@ object ExpansionTarget:
           )
         )
 
-/** Closed shape profiles for the currently supported source grammar. */
-enum ExpansionShapeProfile:
-  case OrdinaryTemplate
-  case NonCaseNonGenericTemplate
-  case OneInvariantUnboundedTypeParameter
-  case TwoInvariantUpperBoundedTypeParameters
-  case NoTypeOrValueParameters
-
-final case class ExpansionAdmission(
-    targetKind: ExpansionTargetKind,
-    shapeProfile: ExpansionShapeProfile
+/** Bounded information about the invocation's current container. */
+final class ExpansionContainerContext private[api] (
+    val occupiedDefinitionNames: Set[String]
 )
 
-/** Bounded information about the invocation's current container. */
-final case class ExpansionContainerContext(siblingNames: Set[String])
-
 /** One admitted invocation against the current staged program. */
-final case class ExpansionInput(
-    annotationName: String,
-    primary: ExpansionTarget,
-    companion: Option[ExpansionTarget],
-    container: ExpansionContainerContext,
-    currentAnnotation: untpd.Tree,
-    admission: ExpansionAdmission
+final class ExpansionInput private[api] (
+    val primary: ExpansionTarget,
+    val companion: Option[ExpansionTarget],
+    val container: ExpansionContainerContext,
+    val currentAnnotation: untpd.Tree
 ):
   def targetView(using Context): Either[ExpansionDiagnostic, ExpansionTargetView] =
     primary match

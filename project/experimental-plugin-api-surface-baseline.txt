@@ -16,7 +16,7 @@ CLASS|paradise3/api/AnnotationTermArgument$Named.class|HANDLER_CONTRACT|public f
 CLASS|paradise3/api/AnnotationTermArgument$Positional$.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Positional$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/AnnotationTermArgument$Positional.class|HANDLER_CONTRACT|public final class paradise3.api.AnnotationTermArgument$Positional extends paradise3.api.AnnotationTermArgument
 CLASS|paradise3/api/AnnotationTermArgument.class|HANDLER_CONTRACT|public abstract class paradise3.api.AnnotationTermArgument implements scala.reflect.Enum
-CLASS|paradise3/api/CompanionChange$$anon$4.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$$anon$4 extends paradise3.api.CompanionChange implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/CompanionChange$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$$anon$3 extends paradise3.api.CompanionChange implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/CompanionChange$.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/CompanionChange$Create$.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$Create$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/CompanionChange$Create.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$Create extends paradise3.api.CompanionChange
@@ -25,22 +25,18 @@ CLASS|paradise3/api/CompanionChange$Merge.class|HANDLER_CONTRACT|public final cl
 CLASS|paradise3/api/CompanionChange$Replace$.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$Replace$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/CompanionChange$Replace.class|HANDLER_CONTRACT|public final class paradise3.api.CompanionChange$Replace extends paradise3.api.CompanionChange
 CLASS|paradise3/api/CompanionChange.class|HANDLER_CONTRACT|public abstract class paradise3.api.CompanionChange implements scala.reflect.Enum
-CLASS|paradise3/api/DefinitionPlacement$$anon$5.class|HANDLER_CONTRACT|public final class paradise3.api.DefinitionPlacement$$anon$5 extends paradise3.api.DefinitionPlacement implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/DefinitionPlacement$$anon$4.class|HANDLER_CONTRACT|public final class paradise3.api.DefinitionPlacement$$anon$4 extends paradise3.api.DefinitionPlacement implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/DefinitionPlacement$.class|HANDLER_CONTRACT|public final class paradise3.api.DefinitionPlacement$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/DefinitionPlacement.class|HANDLER_CONTRACT|public abstract class paradise3.api.DefinitionPlacement implements scala.reflect.Enum
-CLASS|paradise3/api/ExpansionAdmission$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionAdmission$ implements scala.deriving.Mirror$Product,java.io.Serializable
-CLASS|paradise3/api/ExpansionAdmission.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionAdmission implements scala.Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionChanges$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionChanges$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionChanges.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionChanges implements scala.Product,java.io.Serializable
-CLASS|paradise3/api/ExpansionContainerContext$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionContainerContext$ implements scala.deriving.Mirror$Product,java.io.Serializable
-CLASS|paradise3/api/ExpansionContainerContext.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionContainerContext implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionContainerContext.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionContainerContext
 CLASS|paradise3/api/ExpansionDiagnostic$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionDiagnostic$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionDiagnostic.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionDiagnostic implements scala.Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionEdit$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionEdit$ implements java.io.Serializable
 CLASS|paradise3/api/ExpansionEdit.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionEdit
 CLASS|paradise3/api/ExpansionHandler.class|HANDLER_CONTRACT|public interface paradise3.api.ExpansionHandler
-CLASS|paradise3/api/ExpansionInput$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput$ implements scala.deriving.Mirror$Product,java.io.Serializable
-CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput implements scala.Product,java.io.Serializable
+CLASS|paradise3/api/ExpansionInput.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionInput
 CLASS|paradise3/api/ExpansionOutcome$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/ExpansionOutcome$Expanded$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Expanded$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionOutcome$Expanded.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Expanded extends paradise3.api.ExpansionOutcome
@@ -49,9 +45,6 @@ CLASS|paradise3/api/ExpansionOutcome$Rejected.class|HANDLER_CONTRACT|public fina
 CLASS|paradise3/api/ExpansionOutcome$Structured$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionOutcome$Structured.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionOutcome$Structured extends paradise3.api.ExpansionOutcome
 CLASS|paradise3/api/ExpansionOutcome.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionOutcome implements scala.reflect.Enum
-CLASS|paradise3/api/ExpansionShapeProfile$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionShapeProfile$$anon$2 extends paradise3.api.ExpansionShapeProfile implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
-CLASS|paradise3/api/ExpansionShapeProfile$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionShapeProfile$ implements scala.deriving.Mirror$Sum,java.io.Serializable
-CLASS|paradise3/api/ExpansionShapeProfile.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionShapeProfile implements scala.reflect.Enum
 CLASS|paradise3/api/ExpansionTarget$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTarget$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/ExpansionTarget$Class$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTarget$Class$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/ExpansionTarget$Class.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTarget$Class extends paradise3.api.ExpansionTarget
@@ -128,7 +121,7 @@ CLASS|paradise3/api/ExpansionTargetView$Variance$$anon$2.class|HANDLER_CONTRACT|
 CLASS|paradise3/api/ExpansionTargetView$Variance$.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetView$Variance$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/ExpansionTargetView$Variance.class|HANDLER_CONTRACT|public abstract class paradise3.api.ExpansionTargetView$Variance implements scala.reflect.Enum
 CLASS|paradise3/api/ExpansionTargetView.class|HANDLER_CONTRACT|public final class paradise3.api.ExpansionTargetView implements scala.Product,java.io.Serializable
-CLASS|paradise3/api/PrimaryChange$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.PrimaryChange$$anon$3 extends paradise3.api.PrimaryChange implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
+CLASS|paradise3/api/PrimaryChange$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.PrimaryChange$$anon$2 extends paradise3.api.PrimaryChange implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/PrimaryChange$.class|HANDLER_CONTRACT|public final class paradise3.api.PrimaryChange$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/PrimaryChange$Merge$.class|HANDLER_CONTRACT|public final class paradise3.api.PrimaryChange$Merge$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/PrimaryChange$Merge.class|HANDLER_CONTRACT|public final class paradise3.api.PrimaryChange$Merge extends paradise3.api.PrimaryChange
@@ -362,17 +355,17 @@ MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productElementName|0|pu
 MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
 MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/AnnotationTermArgument.class|METHOD|valueTree|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|ordinal|0|public|-|()I
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/CompanionChange$$anon$4.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/CompanionChange$$anon$3.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/CompanionChange$.class|FIELD|Create|0|public|static,final|Lparadise3/api/CompanionChange$Create$;
 MEMBER|paradise3/api/CompanionChange$.class|FIELD|Delete|0|public|static,final|Lparadise3/api/CompanionChange;
 MEMBER|paradise3/api/CompanionChange$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/CompanionChange$;
@@ -467,17 +460,17 @@ MEMBER|paradise3/api/CompanionChange.class|METHOD|productElementNames|0|public|-
 MEMBER|paradise3/api/CompanionChange.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
 MEMBER|paradise3/api/CompanionChange.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
 MEMBER|paradise3/api/CompanionChange.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|ordinal|0|public|-|()I
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/DefinitionPlacement$$anon$5.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/DefinitionPlacement$$anon$4.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/DefinitionPlacement$.class|FIELD|AfterPrimary|0|public|static,final|Lparadise3/api/DefinitionPlacement;
 MEMBER|paradise3/api/DefinitionPlacement$.class|FIELD|BeforePrimary|0|public|static,final|Lparadise3/api/DefinitionPlacement;
 MEMBER|paradise3/api/DefinitionPlacement$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/DefinitionPlacement$;
@@ -495,34 +488,6 @@ MEMBER|paradise3/api/DefinitionPlacement.class|METHOD|productIterator|0|public|-
 MEMBER|paradise3/api/DefinitionPlacement.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/DefinitionPlacement.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/DefinitionPlacement;
 MEMBER|paradise3/api/DefinitionPlacement.class|METHOD|values|0|public|static|()[Lparadise3/api/DefinitionPlacement;
-MEMBER|paradise3/api/ExpansionAdmission$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionAdmission$;
-MEMBER|paradise3/api/ExpansionAdmission$.class|METHOD|apply|0|public|-|(Lparadise3/api/ExpansionTargetKind;Lparadise3/api/ExpansionShapeProfile;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionAdmission$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionAdmission$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionAdmission;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
-MEMBER|paradise3/api/ExpansionAdmission.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionTargetKind;Lparadise3/api/ExpansionShapeProfile;)V
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|_1|0|public|-|()Lparadise3/api/ExpansionTargetKind;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|_2|0|public|-|()Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|apply|0|public|static|(Lparadise3/api/ExpansionTargetKind;Lparadise3/api/ExpansionShapeProfile;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|copy$default$1|0|public|-|()Lparadise3/api/ExpansionTargetKind;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|copy|0|public|-|(Lparadise3/api/ExpansionTargetKind;Lparadise3/api/ExpansionShapeProfile;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|shapeProfile|0|public|-|()Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|targetKind|0|public|-|()Lparadise3/api/ExpansionTargetKind;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionAdmission.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionAdmission;)Lparadise3/api/ExpansionAdmission;
 MEMBER|paradise3/api/ExpansionChanges$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionChanges$;
 MEMBER|paradise3/api/ExpansionChanges$.class|METHOD|$lessinit$greater$default$1|0|public|-|()Lparadise3/api/PrimaryChange;
 MEMBER|paradise3/api/ExpansionChanges$.class|METHOD|$lessinit$greater$default$2|0|public|-|()Lparadise3/api/CompanionChange;
@@ -560,31 +525,8 @@ MEMBER|paradise3/api/ExpansionChanges.class|METHOD|productPrefix|0|public|-|()Lj
 MEMBER|paradise3/api/ExpansionChanges.class|METHOD|siblings|0|public|-|()Lscala/collection/immutable/List;
 MEMBER|paradise3/api/ExpansionChanges.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionChanges.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionChanges;)Lparadise3/api/ExpansionChanges;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionContainerContext$;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|METHOD|apply|0|public|-|(Lscala/collection/immutable/Set;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionContainerContext;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
 MEMBER|paradise3/api/ExpansionContainerContext.class|CONSTRUCTOR|<init>|0|public|-|(Lscala/collection/immutable/Set;)V
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|_1|0|public|-|()Lscala/collection/immutable/Set;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|apply|0|public|static|(Lscala/collection/immutable/Set;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|copy$default$1|0|public|-|()Lscala/collection/immutable/Set;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|copy|0|public|-|(Lscala/collection/immutable/Set;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|siblingNames|0|public|-|()Lscala/collection/immutable/Set;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionContainerContext;)Lparadise3/api/ExpansionContainerContext;
+MEMBER|paradise3/api/ExpansionContainerContext.class|METHOD|occupiedDefinitionNames|0|public|-|()Lscala/collection/immutable/Set;
 MEMBER|paradise3/api/ExpansionDiagnostic$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionDiagnostic$;
 MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Ldotty/tools/dotc/util/SrcPos;)Lparadise3/api/ExpansionDiagnostic;
 MEMBER|paradise3/api/ExpansionDiagnostic$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -628,52 +570,16 @@ MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated$default$1|0|public|-|()L
 MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated$default$2|0|public|-|()Lscala/Option;
 MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated$default$3|0|public|-|()Lparadise3/api/ExpansionChanges;
 MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated|0|public|-|(Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionChanges;)Lparadise3/api/ExpansionEdit;
-MEMBER|paradise3/api/ExpansionHandler.class|METHOD|admissions|0|public|abstract|()Lscala/collection/immutable/List;
 MEMBER|paradise3/api/ExpansionHandler.class|METHOD|annotationName|0|public|abstract|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionHandler.class|METHOD|expand|0|public|abstract|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
-MEMBER|paradise3/api/ExpansionInput$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionInput$;
-MEMBER|paradise3/api/ExpansionInput$.class|METHOD|apply|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/ExpansionAdmission;)Lparadise3/api/ExpansionInput;
-MEMBER|paradise3/api/ExpansionInput$.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionInput$.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lparadise3/api/ExpansionInput;
-MEMBER|paradise3/api/ExpansionInput$.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput$.class|METHOD|unapply|0|public|-|(Lparadise3/api/ExpansionInput;)Lparadise3/api/ExpansionInput;
-MEMBER|paradise3/api/ExpansionInput$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
-MEMBER|paradise3/api/ExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/ExpansionAdmission;)V
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_1|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_2|0|public|-|()Lparadise3/api/ExpansionTarget;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_3|0|public|-|()Lscala/Option;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_4|0|public|-|()Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_5|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|_6|0|public|-|()Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|admission|0|public|-|()Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|annotationName|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|apply|0|public|static|(Ljava/lang/String;Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/ExpansionAdmission;)Lparadise3/api/ExpansionInput;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/ExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;)V
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|companion|0|public|-|()Lscala/Option;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|container|0|public|-|()Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$1|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$2|0|public|-|()Lparadise3/api/ExpansionTarget;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$3|0|public|-|()Lscala/Option;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$4|0|public|-|()Lparadise3/api/ExpansionContainerContext;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$5|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy$default$6|0|public|-|()Lparadise3/api/ExpansionAdmission;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|copy|0|public|-|(Ljava/lang/String;Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/ExpansionAdmission;)Lparadise3/api/ExpansionInput;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|currentAnnotation|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|equals|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|fromProduct|0|public|static|(Lscala/Product;)Lparadise3/api/ExpansionInput;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|hashCode|0|public|-|()I
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|primary|0|public|-|()Lparadise3/api/ExpansionTarget;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetBodyView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetTypeStructureView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionInput.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionInput;)Lparadise3/api/ExpansionInput;
 MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|Expanded|0|public|static,final|Lparadise3/api/ExpansionOutcome$Expanded$;
 MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionOutcome$;
 MEMBER|paradise3/api/ExpansionOutcome$.class|FIELD|Rejected|0|public|static,final|Lparadise3/api/ExpansionOutcome$Rejected$;
@@ -763,37 +669,6 @@ MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementNames|0|public|
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
 MEMBER|paradise3/api/ExpansionOutcome.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|ordinal|0|public|-|()I
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionShapeProfile$;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|NoTypeOrValueParameters|0|public|static,final|Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|NonCaseNonGenericTemplate|0|public|static,final|Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|OneInvariantUnboundedTypeParameter|0|public|static,final|Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|OrdinaryTemplate|0|public|static,final|Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|FIELD|TwoInvariantUpperBoundedTypeParameters|0|public|static,final|Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|METHOD|fromOrdinal|0|public|-|(I)Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|METHOD|ordinal|0|public|-|(Ljava/lang/Object;)I
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|METHOD|ordinal|1|public|-|(Lparadise3/api/ExpansionShapeProfile;)I
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|METHOD|valueOf|0|public|-|(Ljava/lang/String;)Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|METHOD|values|0|public|-|()[Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
-MEMBER|paradise3/api/ExpansionShapeProfile.class|CONSTRUCTOR|<init>|0|public|-|()V
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|fromOrdinal|0|public|static|(I)Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|productElementNames|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|productIterator|0|public|-|()Lscala/collection/Iterator;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|valueOf|0|public|static|(Ljava/lang/String;)Lparadise3/api/ExpansionShapeProfile;
-MEMBER|paradise3/api/ExpansionShapeProfile.class|METHOD|values|0|public|static|()[Lparadise3/api/ExpansionShapeProfile;
 MEMBER|paradise3/api/ExpansionTarget$.class|FIELD|Class|0|public|static,final|Lparadise3/api/ExpansionTarget$Class$;
 MEMBER|paradise3/api/ExpansionTarget$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/ExpansionTarget$;
 MEMBER|paradise3/api/ExpansionTarget$.class|FIELD|Object|0|public|static,final|Lparadise3/api/ExpansionTarget$Object$;
@@ -1964,17 +1839,17 @@ MEMBER|paradise3/api/ExpansionTargetView.class|METHOD|productPrefix|0|public|-|(
 MEMBER|paradise3/api/ExpansionTargetView.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionTargetView.class|METHOD|typeParameters|0|public|-|()Lscala/collection/immutable/List;
 MEMBER|paradise3/api/ExpansionTargetView.class|METHOD|unapply|0|public|static|(Lparadise3/api/ExpansionTargetView;)Lparadise3/api/ExpansionTargetView;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|hashCode|0|public|-|()I
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|ordinal|0|public|-|()I
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|productArity|0|public|-|()I
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
-MEMBER|paradise3/api/PrimaryChange$$anon$3.class|METHOD|toString|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|fromProduct|1|public|-|(Lscala/Product;)Lscala/deriving/Mirror$Singleton;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|hashCode|0|public|-|()I
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|ordinal|0|public|-|()I
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|productArity|0|public|-|()I
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|productElementName|0|public|-|(I)Ljava/lang/String;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|productElement|0|public|-|(I)Ljava/lang/Object;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|productPrefix|0|public|-|()Ljava/lang/String;
+MEMBER|paradise3/api/PrimaryChange$$anon$2.class|METHOD|toString|0|public|-|()Ljava/lang/String;
 MEMBER|paradise3/api/PrimaryChange$.class|FIELD|Delete|0|public|static,final|Lparadise3/api/PrimaryChange;
 MEMBER|paradise3/api/PrimaryChange$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/PrimaryChange$;
 MEMBER|paradise3/api/PrimaryChange$.class|FIELD|Merge|0|public|static,final|Lparadise3/api/PrimaryChange$Merge$;
@@ -2452,7 +2327,6 @@ RESOURCE|paradise3/api/AnnotationApplication.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/AnnotationTermArgument.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/CompanionChange.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/DefinitionPlacement.tasty|SCALA_TASTY
-RESOURCE|paradise3/api/ExpansionAdmission.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionChanges.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionContainerContext.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionDiagnostic.tasty|SCALA_TASTY
@@ -2460,7 +2334,6 @@ RESOURCE|paradise3/api/ExpansionEdit.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionHandler.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionInput.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionOutcome.tasty|SCALA_TASTY
-RESOURCE|paradise3/api/ExpansionShapeProfile.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionTarget.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionTargetBodyView.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/ExpansionTargetKind.tasty|SCALA_TASTY
@@ -2519,4 +2392,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=25b59a27210c2a95d8c0406d75c1d08f5e3b0de973333259772753059948b911
+normalized-sha256=cf9aaf2476f01f7e28d353b34eb2e389ad4009bf28d50398adc405a90c217a3f

@@ -1,13 +1,12 @@
 package macroparadise
 
-import paradise3.api.{ExpansionAdmission, ExpansionHandler}
+import paradise3.api.ExpansionHandler
 
 import scala.util.control.NonFatal
 
 private[macroparadise] final case class ExternalHandlerDescriptor(
     handlerClassName: String,
-    annotationName: String,
-    admissions: List[ExpansionAdmission]
+    annotationName: String
 )
 
 private[macroparadise] trait LoadedExternalHandlerContract:
@@ -57,20 +56,11 @@ private[macroparadise] object ExternalHandlerDescriptor:
         annotationName,
         ownership
       )
-      admissions <- readAccessor(handlerClassName, "admissions", ownership)(
-        instance.admissions
-      )
-      validatedAdmissions <- validateAdmissions(
-        handlerClassName,
-        admissions,
-        ownership
-      )
     yield LoadedExternalHandler(
       instance,
       ExternalHandlerDescriptor(
         handlerClassName,
-        validatedAnnotationName,
-        validatedAdmissions
+        validatedAnnotationName
       )
     )
 
@@ -88,25 +78,6 @@ private[macroparadise] object ExternalHandlerDescriptor:
         case Right(identity) => Right(identity.value)
         case Left(detail) =>
           Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ANNOTATION_NAME", "annotationName", ownership, s"handler returned `$annotationName`; $detail"))
-
-  private def validateAdmissions(
-      handlerClassName: String,
-      admissions: List[ExpansionAdmission],
-      ownership: LoaderOwnership
-  ): Either[Failure, List[ExpansionAdmission]] =
-    val failure =
-      if admissions == null then Some("handler returned null")
-      else if admissions.isEmpty then Some("handler returned an empty admission list")
-      else if admissions.exists(_ == null) then Some("handler returned a null admission")
-      else if admissions.exists(value => value.targetKind == null || value.shapeProfile == null) then
-        Some("handler returned an admission with a null target kind or shape profile")
-      else if admissions.distinct.size != admissions.size then
-        Some("handler returned duplicate admissions")
-      else None
-    failure match
-      case Some(detail) =>
-        Left(invalidDeclaration(handlerClassName, "INVALID_HANDLER_ADMISSIONS", "admissions", ownership, detail))
-      case None => Right(admissions)
 
   private def readAccessor[A](
       handlerClassName: String,

@@ -114,16 +114,28 @@ object AnnotationApplication:
       case None =>
         Left(
           ExpansionDiagnostic(
-            s"@${input.annotationName} annotation application is unavailable: current raw annotation tree is missing",
+            "annotation application is unavailable: current raw annotation tree is missing",
             input.primary.tree.sourcePos
           )
         )
-      case Some(rawTree) => fromRawTree(input.annotationName, rawTree)
+      case Some(rawTree) =>
+        annotationConstructor(rawTree).flatMap(constructor =>
+          fromRawTree(constructor.annotationName, rawTree)
+        )
 
   private final case class RawConstructor(
       annotationName: String,
       typeArguments: List[untpd.Tree]
   )
+
+  private def annotationConstructor(
+      rawTree: untpd.Tree
+  )(using Context): Either[ExpansionDiagnostic, RawConstructor] =
+    rawTree match
+      case Apply(constructor, _) =>
+        normalizeConstructor("<current>", constructor, rawTree)
+      case unsupported =>
+        Left(unsupportedShape("<current>", unsupported))
 
   private def fromRawTree(
       expectedAnnotationName: String,

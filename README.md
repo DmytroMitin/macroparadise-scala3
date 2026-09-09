@@ -48,63 +48,71 @@ package com.example.`macro`.annotations
 import paradise3.api.expander
 import scala.annotation.StaticAnnotation
 
-@expander("com.example.macro.handlers.GenHandler")
-final class gen extends StaticAnnotation
+@expander("com.example.macro.handlers.IdentityHandler")
+final class identity extends StaticAnnotation
 ```
 
-The handler uses the public experimental helper API:
+The first handler is intentionally identity/pass-through. It reads a
+plugin-minted `ExpansionInput`; user code does not construct or copy that value:
 
 ```scala
 package com.example.`macro`.handlers
 
 import dotty.tools.dotc.core.Contexts.Context
-import dotty.tools.dotc.ast.untpd.*
-import dotty.tools.dotc.core.Constants.Constant
-import dotty.tools.dotc.core.Names.*
 import paradise3.api.*
-import paradise3.api.helpers.ExpansionHelpers
 
-final class GenHandler extends ExpansionHandler:
+final class IdentityHandler extends ExpansionHandler:
   override def annotationName: String =
-    "com.example.macro.annotations.gen"
-
-  override val admissions = List(
-    ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
-  )
+    "com.example.macro.annotations.identity"
 
   override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-    val member = DefDef(
-      termName("generatedHello"),
-      Nil,
-      Ident(typeName("String")),
-      Literal(Constant(s"hello ${input.primary.name}"))
-    )
-    ExpansionEdit.finish(
-      ExpansionEdit.start(input).flatMap(edit =>
-        ExpansionHelpers.placeMemberInPrimary(edit, member)
-      )
-    )
+    ExpansionEdit.finish(ExpansionEdit.start(input))
 ```
 
-After the marker and handler have been compiled, the consumer imports and uses
-its own annotation:
+The next step is source-like member generation. The canonical example uses
+Scalameta `q` syntax, Quasiquotes 0.3.0 generated-origin lowering, and the generic
+MacroParadise placement helper. The bridge supplies honest source/span
+provenance; no raw compiler constructor appears in this normal path:
 
 ```scala
-package com.example.core
+package starter.handler
 
-import com.example.`macro`.annotations.gen
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.*
+import paradise3.api.helpers.ExpansionHelpers
+import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
+import scala.meta.*
+import scala.meta.dialects.Scala3
 
-@gen
-class GenUser
+final class GenerateGreetingHandler extends ExpansionHandler:
+  val annotationName: String = "starter.marker.generateGreeting"
 
-val greeting: String = new GenUser().generatedHello
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionEdit.finish:
+      for
+        edit <- ExpansionEdit.start(input)
+        _ <- input.primary match
+          case ExpansionTarget.Class(_) => Right(())
+          case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        lowered <- ScalametaDefinitionGeneratedOriginBridge
+          .lower(
+            definition,
+            "<macroparadise-generated:GenerateGreetingHandler:generatedGreeting>"
+          )
+          .left
+          .map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
+        result <- ExpansionHelpers.placeMemberInPrimary(edit, lowered.tree)
+      yield result
 ```
 
-Before ordinary typing, Macro-Paradise loads `GenHandler`, adds
-`generatedHello`, and lets the compiler typecheck the call like ordinary source.
-The repository mechanically compiles this exact example in the independent
-marker/handler/consumer verification task. The repository's built-in `@gen`
-remains an internal fixture; it is not an installed user annotation.
+The handler project declares
+`("com.github.dmytromitin" % "quasiquotes-scala3-dotty-internal" % "0.3.0").cross(CrossVersion.full)`.
+Its marker points to `GenerateGreetingHandler`; after both are compiled, an
+ordinary consumer can use `new Greeter().generatedGreeting`. The repository
+mechanically compiles and runs this exact source in the independent external
+handler starter. Direct `untpd` construction remains an expert escape hatch,
+not the primary authoring path.
 
 This fixture is intentionally narrow. It is evidence for the compiler
 mechanism, not a general-purpose macro-annotation API.
@@ -306,15 +314,15 @@ The current implementation provides bounded evidence for:
 - precompiled external handlers selected explicitly or by marker metadata;
 - qualified syntactic annotation identities and unambiguous package-level
   explicit-import canonicalization;
-- plugin-owned, source-ordered composition for handlers that explicitly opt in;
-- a restricted, opt-in generic-trait target profile used by one contextual
-  companion-method fixture.
+- plugin-owned, source-ordered composition with applicability decided inside
+  each handler's `expand` method;
+- a restricted generic-trait contextual companion-method fixture.
 
-Legacy source-annotation composition is fail closed. Every participant must opt in,
-independently admit the concrete target under its profile, preserve remaining
-handled annotations exactly, and satisfy
-the plugin's output and rollback invariants. The coordinator is generic, but
-positive evidence remains bounded to the combinations in the test suite.
+Legacy source-annotation composition is fail closed. Every participant must
+explicitly accept the concrete target inside `expand`, preserve remaining
+handled annotations exactly, and satisfy the plugin's output and rollback
+invariants. The coordinator is generic, but positive evidence remains bounded
+to the combinations in the test suite.
 
 ## Important limitations
 

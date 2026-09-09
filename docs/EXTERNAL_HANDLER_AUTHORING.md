@@ -12,18 +12,50 @@ import paradise3.api.*
 
 final class MarkerHandler extends ExpansionHandler:
   val annotationName = "example.Marker"
-  val admissions = List(
-    ExpansionAdmission(
-      ExpansionTargetKind.Class,
-      ExpansionShapeProfile.OrdinaryTemplate
-    )
-  )
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish(ExpansionEdit.start(input))
 ```
 
-The annotation identity must match the marker metadata or explicit configuration. Admissions are mandatory and are checked before invocation.
+The annotation identity must match marker metadata or explicit configuration.
+Applicability belongs in `expand`: pattern-match the current target and return a
+nonempty `Rejected` diagnostic for unsupported kinds or shapes.
+
+## Source-like generated members
+
+The normal authoring path uses Scalameta syntax plus Quasiquotes generated-origin
+lowering, then the generic MacroParadise placement helper:
+
+```scala
+import dotty.tools.dotc.core.Contexts.Context
+import paradise3.api.*
+import paradise3.api.helpers.ExpansionHelpers
+import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
+import scala.meta.*
+import scala.meta.dialects.Scala3
+
+final class GenerateGreetingHandler extends ExpansionHandler:
+  val annotationName = "example.generateGreeting"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionEdit.finish:
+      for
+        edit <- ExpansionEdit.start(input)
+        _ <- input.primary match
+          case ExpansionTarget.Class(_) => Right(())
+          case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        lowered <- ScalametaDefinitionGeneratedOriginBridge
+          .lower(definition, "<macroparadise-generated:GenerateGreetingHandler:generatedGreeting>")
+          .left.map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
+        result <- ExpansionHelpers.placeMemberInPrimary(edit, lowered.tree)
+      yield result
+```
+
+The handler project adds
+`("com.github.dmytromitin" % "quasiquotes-scala3-dotty-internal" % "0.3.0").cross(CrossVersion.full)`.
+The repository starter compiles and runs this exact source. Direct `untpd`
+constructors remain an expert path only.
 
 ## Marker metadata
 
@@ -82,11 +114,20 @@ For direct structured authoring, use `ExpansionChanges` with `PrimaryChange`, `C
 
 `ExpansionOutcome.Expanded(trees)` is an exact replacement of the current primary plus its verified companion, if any. It may return Nil, one definition, or many Class/Trait/Object definitions in any valid order. Do not echo unrelated siblings. There is no distinguished first result.
 
-Use raw output only when sparse changes are insufficient. The plugin still validates nulls, target forms, aliasing, collisions, ownership, and final topology atomically.
+Use raw output only when sparse changes are insufficient. Every nonempty returned
+root must carry source or span provenance. The plugin validates nulls, target
+forms, recursive ownership aliases, collisions, and final topology atomically;
+it never fabricates or repairs provenance.
 
 ## Input views and annotation arguments
 
-`ExpansionInput.primary` and `companion` contain exact-version raw trees wrapped by target kind. `targetView`, `targetBodyView`, and `targetTypeStructureView` expose bounded normalized views for the current class/trait use cases. Object primaries currently return an unavailable-view diagnostic for those class/trait views.
+`ExpansionInput.primary` and `companion` contain exact-version raw trees wrapped
+by target kind. `container.occupiedDefinitionNames` is the actual set of named
+definitions in the current staged package container, including the primary,
+companion, and unrelated definitions. The plugin mints both input and context values;
+external code can read but cannot construct or copy them. `targetView`,
+`targetBodyView`, and `targetTypeStructureView` expose bounded normalized views
+for current class/trait use cases.
 
 `AnnotationApplication.fromInput(input)` normalizes the raw constructor/application shape used by the typed-label fixture. It is syntactic: it does not resolve defaults, fold constants, or supply semantic types.
 
@@ -96,7 +137,12 @@ Return `ExpansionOutcome.Rejected(List(ExpansionDiagnostic(...)))` for controlle
 
 There is no composition switch. All handled annotations participate in the current-staged-tree scheduler. After each successful stage the plugin rescans from the beginning. A handler should remove its current annotation when it wants the final source tree to omit it, but the private identity ledger ensures preserving that exact tree does not invoke it twice.
 
-Fresh handled annotations introduced on replacements, siblings, or companions run normally. Syntax-equivalent fresh annotations are new work. Recursive generation is allowed; a 32-success safeguard turns exhaustion into a diagnostic and whole-unit rollback.
+Fresh handled annotations introduced on replacements, siblings, or companions
+run normally. Syntax-equivalent fresh annotations are new work. Recursive
+generation is allowed. The default 256-success operational safeguard can be
+changed with `-P:macroparadise:expansionBudget=<positive-decimal>`; invalid,
+duplicate, nonpositive, or overflowing values fail before mutation. Exhaustion
+is a diagnostic and whole-unit rollback.
 
 ## Packaging and checks
 
@@ -125,6 +171,25 @@ sbt -batch verifyIndependentPrecompiledHandlerPackagedConsumer
 
 Remote publishing is not required for local authoring or qualification. The repository's canonical verification uses task-owned local artifacts and repositories.
 
+Two executable manual sbt stories are retained by
+`verifyUserOnboardingThreeModeSetup`:
+
+- local/unpublished development: `examples/user-onboarding-three-mode-fixture/manual/build.sbt`
+  wires the current packaged plugin/API and project-local marker/handler outputs
+  without `publishLocal`;
+- repository-published consumption:
+  `examples/user-onboarding-three-mode-fixture/manual-published/build.sbt`
+  resolves producer POMs and JARs from a task-owned file repository before
+  compiling and running the consumer.
+
+Run `sbt -batch verifyUserOnboardingThreeModeSetup` for both stories plus the
+AutoPlugin counterparts. The source-like handler dependency is explicit and may
+resolve from Maven Central; it is never inferred from a peer checkout or cache.
+
 ## Limits
 
-The handler API is experimental and compiler-internal. It is not binary compatible across exact Scala lines. Current admissions do not enable nested/local targets or definitions outside Class/Trait/Object. Handlers do not receive transaction handles, mutable container access, semantic symbols, or a general-purpose tree-authoring layer.
+The handler API is experimental and compiler-internal. It is not binary
+compatible across exact Scala lines. Scheduling does not enable nested/local
+targets or definitions outside Class/Trait/Object. Handlers do not receive
+transaction handles, mutable container access, semantic symbols, or a
+general-purpose tree-authoring layer.

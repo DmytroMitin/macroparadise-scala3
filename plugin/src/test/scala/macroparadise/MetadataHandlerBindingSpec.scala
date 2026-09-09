@@ -2,13 +2,10 @@ package macroparadise
 
 import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.{
-  ExpansionAdmission,
   ExpansionChanges,
   ExpansionHandler,
   ExpansionInput,
-  ExpansionOutcome,
-  ExpansionShapeProfile,
-  ExpansionTargetKind
+  ExpansionOutcome
 }
 
 class MetadataHandlerBindingSpec extends munit.FunSuite:
@@ -40,7 +37,6 @@ class MetadataHandlerBindingSpec extends munit.FunSuite:
 
     assert(binding.loadedHandler eq loaded)
     assertEquals(handler.annotationReads, 1)
-    assertEquals(handler.admissionsReads, 1)
   }
 
   test("mismatched metadata relation has a stable controlled loading diagnostic") {
@@ -156,15 +152,10 @@ class MetadataHandlerBindingSpec extends munit.FunSuite:
   private final class InstrumentedHandler(declaredAnnotationName: String)
       extends ExpansionHandler:
     var annotationReads = 0
-    var admissionsReads = 0
 
     def annotationName: String =
       annotationReads += 1
       declaredAnnotationName
-
-    override def admissions: List[ExpansionAdmission] =
-      admissionsReads += 1
-      List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
     def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
       ExpansionOutcome.Structured(ExpansionChanges())

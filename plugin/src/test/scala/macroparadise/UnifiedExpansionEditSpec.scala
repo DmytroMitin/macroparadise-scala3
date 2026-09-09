@@ -79,6 +79,34 @@ class UnifiedExpansionEditSpec extends munit.FunSuite:
     }
   }
 
+  test("public member placement rejects a root with neither source nor span") {
+    withInput("@a class A") { (ctx: Context) ?=> input =>
+      val sourceFree =
+        given Context = ContextBase().initialCtx
+        stringMethod("sourceFree", "no")
+      val start = ExpansionEdit.start(input).toOption.get
+      val result = ExpansionHelpers.placeMemberInPrimary(start, sourceFree)
+
+      assert(!sourceFree.source.exists)
+      assert(!sourceFree.span.exists)
+      assert(result.left.toOption.exists(_.message.contains("neither source nor span provenance")))
+      assertEquals(start.changes, ExpansionChanges())
+    }
+  }
+
+  test("public member placement accepts source provenance without a span") {
+    withInput("@a class A") { (ctx: Context) ?=> input =>
+      val sourceFree =
+        given Context = ContextBase().initialCtx
+        stringMethod("sourceOnly", "yes")
+      val generated = sourceFree.cloneIn(input.primary.tree.source).asInstanceOf[DefDef]
+      assert(generated.source.exists)
+      assert(!generated.span.exists)
+      val result = ExpansionHelpers.placeMemberInPrimary(ExpansionEdit.start(input).toOption.get, generated)
+      assert(result.isRight)
+    }
+  }
+
   private def stringMethod(name: String, value: String)(using Context): DefDef =
     DefDef(termName(name), Nil, Ident(typeName("String")), Literal(Constant(value)))
 
@@ -91,12 +119,12 @@ class UnifiedExpansionEditSpec extends munit.FunSuite:
     val primary = stats.collectFirst { case value: TypeDef => value }.get
     val companion = stats.collectFirst { case value: ModuleDef => value }.map(ExpansionTarget.Object(_))
     run(
-      ExpansionInput(
-        "a",
+      PluginInvocationMinting.input(
         ExpansionTarget.Class(primary),
         companion,
-        ExpansionContainerContext(stats.collect { case value: MemberDef => value.name.toString }.toSet),
-        Trees.mods(primary).annotations.head,
-        ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate)
+        PluginInvocationMinting.container(
+          stats.collect { case value: MemberDef => value.name.toString }.toSet
+        ),
+        Trees.mods(primary).annotations.head
       )
     )

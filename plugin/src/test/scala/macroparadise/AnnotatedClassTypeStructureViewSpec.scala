@@ -5,7 +5,7 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{TypeName, typeName}
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, ExpansionTargetView}
+import paradise3.api.{ExpansionContainerContext, ExpansionInput, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind, ExpansionTargetTypeStructureView, ExpansionTargetView, PluginInvocationMinting}
 import paradise3.api.ExpansionTargetBodyView.DirectTypeShape
 import paradise3.api.ExpansionTargetTypeStructureView.*
 
@@ -178,13 +178,11 @@ class ExpansionTargetTypeStructureViewSpec extends munit.FunSuite:
     val (stats, context) = parsedStats("trait Nat\ntrait Input[N <: Nat]:\n  type Out <: Nat")
     given Context = context
     val target = only(stats.collect { case definition: TypeDef if definition.name.toString == "Input" => definition })
-    val input = ExpansionInput(
-      "instanceProbe",
+    val input = PluginInvocationMinting.input(
       ExpansionTarget.Trait(target),
       None,
-      ExpansionContainerContext(Set("Input")),
-      target,
-      ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OrdinaryTemplate)
+      PluginInvocationMinting.container(Set("Input")),
+      target
     )
 
     assertEquals(input.targetTypeStructureView.map(_.directTypeMembers.map(_.name)), Right(List("Out")))

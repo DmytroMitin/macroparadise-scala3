@@ -9,7 +9,6 @@ import paradise3.api.helpers.ExpansionHelpers
 
 final class GenHandler extends ExpansionHandler:
   override def annotationName: String = "com.example.macros.annotations.gen"
-  override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish:

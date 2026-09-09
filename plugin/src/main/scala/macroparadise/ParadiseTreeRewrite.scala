@@ -17,8 +17,6 @@ import scala.util.control.NonFatal
 
 /** One staged-tree scheduler for built-in and externally loaded handlers. */
 private[macroparadise] object ParadiseTreeRewrite:
-  private val SuccessfulExpansionBudget = 32
-
   private final case class Handler(
       instance: ExpansionHandler,
       identity: String,
@@ -29,8 +27,7 @@ private[macroparadise] object ParadiseTreeRewrite:
       primaryIndex: Int,
       primary: ExpansionTarget,
       annotation: Tree,
-      handler: Handler,
-      admission: ExpansionAdmission
+      handler: Handler
   )
 
   private final case class Relationship(
@@ -62,7 +59,8 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   def rewriteUnit(
       unit: CompilationUnit,
-      loaded: ExternalHandlerLoading.LoadedHandlers
+      loaded: ExternalHandlerLoading.LoadedHandlers,
+      expansionBudget: Int
   )(using Context): Tree =
     given resolver: ExplicitImportAnnotationIdentityResolver =
       ExplicitImportAnnotationIdentityResolver.fromUnitTree(unit.untpdTree)
@@ -78,7 +76,7 @@ private[macroparadise] object ParadiseTreeRewrite:
 
     unit.untpdTree match
       case pkg: PackageDef =>
-        schedule(pkg.stats, handlers) match
+        schedule(pkg.stats, handlers, expansionBudget) match
           case Left(failure) =>
             report.error(failure.detail, failure.pos)
             unit.untpdTree
@@ -88,27 +86,31 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   private[macroparadise] def scheduleForTesting(
       stats: List[Tree],
-      instances: List[ExpansionHandler]
+      instances: List[ExpansionHandler],
+      expansionBudget: Int = ExpansionBudget.Default
   )(using Context): Either[String, List[Tree]] =
     val packageTree = PackageDef(Ident(termName("scheduler_test")), stats)
     given resolver: ExplicitImportAnnotationIdentityResolver =
       ExplicitImportAnnotationIdentityResolver.fromUnitTree(packageTree)
     schedule(
       stats,
-      instances.map(value => Handler(value, value.getClass.getName, None))
+      instances.map(value => Handler(value, value.getClass.getName, None)),
+      expansionBudget
     ).left.map(_.detail)
 
   private[macroparadise] def scheduleAtomicallyForTesting(
       stats: List[Tree],
-      instances: List[ExpansionHandler]
+      instances: List[ExpansionHandler],
+      expansionBudget: Int = ExpansionBudget.Default
   )(using Context): (List[Tree], Option[String]) =
-    scheduleForTesting(stats, instances) match
+    scheduleForTesting(stats, instances, expansionBudget) match
       case Right(value) => (value, None)
       case Left(detail) => (stats, Some(detail))
 
   private def schedule(
       original: List[Tree],
-      handlers: List[Handler]
+      handlers: List[Handler],
+      expansionBudget: Int
   )(using Context, ExplicitImportAnnotationIdentityResolver): Either[Failure, List[Tree]] =
     val consumed = IdentityHashMap[Tree, java.lang.Boolean]()
 
@@ -116,23 +118,24 @@ private[macroparadise] object ParadiseTreeRewrite:
       firstOccurrence(staged, handlers, consumed) match
         case Left(failure) => Left(failure)
         case Right(None) => Right(staged)
-        case Right(Some(occurrence)) if successful >= SuccessfulExpansionBudget =>
+        case Right(Some(occurrence)) if successful >= expansionBudget =>
           Left(
             Failure(
               "EXPANSION_BUDGET_EXCEEDED",
-              s"staged expansion exceeded the $SuccessfulExpansionBudget-success budget; recent target `${occurrence.primary.name}`",
+              s"staged expansion exceeded the $expansionBudget-success budget; recent target `${occurrence.primary.name}`",
               occurrence.annotation.sourcePos
             )
           )
         case Right(Some(occurrence)) =>
           relationship(staged, occurrence.primaryIndex, occurrence.primary).flatMap: relation =>
-            val input = ExpansionInput(
-              occurrence.handler.instance.annotationName,
+            val container = PluginInvocationMinting.container(
+              occupiedDefinitionNames(staged)
+            )
+            val input = PluginInvocationMinting.input(
               relation.primary,
               relation.companion,
-              ExpansionContainerContext(namedDefinitions(staged).keySet),
-              occurrence.annotation,
-              occurrence.admission
+              container,
+              occurrence.annotation
             )
             occurrence.handler.trace.foreach(
               _.record(
@@ -180,11 +183,7 @@ private[macroparadise] object ParadiseTreeRewrite:
             if !consumed.containsKey(annotation) then
               handlers.find(value => annotationMatches(annotation, value.instance.annotationName)) match
                 case Some(handler) =>
-                  selectAdmission(handler.instance.admissions, target) match
-                    case Right(admission) =>
-                      result = Some(Occurrence(index, target, annotation, handler, admission))
-                    case Left(detail) =>
-                      failure = Some(Failure("TARGET_ADMISSION_REJECTED", detail, annotation.sourcePos))
+                  result = Some(Occurrence(index, target, annotation, handler))
                 case None => ()
             annotationIndex += 1
         case Left(_) => ()
@@ -192,56 +191,6 @@ private[macroparadise] object ParadiseTreeRewrite:
     failure match
       case Some(value) => Left(value)
       case None        => Right(result)
-
-  private def selectAdmission(
-      admissions: List[ExpansionAdmission],
-      target: ExpansionTarget
-  )(using Context): Either[String, ExpansionAdmission] =
-    val matchingKind = admissions.filter(_.targetKind == target.kind)
-    matchingKind.find(admitted(_, target)) match
-      case Some(value) => Right(value)
-      case None =>
-        Left(
-          s"target `${target.name}` of kind ${target.kind} is outside the handler's declared admission profiles ${admissions.mkString("[", ", ", "]")}"
-        )
-
-  private def admitted(admission: ExpansionAdmission, target: ExpansionTarget)(using Context): Boolean =
-    if admission.targetKind != target.kind then false
-    else
-      admission.shapeProfile match
-        case ExpansionShapeProfile.OrdinaryTemplate => true
-        case ExpansionShapeProfile.NonCaseNonGenericTemplate =>
-          target match
-            case ExpansionTarget.Class(value) =>
-              AnnotatedClassAdmission.decode(value).toOption.exists(view =>
-                AnnotatedClassAdmission.commonRejection(view, "handler").isEmpty
-              )
-            case _ => false
-        case ExpansionShapeProfile.OneInvariantUnboundedTypeParameter =>
-          target match
-            case ExpansionTarget.Trait(value) =>
-              AnnotatedClassAdmission.decode(value).toOption.exists(view =>
-                AnnotatedClassAdmission.restrictedGenericTraitApplyRejection(view, "handler").isEmpty
-              )
-            case _ => false
-        case ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters =>
-          target match
-            case ExpansionTarget.Trait(value) =>
-              AnnotatedClassAdmission.decode(value).toOption.exists(view =>
-                AnnotatedClassAdmission.twoUpperBoundedGenericTraitRejection(view, "handler").isEmpty
-              )
-            case _ => false
-        case ExpansionShapeProfile.NoTypeOrValueParameters =>
-          target match
-            case ExpansionTarget.Trait(value) =>
-              AnnotatedClassAdmission.decode(value).toOption.exists(view =>
-                AnnotatedClassAdmission.plainZeroParameterTraitRejection(view, "handler").isEmpty
-              )
-            case ExpansionTarget.Object(_) => true
-            case ExpansionTarget.Class(value) =>
-              AnnotatedClassAdmission.decode(value).toOption.exists(view =>
-                view.typeParameters.isEmpty && view.constructorClauses.forall(_.parameters.isEmpty)
-              )
 
   private def relationship(
       stats: List[Tree],
@@ -300,6 +249,8 @@ private[macroparadise] object ParadiseTreeRewrite:
     else if trees.exists(_ == null) then fail("NULL_RAW_ELEMENT", "raw output contains a null tree", occurrence)
     else if trees.exists(tree => ExpansionTarget.fromTree(tree).isLeft) then
       fail("UNSUPPORTED_RAW_ELEMENT", "raw output accepts only supported class, trait, or object definitions", occurrence)
+    else if trees.exists(tree => !hasRootProvenance(tree)) then
+      fail("MISSING_OUTPUT_PROVENANCE", "raw output contains a definition with neither source nor span provenance", occurrence)
     else
       val owned = Set(relation.primaryIndex) ++ relation.companionIndex
       val anchor = owned.min
@@ -362,6 +313,7 @@ private[macroparadise] object ParadiseTreeRewrite:
       case CompanionChange.Create(value, placement) =>
         if current.nonEmpty then fail("COMPANION_ALREADY_EXISTS", "cannot create a companion when one already exists", occurrence)
         else if value == null || placement == null then fail("INVALID_COMPANION_CREATE", "companion creation contains null data", occurrence)
+        else if !hasRootProvenance(value.tree) then fail("MISSING_OUTPUT_PROVENANCE", "created companion has neither source nor span provenance", occurrence)
         else Right(Planned(Some(value.tree), Some(placement)))
 
   private def applySiblings(
@@ -377,6 +329,7 @@ private[macroparadise] object ParadiseTreeRewrite:
             change match
               case SiblingChange.Create(value, placement) =>
                 if value == null || placement == null then fail("INVALID_SIBLING_CREATE", "sibling creation contains null data", occurrence)
+                else if !hasRootProvenance(value.tree) then fail("MISSING_OUTPUT_PROVENANCE", "created sibling has neither source nor span provenance", occurrence)
                 else Right(plans :+ SiblingPlan(None, Some(value.tree), Some(placement)))
               case SiblingChange.Merge(ref, patches) =>
                 resolveSibling(stats, ref, occurrence).flatMap: (index, value) =>
@@ -424,6 +377,8 @@ private[macroparadise] object ParadiseTreeRewrite:
       case TargetPatch.AppendMembers(members) =>
         if members == null || members.isEmpty || members.exists(value => value == null || !value.isInstanceOf[MemberDef]) then
           fail("INVALID_MEMBER_PATCH", "AppendMembers requires a nonempty list of non-null member definitions", occurrence)
+        else if members.exists(value => !hasRootProvenance(value)) then
+          fail("MISSING_OUTPUT_PROVENANCE", "AppendMembers contains a definition with neither source nor span provenance", occurrence)
         else rewriteTemplate(target, template => cpy.Template(template)(template.constr, template.parentsOrDerived, template.derived, template.self, template.body ++ members), occurrence)
       case TargetPatch.ReplaceAnnotations(values) =>
         if values == null || values.exists(_ == null) then fail("INVALID_ANNOTATION_PATCH", "ReplaceAnnotations requires a non-null list without null trees", occurrence)
@@ -460,6 +415,8 @@ private[macroparadise] object ParadiseTreeRewrite:
         case Left(diagnostic) => fail("INVALID_REPLACEMENT", s"$lane replacement is unsupported: ${diagnostic.message}", occurrence)
         case Right(actual) if actual.kind != replacement.kind =>
           fail("MISLABELED_REPLACEMENT", s"$lane replacement wrapper ${replacement.kind} disagrees with raw tree kind ${actual.kind}", occurrence)
+        case Right(_) if !hasRootProvenance(replacement.tree) =>
+          fail("MISSING_OUTPUT_PROVENANCE", s"$lane replacement has neither source nor span provenance", occurrence)
         case Right(_) => Right(replacement)
 
   private def validateCreationIntent(
@@ -527,13 +484,53 @@ private[macroparadise] object ParadiseTreeRewrite:
       stats: List[Tree],
       occurrence: Occurrence
   )(using Context): Either[Failure, List[Tree]] =
-    val identities = IdentityHashMap[Tree, java.lang.Boolean]()
-    val alias = stats.find: tree =>
-      val duplicate = identities.containsKey(tree)
-      identities.put(tree, java.lang.Boolean.TRUE)
-      duplicate
-    if alias.nonEmpty then
-      fail("ALIASED_OUTPUT", "the same raw tree object occurs more than once in staged output", occurrence)
+    val identities = IdentityHashMap[Tree, String]()
+    var alias: Tree | Null = null
+    var aliasPaths: Option[(String, String)] = None
+
+    def record(tree: Tree, path: String): Boolean =
+      if isCanonicalEmpty(tree) then false
+      else if identities.containsKey(tree) then
+        alias = tree
+        aliasPaths = Some(identities.get(tree) -> path)
+        true
+      else
+        identities.put(tree, path)
+        false
+
+    def visitDefinition(tree: Tree, path: String): Unit =
+      if alias == null && !record(tree, path) then
+        tree match
+          case definition: DefTree =>
+            annotations(definition).zipWithIndex.foreach((annotation, index) => record(annotation, s"$path.annotation[$index]"))
+            definition match
+              case value: TypeDef =>
+                value.rhs match
+                  case template: Template => visitTemplate(template, s"$path.template")
+                  case _ => ()
+              case value: ModuleDef => visitTemplate(value.impl, s"$path.template")
+              case value: DefDef =>
+                value.paramss.flatten.zipWithIndex.foreach((parameter, index) => visitDefinition(parameter, s"$path.parameter[$index]"))
+                value.rhs match
+                  case nested: DefTree => visitDefinition(nested, s"$path.rhs")
+                  case _ => ()
+              case _ => ()
+          case _ => ()
+
+    def visitTemplate(template: Template, path: String): Unit =
+      if alias == null && !record(template, path) then
+        if !isCanonicalEmpty(template.self) then visitDefinition(template.self, s"$path.self")
+        template.body.zipWithIndex.foreach:
+          case (nested: DefTree, index) => visitDefinition(nested, s"$path.body[$index]")
+          case _ => ()
+
+    stats.zipWithIndex.foreach((tree, index) => visitDefinition(tree, s"root[$index]"))
+    if alias != null then
+      fail(
+        "ALIASED_OUTPUT",
+        s"the same noncanonical raw tree object occurs more than once in staged output: ${alias.getClass.getName} at ${aliasPaths.getOrElse("unknown" -> "unknown")}",
+        occurrence
+      )
     else
       val invalidName = namedDefinitions(stats).collectFirst:
         case (name, values) if values.size > 2 => name
@@ -544,6 +541,17 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   private def namedDefinitions(stats: List[Tree])(using Context): Map[String, List[ExpansionTarget]] =
     stats.flatMap(ExpansionTarget.fromTree(_).toOption).groupBy(_.name)
+
+  private def occupiedDefinitionNames(stats: List[Tree]): Set[String] =
+    stats.collect:
+      case definition: MemberDef => definition.name.toString
+    .toSet
+
+  private def hasRootProvenance(tree: Tree): Boolean =
+    tree.source.exists || tree.span.exists
+
+  private def isCanonicalEmpty(tree: Tree)(using Context): Boolean =
+    (tree eq EmptyTree) || (tree eq EmptyValDef) || (tree eq emptyConstructor)
 
   private def annotations(tree: DefTree)(using Context): List[Tree] = Trees.mods(tree).annotations
 
@@ -587,15 +595,19 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   private object GenHandler extends ExpansionHandler:
     val annotationName = "gen"
-    override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.NonCaseNonGenericTemplate))
     def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
       input.primary match
         case ExpansionTarget.Class(value) =>
-          AnnotatedClassAdmission.decode(value).toOption.flatMap(AnnotatedClassAdmission.genRejection) match
+          val rejection = AnnotatedClassAdmission.decode(value) match
+            case Left(value) => Some(value)
+            case Right(view) =>
+              AnnotatedClassAdmission.commonRejection(view, "@gen")
+                .orElse(AnnotatedClassAdmission.genRejection(view))
+          rejection match
             case Some(rejection) => ExpansionOutcome.Rejected(List(ExpansionDiagnostic(rejection.message, rejection.pos)))
             case None =>
               val siblingName = s"${value.name}Meta"
-              if input.container.siblingNames.contains(siblingName) then
+              if input.container.occupiedDefinitionNames.contains(siblingName) then
                 ExpansionOutcome.Rejected(List(ExpansionDiagnostic(s"generated sibling `$siblingName` already exists", value.sourcePos)))
               else
                 val primary = append(value, generatedHello(value.source))
@@ -616,12 +628,17 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   private object DebugHandler extends ExpansionHandler:
     val annotationName = "debug"
-    override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.NonCaseNonGenericTemplate))
     def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
       input.primary match
         case ExpansionTarget.Class(value) =>
-          val rewritten = append(value, DefDef(termName("debugName"), Nil, Ident(typeName("String")), Literal(Constant(value.name.toString))))
-          ExpansionOutcome.Structured(ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Class(strip(rewritten, input.currentAnnotation)))))
+          val rejection = AnnotatedClassAdmission.decode(value) match
+            case Left(value) => Some(value)
+            case Right(view) => AnnotatedClassAdmission.commonRejection(view, "@debug")
+          rejection match
+            case Some(value) => ExpansionOutcome.Rejected(List(ExpansionDiagnostic(value.message, value.pos)))
+            case None =>
+              val rewritten = append(value, DefDef(termName("debugName"), Nil, Ident(typeName("String")), Literal(Constant(value.name.toString))))
+              ExpansionOutcome.Structured(ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Class(strip(rewritten, input.currentAnnotation)))))
         case _ => ExpansionOutcome.Rejected(List(ExpansionDiagnostic("@debug requires a class primary", input.currentAnnotation.sourcePos)))
 
   private def append(value: TypeDef, member: Tree)(using Context): TypeDef =

@@ -5,7 +5,7 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Flags.Param
 import dotty.tools.dotc.core.Names.typeName
-import paradise3.api.{DefinitionPlacement, ExpansionAdmission, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetKind, expander}
+import paradise3.api.{DefinitionPlacement, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionTargetKind, expander}
 import paradise3.api.helpers.{ExpansionHelpers, MemberConflictPolicy, MissingCompanionPolicy}
 import scala.annotation.StaticAnnotation
 
@@ -17,7 +17,6 @@ final class IndependentTypePlacementRejectMarker extends StaticAnnotation
 
 final class IndependentTypePlacementHandler extends ExpansionHandler:
   val annotationName: String = "IndependentTypePlacementMarker"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish(
@@ -59,7 +58,6 @@ final class IndependentTypePlacementHandler extends ExpansionHandler:
 
 final class IndependentTypePlacementRejectHandler extends ExpansionHandler:
   val annotationName: String = "IndependentTypePlacementRejectMarker"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.TwoInvariantUpperBoundedTypeParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish(

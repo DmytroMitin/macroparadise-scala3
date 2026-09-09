@@ -26,19 +26,6 @@ class UnifiedPublicApiSpec extends munit.FunSuite:
     }
   }
 
-  test("admission combines target kind and shape without a protocol fork") {
-    val admission = ExpansionAdmission(
-      ExpansionTargetKind.Trait,
-      ExpansionShapeProfile.OneInvariantUnboundedTypeParameter
-    )
-
-    assertEquals(admission.targetKind, ExpansionTargetKind.Trait)
-    assertEquals(
-      admission.shapeProfile,
-      ExpansionShapeProfile.OneInvariantUnboundedTypeParameter
-    )
-  }
-
   test("structured changes are sparse and raw expansion permits an empty exact result") {
     assertEquals(
       ExpansionChanges(),
@@ -53,7 +40,7 @@ class UnifiedPublicApiSpec extends munit.FunSuite:
 
   test("the unified handler has exactly the selected declaration accessors") {
     val methods = classOf[ExpansionHandler].getDeclaredMethods.map(_.getName).toSet
-    assertEquals(methods, Set("annotationName", "admissions", "expand"))
+    assertEquals(methods, Set("annotationName", "expand"))
   }
 
   test("removed protocol and composition classes are absent") {
@@ -61,6 +48,8 @@ class UnifiedPublicApiSpec extends munit.FunSuite:
       "paradise3.api.ParadiseAnnotationExpander",
       "paradise3.api.RoleAwareParadiseAnnotationExpander",
       "paradise3.api.ExpansionCompositionPolicy",
+      "paradise3.api.ExpansionAdmission",
+      "paradise3.api.ExpansionShapeProfile",
       "paradise3.api.OppositeChange",
       "paradise3.api.RoleAwareExpansionOutcome"
     )

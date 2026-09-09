@@ -9,8 +9,6 @@ import paradise3.api.*
 import paradise3.api.helpers.{ExpansionHelpers, MissingCompanionPolicy}
 
 private object StandardUnifiedExpanders:
-  val classAdmission =
-    List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def addPrimaryStringMethod(
       input: ExpansionInput,
@@ -51,31 +49,26 @@ private object StandardUnifiedExpanders:
 
 final class ExternalDebugExpander extends ExpansionHandler:
   val annotationName = "externalDebug"
-  val admissions = StandardUnifiedExpanders.classAdmission
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     StandardUnifiedExpanders.addPrimaryStringMethod(input, "externalDebugName", input.primary.name)
 
 final class LegacyExternalDebugExpander extends ExpansionHandler:
   val annotationName = "legacyExternalDebug"
-  val admissions = StandardUnifiedExpanders.classAdmission
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     StandardUnifiedExpanders.addPrimaryStringMethod(input, "legacyExternalDebugName", input.primary.name)
 
 final class ExternalCompanionDebugExpander extends ExpansionHandler:
   val annotationName = "externalCompanionDebug"
-  val admissions = StandardUnifiedExpanders.classAdmission
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     StandardUnifiedExpanders.addCompanionStringMethod(input, "externalCompanionDebugName", input.primary.name)
 
 final class ExternalLabelExpander extends ExpansionHandler:
   val annotationName = "externalLabel"
-  val admissions = StandardUnifiedExpanders.classAdmission
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     StandardUnifiedExpanders.addPrimaryStringMethod(input, "externalLabel", input.primary.name)
 
 final class ExternalTypedLabelExpander extends ExpansionHandler:
   val annotationName = "externalTypedLabel"
-  val admissions = StandardUnifiedExpanders.classAdmission
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     val value = for
       application <- AnnotationApplication.fromInput(input)

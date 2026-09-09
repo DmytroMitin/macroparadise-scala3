@@ -677,6 +677,7 @@ verifyExperimentalPluginApiSurfaceBaseline := {
     experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value),
     baseDirectory.value / "plugin-api-surface-probe" / "positive" / "IsolatedPluginApiSurfaceProbe.scala",
     baseDirectory.value / "plugin-api-surface-probe" / "negative" / "ForbiddenImplementationProbe.scala",
+    baseDirectory.value / "plugin-api-surface-probe" / "negative" / "ForbiddenInvocationConstructionProbe.scala",
     ExperimentalPluginApiSurface.Config(
       scalaVersion.value,
       sbtVersion.value,

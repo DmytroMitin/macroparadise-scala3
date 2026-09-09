@@ -716,20 +716,17 @@ object SbtPrecompiledIntegrationExternalMatrix {
        |import paradise3.api.helpers.ExpansionHelpers
        |
        |private object HandlerSupport:
-       |  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
        |  def expand(input: ExpansionInput, name: String, value: String)(using Context): ExpansionOutcome =
        |    val member = DefDef(termName(name), Nil, Ident(typeName("String")), Literal(Constant(value)))
        |    ExpansionEdit.finish(ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInPrimary(edit, member)))
        |
        |final class Handler$suffix extends ExpansionHandler:
        |  override def annotationName: String = "fixture.marker.marker$suffix"
-       |  override val admissions = HandlerSupport.admissions
        |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
        |    HandlerSupport.expand(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
        |
        |final class AlternateHandler$suffix extends ExpansionHandler:
        |  override def annotationName: String = "fixture.marker.marker$suffix"
-       |  override val admissions = HandlerSupport.admissions
        |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
        |    HandlerSupport.expand(input, "generated$suffix", "$suffix:" + SharedRuntime.current)
        |""".stripMargin
@@ -875,20 +872,17 @@ object SbtPrecompiledIntegrationExternalMatrix {
       |import paradise3.api.helpers.ExpansionHelpers
       |
       |private object HandlerSupport:
-      |  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
       |  def expand(input: ExpansionInput, name: String, value: String)(using Context): ExpansionOutcome =
       |    val member = DefDef(termName(name), Nil, Ident(typeName("String")), Literal(Constant(value)))
       |    ExpansionEdit.finish(ExpansionEdit.start(input).flatMap(edit => ExpansionHelpers.placeMemberInPrimary(edit, member)))
       |
       |final class GeneratedHandler extends ExpansionHandler:
       |  override def annotationName: String = "fixture.marker.generated"
-      |  override val admissions = HandlerSupport.admissions
       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
       |    HandlerSupport.expand(input, "generatedValue", DependencyValue.current)
       |
       |final class AlternateHandler extends ExpansionHandler:
       |  override def annotationName: String = "fixture.marker.generated"
-      |  override val admissions = HandlerSupport.admissions
       |  override def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
       |    HandlerSupport.expand(input, "generatedValue", "marker-v2:" + DependencyValue.current)
       |""".stripMargin

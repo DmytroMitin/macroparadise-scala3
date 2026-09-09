@@ -653,9 +653,7 @@ object ExperimentalHandlerContractArtifact {
         case (name, annotationName) =>
           val value = Class.forName(name, false, child).getDeclaredConstructor().newInstance()
           val actualName = value.getClass.getMethod("annotationName").invoke(value)
-          val actualAdmissions = value.getClass.getMethod("admissions").invoke(value)
           require(actualName == annotationName, s"$name annotationName was $actualName")
-          require(actualAdmissions != null, s"$name admissions was null")
       }
 
       val carrier = Class.forName("paradise3.api.expander", false, parent)

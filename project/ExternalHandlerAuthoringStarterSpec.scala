@@ -50,7 +50,8 @@ object ExternalHandlerAuthoringStarterSpec {
     val allowedClasspath = Vector(
       "/tmp/macroparadise-scala3-plugin-api.jar",
       "/tmp/scala3-compiler.jar",
-      "/tmp/scala3-library.jar"
+      "/tmp/scala3-library.jar",
+      "/tmp/quasiquotes-scala3-dotty-internal.jar"
     )
     assert(validateHandlerClasspath(allowedClasspath).isEmpty)
     assert(validateHandlerClasspath(allowedClasspath :+ "/tmp/plugin-test-handlers.jar").nonEmpty)

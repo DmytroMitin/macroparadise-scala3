@@ -6,7 +6,7 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{Name, typeName}
 import dotty.tools.dotc.config.Properties
 import dotty.tools.dotc.parsing.Parsers
-import paradise3.api.{ExpansionAdmission, ExpansionContainerContext, ExpansionInput, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind}
+import paradise3.api.{ExpansionContainerContext, ExpansionInput, ExpansionTarget, ExpansionTargetBodyView, ExpansionTargetKind, PluginInvocationMinting}
 import paradise3.api.ExpansionTargetBodyView.*
 
 class ExpansionTargetBodyViewSpec extends munit.FunSuite:
@@ -382,13 +382,11 @@ class ExpansionTargetBodyViewSpec extends munit.FunSuite:
     val (stats, context) = parsedStats("trait Input[A]:\n  def empty: A")
     given Context = context
     val target = stats.collectFirst { case definition: TypeDef => definition }.getOrElse(fail("missing trait"))
-    val input = ExpansionInput(
-      "instanceProbe",
+    val input = PluginInvocationMinting.input(
       ExpansionTarget.Trait(target),
       None,
-      ExpansionContainerContext(Set("Input")),
-      target,
-      ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OrdinaryTemplate)
+      PluginInvocationMinting.container(Set("Input")),
+      target
     )
 
     assertEquals(input.targetBodyView.map(_.members.map(_.name)), Right(List("empty")))

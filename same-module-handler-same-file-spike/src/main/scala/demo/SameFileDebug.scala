@@ -8,7 +8,6 @@ final class sameFileDebug extends scala.annotation.StaticAnnotation
 
 final class SameFileDebugExpander extends ExpansionHandler:
   val annotationName: String = "sameFileDebug"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionEdit.finish:

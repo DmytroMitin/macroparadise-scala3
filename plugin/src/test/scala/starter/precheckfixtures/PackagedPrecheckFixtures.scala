@@ -1,7 +1,7 @@
 package starter.precheckfixtures
 
 import dotty.tools.dotc.core.Contexts.Context
-import paradise3.api.{ExpansionAdmission, ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetKind, expander}
+import paradise3.api.{ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome, expander}
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, StandardOpenOption}
@@ -12,7 +12,6 @@ final class ValidMarker extends StaticAnnotation
 
 final class ValidHandler extends ExpansionHandler:
   val annotationName: String = "starter.precheckfixtures.ValidMarker"
-  override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     Option(System.getProperty("macroparadise.precheck.expandTrace")).foreach: rawPath =>
@@ -38,7 +37,6 @@ final class BindingMismatchMarker extends StaticAnnotation
 
 final class BindingMismatchHandler extends ExpansionHandler:
   val annotationName: String = "starter.precheckfixtures.OtherMarker"
-  override val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionOutcome.Structured(ExpansionChanges())

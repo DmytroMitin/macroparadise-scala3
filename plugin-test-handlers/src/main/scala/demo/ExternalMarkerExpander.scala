@@ -6,11 +6,10 @@ import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Names.*
-import paradise3.api.{ExpansionAdmission, ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTargetKind}
+import paradise3.api.{ExpansionChanges, ExpansionHandler, ExpansionInput, ExpansionOutcome}
 
 final class ExternalMarkerExpander extends ExpansionHandler:
   val annotationName: String = "externalMarker"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     input.primary.tree.asInstanceOf[TypeDef].rhs match

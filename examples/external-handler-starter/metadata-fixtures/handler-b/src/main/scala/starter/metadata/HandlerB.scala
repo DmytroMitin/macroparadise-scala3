@@ -5,7 +5,6 @@ import paradise3.api.*
 
 final class HandlerB extends ExpansionHandler:
   val annotationName: String = "starter.metadata.handlerB"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionOutcome.Structured(ExpansionChanges())

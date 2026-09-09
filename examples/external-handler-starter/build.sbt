@@ -141,6 +141,9 @@ lazy val handler: Project = project.in(file("handler"))
   .settings(contractSettings)
   .settings(
     name := "external-handler-starter-handler",
+    libraryDependencies +=
+      ("com.github.dmytromitin" % "quasiquotes-scala3-dotty-internal" % "0.3.0")
+        .cross(CrossVersion.full),
     precheckPositive := {
       val evidence = evidenceDirectory
       val flow = evidence / "positive-flow.trace"

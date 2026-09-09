@@ -4,7 +4,10 @@ MacroParadise 0.2.0-SNAPSHOT is an experimental pre-Typer compiler plugin with a
 
 ## Supported targets
 
-The current public target kinds are Class, Trait, and Object. Handlers declare one or more exact combinations of target kind and shape profile. Existing bounded profiles cover ordinary templates, non-case nongeneric classes, one invariant unbounded type-parameter traits, two invariant upper-bounded type-parameter traits, and definitions with no type or value parameters.
+The current public target kinds are Class, Trait, and Object. The kind is
+descriptive; handlers decide their own applicability inside `expand` and reject
+unsupported shapes explicitly. This does not widen the established bounded
+source grammar.
 
 Execution remains restricted internally to supported package-scope occurrences in one compilation unit. The neutral public naming does not widen support to nested or local definitions. Enums, enum cases, methods, values, variables, type aliases, parameters, type parameters, givens, and extension-related forms are out of scope.
 
@@ -18,11 +21,21 @@ Public helpers support generic member placement, annotation replacement, sibling
 
 ## Raw output
 
-Raw `Expanded` replaces the exact owned primary/verified-companion region with zero or more Class/Trait/Object definitions. Empty output is legal. Output order is exact and no first element receives a privileged role. Unrelated siblings retain relative order. Null values, unsupported trees, aliasing, invalid structure, and final collisions are rejected atomically.
+Raw `Expanded` replaces the exact owned primary/verified-companion region with
+zero or more Class/Trait/Object definitions. Empty output is legal. Output order
+is exact and no first element receives a privileged role. Nonempty generated
+roots must have source or span provenance. Recursive identity aliases among
+owned definition/template/annotation nodes are rejected, except canonical empty
+sentinels; provenance is never fabricated or repaired.
 
 ## Scheduling and failure
 
-Handled annotations are selected from the current staged trees in deterministic source/preorder/annotation order. Fresh annotations introduced by earlier stages are eligible; removed annotations disappear. The same physical annotation occurrence is consumed once. A 32-success operational budget protects the compiler and is not a claim about termination.
+Handled annotations are selected from current staged trees in deterministic
+source/preorder/annotation order. Fresh annotations introduced by earlier stages
+are eligible; removed annotations disappear. The same physical annotation
+occurrence is consumed once. The default 256-success operational budget is
+configurable through `expansionBudget=<positive-decimal>` and is not a claim
+about termination.
 
 Every compilation unit is transactional. Any later rejection, validation error, handler exception, ambiguous topology, or budget exhaustion rolls back the whole unit.
 

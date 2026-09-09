@@ -129,6 +129,8 @@ object ExternalHandlerAuthoringStarter {
     val normalized = classpath.map(_.replace('\\', '/').toLowerCase)
     if (!normalized.exists(_.contains("plugin-api"))) errors += "pluginApi contract artifact missing"
     if (!normalized.exists(_.contains("scala3-compiler"))) errors += "exact compiler artifact missing"
+    if (!normalized.exists(_.contains("quasiquotes-scala3-dotty-internal")))
+      errors += "explicit Quasiquotes generated-origin artifact missing"
     Vector(
       "plugin-test-handlers",
       "plugin-test-markers",
@@ -136,7 +138,6 @@ object ExternalHandlerAuthoringStarter {
       "plugin-api-handler-contract-probe",
       "composition-contract",
       "same-module",
-      "quasiquotes",
       "auxify"
     ).foreach { forbidden =>
       if (normalized.exists(_.contains(forbidden))) errors += s"forbidden handler classpath fragment $forbidden"

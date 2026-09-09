@@ -4,7 +4,7 @@ import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.ast.untpd.*
 import dotty.tools.dotc.core.Contexts.Context
 import dotty.tools.dotc.core.Names.{termName, typeName}
-import paradise3.api.{ExpansionAdmission, ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionShapeProfile, ExpansionTarget, ExpansionTargetKind, expander}
+import paradise3.api.{ExpansionEdit, ExpansionHandler, ExpansionInput, ExpansionOutcome, ExpansionTarget, ExpansionTargetKind, expander}
 import paradise3.api.helpers.ExpansionHelpers
 import scala.annotation.StaticAnnotation
 
@@ -13,7 +13,6 @@ final class IndependentSelfTraitMarker extends StaticAnnotation
 
 final class IndependentSelfTraitHandler extends ExpansionHandler:
   val annotationName: String = "IndependentSelfTraitMarker"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.NoTypeOrValueParameters))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     input.primary match

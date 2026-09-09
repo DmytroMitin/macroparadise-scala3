@@ -17,14 +17,12 @@ final class DefaultTraitAttempt extends StaticAnnotation
 
 final class DefaultClassOnlyHandler extends ExpansionHandler:
   val annotationName: String = "DefaultTraitAttempt"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionOutcome.Rejected(List(ExpansionDiagnostic("unexpected default handler invocation", input.currentAnnotation.sourcePos)))
 
 final class RestrictedApplyHandler extends ExpansionHandler:
   val annotationName: String = "RestrictedApply"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OneInvariantUnboundedTypeParameter))
 
   def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     input.targetView match

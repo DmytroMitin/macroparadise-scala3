@@ -31,8 +31,9 @@ release cadence, or compatibility duration.
 
 ## Usability and compatibility hardening
 
-- Improve actionable diagnostics for loading, metadata binding, target
-  admission, malformed output, composition, and exact-toolchain failures.
+- Improve actionable diagnostics for loading, metadata binding, handler-local
+  applicability rejection, malformed output, composition, and exact-toolchain
+  failures.
 - Keep the source-build guide, starter, compact public documentation, and
   relative links executable and free of machine-local assumptions.
 - Requalify compiler and JDK changes as explicit compatibility work; do not
@@ -85,13 +86,20 @@ compiler/plugin behavior remains in the product API rather than in sbt.
 
 ## Next public-contract work
 
-Current `0.2.0-SNAPSHOT` implements the sibling role-aware public handler
-contract for one ordinary top-level object, preserving the legacy API through
-its private adapter. Immutable helper programs compose edits on both sides
-inside one handler. Multiple role-aware participants, object R1/R2 lineage,
-explicit opposite deletion, and primary role/focus changes remain separate
-future work. See [Expansion model and composition](docs/EXPANSION_MODEL_AND_COMPOSITION.md)
-for the current bounded topology and verification boundary.
+Current `0.2.0-SNAPSHOT` has one orthogonal handler contract for class, trait,
+and object primaries. Applicability is ordinary handler code in `expand`; there
+is no public admission/profile declaration. Invocation inputs and container
+context are plugin-minted read-only values, the current annotation occurrence
+is available as a raw tree, and occupied enclosing-definition names are exposed
+honestly. Structured primary/companion/sibling changes run through the staged
+transactional scheduler with configurable runaway protection, recursive owned-
+tree alias checks, and provenance checks. See
+[Expansion model and composition](docs/EXPANSION_MODEL_AND_COMPOSITION.md) for
+the current topology and verification boundary.
+
+This is an unreleased API-freeze candidate. Downstream AUXify migration remains
+outside this repository and requires separate controller acceptance; passing
+the product gates does not authorize that migration or a `0.2.0` release.
 
 Later bounded public U-style existing-definition transformation authoring is a
 separate track. Neither capability is part of released `0.1.1`, and this

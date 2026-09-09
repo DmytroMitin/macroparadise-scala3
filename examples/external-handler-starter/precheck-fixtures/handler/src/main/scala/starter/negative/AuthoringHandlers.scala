@@ -4,7 +4,6 @@ import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.*
 
 abstract class AuthoringHandler extends ExpansionHandler:
-  final val admissions = List(ExpansionAdmission(ExpansionTargetKind.Class, ExpansionShapeProfile.OrdinaryTemplate))
   final def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
     ExpansionOutcome.Structured(ExpansionChanges())
 

@@ -14,13 +14,11 @@ import dotty.tools.dotc.core.Symbols.NoSymbol
 import paradise3.api.{
   ExpansionTargetView,
   DefinitionPlacement,
-  ExpansionAdmission,
   ExpansionDiagnostic,
   ExpansionEdit,
   ExpansionInput,
   ExpansionOutcome,
   ExpansionHandler,
-  ExpansionShapeProfile,
   ExpansionTargetKind,
   expander
 }
@@ -69,10 +67,6 @@ final class PositionedContextualMethodHandler extends FriendHandlerBase:
     HandlerLifecycleTrace.append(s"descriptor|instance=$instanceId|field=annotationName")
     "PositionedContextualApply"
 
-  override val admissions =
-    HandlerLifecycleTrace.append(s"descriptor|instance=$instanceId|field=admissions")
-    List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OneInvariantUnboundedTypeParameter))
-
   protected def recordExpansion(view: ExpansionTargetView): Unit =
     HandlerLifecycleTrace.append(
       s"expand|instance=$instanceId|target=${view.className}"
@@ -80,7 +74,6 @@ final class PositionedContextualMethodHandler extends FriendHandlerBase:
 
 final class MismatchedBindingHandler extends FriendHandlerBase:
   val annotationName: String = "DifferentPositionedContextualApply"
-  val admissions = List(ExpansionAdmission(ExpansionTargetKind.Trait, ExpansionShapeProfile.OneInvariantUnboundedTypeParameter))
   protected def recordExpansion(view: ExpansionTargetView): Unit = ()
 
 abstract class FriendHandlerBase extends ExpansionHandler:

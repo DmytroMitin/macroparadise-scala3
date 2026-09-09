@@ -27,7 +27,7 @@ object IndependentExternalSbtConsumer {
   val HandlerModule = "independent-handler_3"
   val DuplicateApiModule = "duplicate-plugin-api_3"
   val ExpectedSbtVersion = "1.12.15"
-  val ExpectedRuntimeOutput = "IndependentConsumerUser\n"
+  val ExpectedRuntimeOutput = "IndependentConsumerUser\nIndependentConsumerObject\n"
   val ExpectedHandler = "contractprobe.IndependentHandler"
 
   val forbiddenModuleFragments = Vector(
@@ -456,7 +456,7 @@ object IndependentExternalSbtConsumer {
     val metadataSelections = metadataLines.count(line => line.contains("contractprobe.IndependentMarker") && line.contains("Found(contractprobe.IndependentHandler)"))
     val invocations = invocationLines.count(_.contains("handler=contractprobe.IndependentHandler"))
     require(metadataSelections == 1, s"expected one metadata selection, found $metadataSelections")
-    require(invocations == 1, s"expected one handler invocation, found $invocations")
+    require(invocations == 2, s"expected two handler invocations, found $invocations")
     val positiveText = Files.readAllBytes(positiveLog.toPath)
     val positiveRendered = new String(positiveText, StandardCharsets.UTF_8)
     require(!positiveRendered.contains("external handler failure: stage="), "positive lane emitted a stage diagnostic")
@@ -1183,7 +1183,7 @@ object IndependentExternalSbtConsumer {
        |      val classpath = (Compile / fullClasspath).value.files.map(_.getAbsolutePath).mkString(File.pathSeparator)
        |      val java = new File(new File(System.getProperty(\"java.home\"), \"bin\"), \"java\").getAbsolutePath
        |      val output = Process(Vector(java, \"-cp\", classpath, \"contractprobeconsumer.IndependentPackagedConsumer\"), baseDirectory.value).!!
-       |      require(output == \"IndependentConsumerUser\\n\", \"unexpected runtime output: \" + output.replace(\"\\n\", \"\\\\n\"))
+       |      require(output == \"IndependentConsumerUser\\nIndependentConsumerObject\\n\", \"unexpected runtime output: \" + output.replace(\"\\n\", \"\\\\n\"))
        |      IO.write(target.value / \"externalConsumer-runtime.txt\", output)
        |    }
        |  )
@@ -1315,7 +1315,20 @@ object IndependentExternalSbtConsumer {
     val pluginEntries = jarEntries(plugin)
     val embeddedApi = pluginEntries.filter(_.startsWith("paradise3/api/")).toSet
     val separateApi = jarEntries(api).filter(_.startsWith("paradise3/api/")).toSet
-    require(embeddedApi == separateApi, "plugin does not embed the exact unshaded pluginApi inventory")
+    val pluginOnlyMintingBridge = Set(
+      "paradise3/api/PluginInvocationMinting$.class",
+      "paradise3/api/PluginInvocationMinting.class",
+      "paradise3/api/PluginInvocationMinting.tasty"
+    )
+    require(
+      pluginOnlyMintingBridge.intersect(separateApi).isEmpty,
+      "standalone pluginApi artifact exposes the plugin-only invocation minting bridge"
+    )
+    require(
+      embeddedApi -- pluginOnlyMintingBridge == separateApi &&
+        pluginOnlyMintingBridge.subsetOf(embeddedApi),
+      "plugin does not embed the exact unshaded pluginApi inventory plus the exact plugin-only minting bridge"
+    )
     require(
       !pluginEntries.exists(name => name.startsWith("shaded/") || name.contains("/shaded/")),
       "plugin introduced a shaded API identity"

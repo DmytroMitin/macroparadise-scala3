@@ -29,8 +29,7 @@ object ExpansionEdit:
     else if input.primary == null || input.primary.tree == null then
       Left(ExpansionDiagnostic("expansion edit requires a non-null primary target", position))
     else if input.companion == null || input.container == null ||
-        input.container.siblingNames == null || input.currentAnnotation == null ||
-        input.admission == null then
+        input.container.occupiedDefinitionNames == null || input.currentAnnotation == null then
       Left(ExpansionDiagnostic("expansion edit requires a complete non-null invocation context", position))
     else
       Right(
