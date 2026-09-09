@@ -97,6 +97,91 @@ object PublicDocumentationPolicy {
       if (lower.contains(name))
         findings += Finding("PRIVATE_CONTROLLER_DOCUMENT", path, s"references private controller document `$name`")
     }
+    scanDocumentationAcceptance(path, text).foreach(findings += _)
+    findings.result()
+  }
+
+  private def scanDocumentationAcceptance(path: String, text: String): Vector[Finding] = {
+    val findings = Vector.newBuilder[Finding]
+    def requireAll(code: String, detail: String, required: String*): Unit =
+      if (required.exists(token => !text.contains(token)))
+        findings += Finding(code, path, detail)
+
+    if (path == "docs/EXTERNAL_HANDLER_AUTHORING.md") {
+      requireAll(
+        "IDENTITY_TUTORIAL_INCOMPLETE",
+        "canonical guide must contain the complete marker, handler, imported-short consumer, qualified control, producer dependencies, and wiring entry point",
+        "## Minimal `@identity` first use",
+        "### Project roles",
+        "@expander(\"com.example.macro.handlers.IdentityHandler\")",
+        "final class IdentityHandler extends ExpansionHandler",
+        "def annotationName: String",
+        "def expand(input: ExpansionInput)(using Context): ExpansionOutcome",
+        "ExpansionOutcome.Expanded(List(input.primary.tree))",
+        "import com.example.`macro`.annotations.identity",
+        "@identity",
+        "@com.example.`macro`.annotations.identity",
+        "\"com.github.dmytromitin\" % \"macroparadise-scala3-plugin-api\" % \"0.2.0-SNAPSHOT\"",
+        "\"org.scala-lang\" %% \"scala3-compiler\""
+      )
+      requireAll(
+        "MANUAL_LOCAL_RECIPE_INCOMPLETE",
+        "canonical guide must show the complete same-build manual translation inline",
+        "## Manual same-build local projects",
+        ".dependsOn(macroAnnotations % \"provided->compile\")",
+        "compilerPlugin(mpPlugin)",
+        "(macroAnnotations / Compile / packageBin).value",
+        "(macroHandlers / Runtime / dependencyClasspath).value",
+        "ExternalArtifactIdentity.combined(",
+        "-Xplugin-require:macroparadise",
+        "-P:macroparadise:handlerClasspath=",
+        "-P:macroparadise:externalArtifactIdentity=sha256:",
+        "manual translation of `MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers)`"
+      )
+      requireAll(
+        "MANUAL_PUBLISHED_RECIPE_INCOMPLETE",
+        "canonical guide must show the complete published-module manual translation inline",
+        "## Manual published marker and handler modules",
+        "config(\"macroParadiseHandler\").hide",
+        "libraryDependencies ++= markerModules",
+        "libraryDependencies ++= handlerModules.map(_ % MacroParadiseHandler.name)",
+        "configured $role module did not resolve",
+        "val direct = resolveConfigured(modules, classpath, \"handler\")",
+        "direct ++ transitive",
+        "manual translation of `macroParadiseMarkerModules := markerModules` and `macroParadiseHandlerModules := handlerModules`"
+      )
+      requireAll(
+        "AUTOPLUGIN_MANUAL_TRANSLATION_MISSING",
+        "canonical guide must map each integration convenience to its manual responsibility",
+        "## AutoPlugin to manual translation",
+        "MacroParadiseIntegration.precompiledProjects",
+        "macroParadiseMarkerModules",
+        "macroParadiseHandlerModules",
+        "ExternalArtifactIdentity.combined",
+        "externalArtifactIdentity"
+      )
+      val snapshotVersionOccurrences =
+        text.split(java.util.regex.Pattern.quote("val mpVersion = \"0.2.0-SNAPSHOT\""), -1).length - 1
+      if (snapshotVersionOccurrences < 2)
+        findings += Finding(
+          "DOCUMENTED_VERSION_IDENTITY_BLURRED",
+          path,
+          "current ExpansionHandler tutorial and both manual recipes must select 0.2.0-SNAPSHOT explicitly"
+        )
+    }
+
+    if (path == "README.md") {
+      val handler = text.indexOf("final class IdentityHandler extends ExpansionHandler")
+      val consumer = text.indexOf("import com.example.`macro`.annotations.identity", handler + 1)
+      val generated = text.indexOf("The next step is source-like member generation", handler + 1)
+      if (handler < 0 || consumer < 0 || generated < 0 || !(handler < consumer && consumer < generated))
+        findings += Finding(
+          "README_IDENTITY_CONSUMER_MISSING",
+          path,
+          "README must show the imported-short identity consumer after the handler and before generated-member authoring"
+        )
+    }
+
     findings.result()
   }
 

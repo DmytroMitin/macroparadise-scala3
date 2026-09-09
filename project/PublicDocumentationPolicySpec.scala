@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 15
+  val CaseCount = 21
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -36,6 +36,36 @@ object PublicDocumentationPolicySpec {
     assertFinding("README.md", "Implementation follows lanes " + "P1-P7 and C1-C6.\n", "PRIVATE_LANE_NOTATION")
     assertFinding("README.md", "A missing generated member reports " + "E046.\n", "PRIVATE_DIAGNOSTIC_ID")
     assertFinding("README.md", "See [missing](docs/MISSING.md).\n", "BROKEN_RELATIVE_LINK")
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      "# External handler authoring\n\nSee the executable fixture.\n",
+      "IDENTITY_TUTORIAL_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("## Manual same-build local projects", "## Local fixture link"),
+      "MANUAL_LOCAL_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("## Manual published marker and handler modules", "## Published fixture link"),
+      "MANUAL_PUBLISHED_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("## AutoPlugin to manual translation", "## Integration summary"),
+      "AUTOPLUGIN_MANUAL_TRANSLATION_MISSING"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("\"0.2.0-SNAPSHOT\"", "\"0.1.1\""),
+      "DOCUMENTED_VERSION_IDENTITY_BLURRED"
+    )
+    assertFinding(
+      "README.md",
+      CanonicalReadme.replace("import com.example.`macro`.annotations.identity", "// consumer omitted"),
+      "README_IDENTITY_CONSUMER_MISSING"
+    )
 
     val missing = fixture()
     try {
@@ -64,14 +94,74 @@ object PublicDocumentationPolicySpec {
     write(
       root,
       "README.md",
-      "# Project\n\nSee [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), and [website](https://example.com).\n"
+      CanonicalReadme
     )
+    write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
     write(root, "ROADMAP.md", "# Roadmap\n\nSee [support](SUPPORT.md#support).\n")
     write(root, "CONTRIBUTING.md", "# Contributing\n\nOrdinary input and review are welcome. See [security](SECURITY.md).\n")
     write(root, "SECURITY.md", "# Security\n\nSee [stability](docs/VERSIONING_AND_STABILITY.md).\n")
     write(root, "SUPPORT.md", "# Support\n\nSee [limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md).\n")
     root
   }
+
+  private val CanonicalReadme =
+    """# Project
+      |
+      |final class IdentityHandler extends ExpansionHandler
+      |import com.example.`macro`.annotations.identity
+      |@identity
+      |class Something
+      |The next step is source-like member generation.
+      |See [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), [external handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md), and [website](https://example.com).
+      |""".stripMargin
+
+  private val CanonicalAuthoring =
+    """# External handler authoring
+      |
+      |## Minimal `@identity` first use
+      |### Project roles
+      |marker handler consumer
+      |@expander("com.example.macro.handlers.IdentityHandler")
+      |final class IdentityHandler extends ExpansionHandler
+      |def annotationName: String
+      |def expand(input: ExpansionInput)(using Context): ExpansionOutcome
+      |ExpansionOutcome.Expanded(List(input.primary.tree))
+      |import com.example.`macro`.annotations.identity
+      |@identity
+      |@com.example.`macro`.annotations.identity
+      |macroparadise-scala3-plugin-api
+      |"org.scala-lang" %% "scala3-compiler"
+      |"com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.2.0-SNAPSHOT"
+      |
+      |## Manual same-build local projects
+      |.dependsOn(macroAnnotations % "provided->compile")
+      |compilerPlugin(mpPlugin)
+      |(macroAnnotations / Compile / packageBin).value
+      |(macroHandlers / Runtime / dependencyClasspath).value
+      |ExternalArtifactIdentity.combined(
+      |-Xplugin-require:macroparadise
+      |-P:macroparadise:handlerClasspath=
+      |-P:macroparadise:externalArtifactIdentity=sha256:
+      |manual translation of `MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers)`
+      |val mpVersion = "0.2.0-SNAPSHOT"
+      |
+      |## Manual published marker and handler modules
+      |config("macroParadiseHandler").hide
+      |libraryDependencies ++= markerModules
+      |libraryDependencies ++= handlerModules.map(_ % MacroParadiseHandler.name)
+      |configured $role module did not resolve
+      |val direct = resolveConfigured(modules, classpath, "handler")
+      |direct ++ transitive
+      |manual translation of `macroParadiseMarkerModules := markerModules` and `macroParadiseHandlerModules := handlerModules`
+      |val mpVersion = "0.2.0-SNAPSHOT"
+      |
+      |## AutoPlugin to manual translation
+      |MacroParadiseIntegration.precompiledProjects
+      |macroParadiseMarkerModules
+      |macroParadiseHandlerModules
+      |ExternalArtifactIdentity.combined
+      |externalArtifactIdentity
+      |""".stripMargin
 
   private def write(root: File, relative: String, content: String): Unit = {
     val file = new File(root, relative)

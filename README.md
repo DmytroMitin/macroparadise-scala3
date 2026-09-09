@@ -69,6 +69,22 @@ final class IdentityHandler extends ExpansionHandler:
     ExpansionEdit.finish(ExpansionEdit.start(input))
 ```
 
+The consumer imports the marker and uses short `@identity` as the normal form:
+
+```scala
+package com.example.core
+
+import com.example.`macro`.annotations.identity
+
+@identity
+class Something
+```
+
+This behavior-free first use proves discovery, binding, loading, invocation,
+and unchanged pass-through. The complete marker/handler/consumer tutorial and
+both manual sbt translations are in
+[External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md#minimal-identity-first-use).
+
 The next step is source-like member generation. The canonical example uses
 Scalameta `q` syntax, Quasiquotes 0.3.0 generated-origin lowering, and the generic
 MacroParadise placement helper. The bridge supplies honest source/span
