@@ -3,20 +3,21 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 21
+  val CaseCount = 25
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
+  private val IncludedPaths = PublicDocumentationPolicy.RequiredPaths + "sbt-integration/README.md"
 
   def run(): Unit = {
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/QUASIQUOTE_ARCHITECTURE.md"))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EXPANSION_MODEL_AND_COMPOSITION.md"))
     val clean = fixture()
     try {
-      val result = PublicDocumentationPolicy.verify(clean, PublicDocumentationPolicy.RequiredPaths)
+      val result = PublicDocumentationPolicy.verify(clean, IncludedPaths)
       assert(result.errors.isEmpty, result.errors.mkString("; "))
       assert(
-        result.checkedPaths == PublicDocumentationPolicy.RequiredPaths.toVector.sorted.filter(_.endsWith(".md"))
+        result.checkedPaths == IncludedPaths.toVector.sorted.filter(_.endsWith(".md"))
       )
     } finally delete(clean)
 
@@ -66,11 +67,36 @@ object PublicDocumentationPolicySpec {
       CanonicalReadme.replace("import com.example.`macro`.annotations.identity", "// consumer omitted"),
       "README_IDENTITY_CONSUMER_MISSING"
     )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace(
+        "ExpansionEdit.finish(ExpansionEdit.start(input))",
+        "ExpansionOutcome.Expanded(List(input.primary.tree))"
+      ),
+      "IDENTITY_CANONICAL_BODY_DIVERGED"
+    )
+    assertFinding(
+      "docs/GETTING_STARTED.md",
+      CanonicalGetting
+        .replace("GenerateGreetingHandler", "GenHandler")
+        .replace("generatedGreeting", "generatedHello"),
+      "STALE_GENERATED_EXAMPLE_CROSS_REFERENCE"
+    )
+    assertFinding(
+      "docs/GETTING_STARTED.md",
+      CanonicalGetting.replace("## External-handler setup matrix", "## Setup choices"),
+      "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE"
+    )
+    assertFinding(
+      "sbt-integration/README.md",
+      CanonicalIntegration.replace("## Published marker and handler modules", "## Resolved producers"),
+      "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE"
+    )
 
     val missing = fixture()
     try {
       Files.delete(new File(missing, "SUPPORT.md").toPath)
-      val included = PublicDocumentationPolicy.RequiredPaths - "SUPPORT.md"
+      val included = IncludedPaths - "SUPPORT.md"
       val result = PublicDocumentationPolicy.verify(missing, included)
       assert(result.errors.exists(error => error.code == "MISSING_PUBLIC_DOCUMENT" && error.path == "SUPPORT.md"))
     } finally delete(missing)
@@ -80,7 +106,7 @@ object PublicDocumentationPolicySpec {
     val root = fixture()
     try {
       write(root, path, content)
-      val result = PublicDocumentationPolicy.verify(root, PublicDocumentationPolicy.RequiredPaths)
+      val result = PublicDocumentationPolicy.verify(root, IncludedPaths)
       assert(
         result.errors.exists(error => error.path == path && error.code == code),
         result.errors.mkString("; ")
@@ -90,12 +116,14 @@ object PublicDocumentationPolicySpec {
 
   private def fixture(): File = {
     val root = Files.createTempDirectory("public-documentation-policy-spec-").toFile
-    PublicDocumentationPolicy.RequiredPaths.foreach(path => write(root, path, s"# ${path.replace('/', ' ')}\n"))
+    IncludedPaths.foreach(path => write(root, path, s"# ${path.replace('/', ' ')}\n"))
     write(
       root,
       "README.md",
       CanonicalReadme
     )
+    write(root, "docs/GETTING_STARTED.md", CanonicalGetting)
+    write(root, "sbt-integration/README.md", CanonicalIntegration)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
     write(root, "ROADMAP.md", "# Roadmap\n\nSee [support](SUPPORT.md#support).\n")
     write(root, "CONTRIBUTING.md", "# Contributing\n\nOrdinary input and review are welcome. See [security](SECURITY.md).\n")
@@ -108,10 +136,13 @@ object PublicDocumentationPolicySpec {
     """# Project
       |
       |final class IdentityHandler extends ExpansionHandler
+      |ExpansionEdit.finish(ExpansionEdit.start(input))
       |import com.example.`macro`.annotations.identity
       |@identity
       |class Something
       |The next step is source-like member generation.
+      |final class GenerateGreetingHandler extends ExpansionHandler
+      |def generatedGreeting: String = "Hello"
       |See [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), [external handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md), and [website](https://example.com).
       |""".stripMargin
 
@@ -125,7 +156,7 @@ object PublicDocumentationPolicySpec {
       |final class IdentityHandler extends ExpansionHandler
       |def annotationName: String
       |def expand(input: ExpansionInput)(using Context): ExpansionOutcome
-      |ExpansionOutcome.Expanded(List(input.primary.tree))
+      |ExpansionEdit.finish(ExpansionEdit.start(input))
       |import com.example.`macro`.annotations.identity
       |@identity
       |@com.example.`macro`.annotations.identity
@@ -161,6 +192,40 @@ object PublicDocumentationPolicySpec {
       |macroParadiseHandlerModules
       |ExternalArtifactIdentity.combined
       |externalArtifactIdentity
+      |""".stripMargin
+
+  private val CanonicalGetting =
+    """# Getting started
+      |
+      |## External-handler setup matrix
+      |
+      || Producer topology | `sbt-macroparadise` | Manual / no sbt plugin |
+      ||---|---|---|
+      || local same-build marker + handler projects | [AutoPlugin local](../sbt-integration/README.md#local-marker-and-handler-projects) | [manual local](EXTERNAL_HANDLER_AUTHORING.md#manual-same-build-local-projects) |
+      || published / resolver-installed marker + handler modules | [AutoPlugin published](../sbt-integration/README.md#published-marker-and-handler-modules) | [manual published](EXTERNAL_HANDLER_AUTHORING.md#manual-published-marker-and-handler-modules) |
+      |
+      |These are two producer topologies and two wiring styles, not four different MacroParadise semantic modes.
+      |Same-build local projects are distinct from `publishLocal`-installed module coordinates.
+      |Published marker/handler modules are distinct from publication of MacroParadise itself.
+      |Exact Scala lines require `CrossVersion.full`.
+      |
+      |Continue with the [README example](../README.md#a-small-user-authored-example):
+      |GenerateGreetingHandler produces generatedGreeting.
+      |""".stripMargin
+
+  private val CanonicalIntegration =
+    """# sbt integration
+      |
+      |## Local marker and handler projects
+      |MacroParadiseIntegration.precompiledProjects(macroAnnotations, macroHandlers)
+      |.dependsOn(macroAnnotations % "provided->compile")
+      |.enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
+      |
+      |## Published marker and handler modules
+      |macroParadiseMarkerModules := markerModules
+      |macroParadiseHandlerModules := handlerModules
+      |% Provided
+      |marker compile dependency and hidden tool-only handler closure
       |""".stripMargin
 
   private def write(root: File, relative: String, content: String): Unit = {

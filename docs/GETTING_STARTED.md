@@ -163,6 +163,20 @@ parent of the compiler plugin classloader.
 
 ## Choose the external-handler setup
 
+### External-handler setup matrix
+
+| Producer topology | `sbt-macroparadise` | Manual / no sbt plugin |
+|---|---|---|
+| local same-build marker + handler projects | [AutoPlugin local-project recipe](../sbt-integration/README.md#local-marker-and-handler-projects) | [manual local-project recipe](EXTERNAL_HANDLER_AUTHORING.md#manual-same-build-local-projects) |
+| published / resolver-installed marker + handler modules | [AutoPlugin published-module recipe](../sbt-integration/README.md#published-marker-and-handler-modules) | [manual published-module recipe](EXTERNAL_HANDLER_AUTHORING.md#manual-published-marker-and-handler-modules) |
+
+These are two producer topologies crossed with two wiring styles, not four
+different MacroParadise semantic modes. Same-build local projects package
+producer outputs directly and are distinct from `publishLocal`-installed module
+coordinates. Published marker/handler modules are likewise distinct from
+publication of MacroParadise itself. Every route keeps exact Scala-line
+selection and `CrossVersion.full` unchanged.
+
 There are two top-level choices:
 
 1. **Use `sbt-macroparadise` (recommended normal path).** For producers in the
@@ -290,37 +304,32 @@ Successful unchanged-class compilation proves marker discovery, metadata
 binding, canonicalization, handler loading, and one handler invocation. It does
 not depend on generated-member helpers or more involved tree construction.
 
-### Continue with your own `@gen`
+### Continue with source-like generated output
 
-The [README example](../README.md#a-small-user-authored-example) defines a
-user-owned `@gen` marker and `GenHandler`. Its consumer typechecks an ordinary
-call to the generated method:
+The [README example](../README.md#a-small-user-authored-example) defines the
+current source-like `GenerateGreetingHandler`. It lowers a Scalameta method
+and places the resulting `generatedGreeting` member through the structured
+edit protocol. Its ordinary consumer uses the matching marker:
 
 ```scala
-import com.example.`macro`.annotations.gen
+import starter.marker.generateGreeting
 
-@gen
-class GenUser
+@generateGreeting
+class Greeter
 
-val greeting: String = new GenUser().generatedHello
+val greeting: String = new Greeter().generatedGreeting
 ```
 
-The same independent external-build task compiles that literal marker, handler,
-and consumer alongside the minimal `@identity` path:
-
-```sh
-sbt -batch verifyIndependentExternalSbtConsumerFromLocalRepository
-```
-
-This is the first generated-output step. The repository's built-in `@gen` is
-only an internal compiler fixture and is not an installed annotation API.
+The independent external-handler starter compiles and runs that exact
+marker/handler/consumer flow. Direct `untpd` construction remains a supported
+expert escape hatch, not the follow-on happy path.
 
 ### See a real downstream `@apply`
 
 [AUXify for Scala 3](https://github.com/DmytroMitin/AUXify-scala3) is an
 independent downstream project whose user-authored `@apply` combines
 Macro-Paradise placement with Quasiquotes construction. It is the next step
-after the minimal `@identity` wiring proof and the user-owned `@gen` output
+after the minimal `@identity` wiring proof and the source-like `generatedGreeting`
 example; it is not a dependency of this product build.
 
 ### Optional: run the more extensive starter

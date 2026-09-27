@@ -27,7 +27,8 @@ object PublicDocumentationPolicy {
     "docs/EXPANSION_MODEL_AND_COMPOSITION.md",
     "docs/DIAGNOSTICS.md",
     "docs/COMPATIBILITY.md",
-    "docs/VERSIONING_AND_STABILITY.md"
+    "docs/VERSIONING_AND_STABILITY.md",
+    "sbt-integration/README.md"
   )
 
   private val PrivateControllerDocuments = Set(
@@ -64,7 +65,8 @@ object PublicDocumentationPolicy {
       val text = new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8)
       scanResidue(path, text) ++ scanLinks(root, normalizedIncluded, path, text)
     }
-    Verification(checked, (missing ++ findings).distinct.sortBy(error => (error.path, error.code, error.detail)))
+    val crossDocumentFindings = scanCrossDocumentAcceptance(root, normalizedIncluded)
+    Verification(checked, (missing ++ findings ++ crossDocumentFindings).distinct.sortBy(error => (error.path, error.code, error.detail)))
   }
 
   private def scanResidue(path: String, text: String): Vector[Finding] = {
@@ -117,7 +119,7 @@ object PublicDocumentationPolicy {
         "final class IdentityHandler extends ExpansionHandler",
         "def annotationName: String",
         "def expand(input: ExpansionInput)(using Context): ExpansionOutcome",
-        "ExpansionOutcome.Expanded(List(input.primary.tree))",
+        "ExpansionEdit.finish(ExpansionEdit.start(input))",
         "import com.example.`macro`.annotations.identity",
         "@identity",
         "@com.example.`macro`.annotations.identity",
@@ -182,7 +184,108 @@ object PublicDocumentationPolicy {
         )
     }
 
+
+    val structuredIdentity = "ExpansionEdit.finish(ExpansionEdit.start(input))"
+    if (
+      (path == "README.md" || path == "docs/EXTERNAL_HANDLER_AUTHORING.md") &&
+      !text.contains(structuredIdentity)
+    )
+      findings += Finding(
+        "IDENTITY_CANONICAL_BODY_DIVERGED",
+        path,
+        "README and the canonical identity tutorial must use the structured ExpansionEdit pass-through"
+      )
+
+    if (path == "docs/GETTING_STARTED.md") {
+      requireAll(
+        "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE",
+        "Getting Started must link the two producer topologies across both wiring styles and preserve their semantic distinctions",
+        "## External-handler setup matrix",
+        "| Producer topology | `sbt-macroparadise` | Manual / no sbt plugin |",
+        "../sbt-integration/README.md#local-marker-and-handler-projects",
+        "../sbt-integration/README.md#published-marker-and-handler-modules",
+        "EXTERNAL_HANDLER_AUTHORING.md#manual-same-build-local-projects",
+        "EXTERNAL_HANDLER_AUTHORING.md#manual-published-marker-and-handler-modules",
+        "two producer topologies",
+        "two wiring styles",
+        "not four",
+        "different MacroParadise semantic modes",
+        "Same-build local projects",
+        "`publishLocal`-installed",
+        "Published marker/handler modules",
+        "publication of MacroParadise itself",
+        "`CrossVersion.full`"
+      )
+    }
+
+    if (path == "sbt-integration/README.md") {
+      requireAll(
+        "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE",
+        "sbt integration guide must retain both accepted producer topologies and their essential wiring surfaces",
+        "## Local marker and handler projects",
+        "MacroParadiseIntegration.precompiledProjects(",
+        ".dependsOn(macroAnnotations % \"provided->compile\")",
+        ".enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)",
+        "## Published marker and handler modules",
+        "macroParadiseMarkerModules",
+        "macroParadiseHandlerModules",
+        "% Provided",
+        "hidden"
+      )
+    }
+
+    if (path == "docs/EXTERNAL_HANDLER_AUTHORING.md") {
+      requireAll(
+        "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE",
+        "canonical authoring guide must retain both accepted manual producer topologies and their essential wiring surfaces",
+        "## Manual same-build local projects",
+        "-Xplugin-require:macroparadise",
+        "ExternalArtifactIdentity.combined(",
+        "## Manual published marker and handler modules",
+        "config(\"macroParadiseHandler\").hide",
+        "val direct = resolveConfigured(modules, classpath, \"handler\")",
+        "direct ++ transitive"
+      )
+    }
     findings.result()
+  }
+
+  private def scanCrossDocumentAcceptance(
+      root: File,
+      includedPaths: Set[String]
+  ): Vector[Finding] = {
+    val gettingStartedPath = "docs/GETTING_STARTED.md"
+    val readmePath = "README.md"
+    val canReadBoth =
+      includedPaths.contains(gettingStartedPath) &&
+        includedPaths.contains(readmePath) &&
+        new File(root, gettingStartedPath).isFile &&
+        new File(root, readmePath).isFile
+    if (!canReadBoth) Vector.empty
+    else {
+      val gettingStarted =
+        new String(Files.readAllBytes(new File(root, gettingStartedPath).toPath), StandardCharsets.UTF_8)
+      val readme =
+        new String(Files.readAllBytes(new File(root, readmePath).toPath), StandardCharsets.UTF_8)
+      val staleClaim =
+        gettingStarted.contains("`@gen` marker and `GenHandler`") ||
+          gettingStarted.contains("GenHandler")
+      val currentReference =
+        gettingStarted.contains("[README example](../README.md#a-small-user-authored-example)") &&
+          gettingStarted.contains("GenerateGreetingHandler") &&
+          gettingStarted.contains("generatedGreeting") &&
+          readme.contains("GenerateGreetingHandler") &&
+          readme.contains("generatedGreeting")
+      if (staleClaim || !currentReference)
+        Vector(
+          Finding(
+            "STALE_GENERATED_EXAMPLE_CROSS_REFERENCE",
+            gettingStartedPath,
+            "Getting Started must name the current README GenerateGreetingHandler/generatedGreeting example and must not claim README contains @gen/GenHandler"
+          )
+        )
+      else Vector.empty
+    }
   }
 
   private def scanLinks(
