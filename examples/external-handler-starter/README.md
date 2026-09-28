@@ -26,6 +26,18 @@ fail-closed matrix and the focused compact matrix. Paired explicit/compact
 metadata-authoring failures then compare their category and core diagnostic
 fields.
 
+The same executable starter also carries the composition regression:
+starter.marker.addFoo selects starter.handler.AddFooHandler, which uses
+ExpansionTransforms rather than numbered edit threading. The consumer proves
+the four calls A().foo(10), A().foo1(10), A().foo2(10), and A.foo(10) against
+an existing companion. A second annotated class has no source companion; the
+handler uses the explicit
+MissingCompanionPolicy.Create(ExpansionTargetKind.Object,
+DefinitionPlacement.AfterPrimary) path and proves the same four runtime values.
+The two foo definitions are lowered separately so primary and companion own
+different raw tree objects. Three real expansions run after the zero-expansion
+precheck: one greeting and two addFoo invocations.
+
 The projects are intentionally separate:
 
 - `marker` packages `starter.marker.generateGreeting` with

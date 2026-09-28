@@ -287,9 +287,12 @@ object ExternalHandlerAuthoringStarter {
     require(pluginOptions.forall(value => !value.contains("plugin-test")), "consumer plugin options contain repository fixtures")
 
     val runtimeOutput = read(new File(evidence, "runtime.log"))
-    require(runtimeOutput == "Hello, Greeter!\n", s"unexpected starter runtime output: ${runtimeOutput.replace("\n", "\\n")}")
+    require(
+      runtimeOutput == "Hello, Greeter!\naddFoo-existing=10,10,10,10\naddFoo-created=10,10,10,10\n",
+      s"unexpected starter runtime output: ${runtimeOutput.replace("\n", "\\n")}"
+    )
     val expansions = readLines(expandTrace).count(_ == "expand")
-    require(expansions == 1, s"expected one post-precheck expansion, found $expansions")
+    require(expansions == 3, s"expected three post-precheck expansions, found $expansions")
     val precheckLog = read(new File(evidence, "precheck-positive.log"))
     require(precheckLog.contains("parentFirstContractIdentity=true"), "parent-first contract identity was not proven")
     require(precheckLog.contains("expansionInvoked=false"), "precheck zero-expansion evidence is missing")

@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "aa5e211a3157b295ccac00dc07d01de9119f7aff53c6f6566dcbd45cf8f5a781",
-    "3.8.4" -> "cf9aaf2476f01f7e28d353b34eb2e389ad4009bf28d50398adc405a90c217a3f",
-    "3.9.0" -> "21227fd2c556d53729ec870f312f60859c6b4913feac7dfba3ab67b4949c2992"
+    "3.3.8" -> "401f81adfa01cb20e0bde0be12480699dbff55f95bce9bdaef56662c2e8affee",
+    "3.8.4" -> "9baa173a03a33e6f98f5cd61e5751cad781109a2e31b97b45af7baeae25d3244",
+    "3.9.0" -> "b6074b77abf1fc09f131cbc0904007f0674306527162681b4ba73d455b23f440"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -296,6 +296,10 @@ object ExperimentalPluginApiSurface {
       "annotationName=surfaceProbe",
       "apiIdentityShared=true",
       "expandDescriptor=(paradise3.api.ExpansionInput,dotty.tools.dotc.core.Contexts$Context)paradise3.api.ExpansionOutcome",
+      "transformsPublic=true",
+      s"transformsCodeSource=${contractArtifact.getCanonicalPath}",
+      "transformsMethods=createSibling,placeMemberInCompanion,placeMemberInPrimary,placeMembersInCompanion,placeMembersInPrimary,prepareTraitSelf,replaceCompanionAnnotations,replacePrimaryAnnotations",
+      "catsPresent=false",
       s"apiCodeSource=${contractArtifact.getCanonicalPath}"
     ).foreach(fragment =>
       require(

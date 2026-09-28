@@ -59,6 +59,14 @@ object PublicDocumentationPolicySpec {
     )
     assertFinding(
       "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace(
+        "ExpansionTransforms.placeMemberInPrimary",
+        "ExpansionHelpers.placeMemberInPrimary"
+      ),
+      "EDIT_FIRST_TRANSFORMS_MISSING"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
       CanonicalAuthoring.replace("\"0.2.0-SNAPSHOT\"", "\"0.1.1\""),
       "DOCUMENTED_VERSION_IDENTITY_BLURRED"
     )
@@ -225,6 +233,10 @@ object PublicDocumentationPolicySpec {
       |def annotationName: String
       |def expand(input: ExpansionInput)(using Context): ExpansionOutcome
       |ExpansionEdit.finish(ExpansionEdit.start(input))
+      |ExpansionTransforms.placeMemberInPrimary
+      |Either.flatMap
+      |ExpansionHelpers remains the primitive layer
+      |MissingCompanionPolicy.Create
       |import com.example.`macro`.annotations.identity
       |@identity
       |@com.example.`macro`.annotations.identity

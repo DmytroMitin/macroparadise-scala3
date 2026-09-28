@@ -7,6 +7,7 @@ import dotty.tools.dotc.core.Contexts.{Context, ContextBase}
 import dotty.tools.dotc.core.Names.{termName, typeName}
 import dotty.tools.dotc.parsing.Parsers
 import paradise3.api.*
+import paradise3.api.helpers.ExpansionTransforms
 
 import scala.collection.mutable.ListBuffer
 
@@ -364,6 +365,24 @@ class StagedSchedulerSpec extends munit.FunSuite:
       val result = ParadiseTreeRewrite.scheduleForTesting(
         stats,
         List(handler("a")(_ => ExpansionOutcome.Expanded(List(output("B"), output("C")))))
+      )
+
+      assert(result.left.toOption.exists(_.contains("same noncanonical raw tree object")))
+    }
+  }
+
+  test("recursive alias validation rejects one transform member reused across primary and companion") {
+    withStats("@a class A; object A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val shared = DefDef(termName("shared"), Nil, Ident(typeName("Int")), Literal(dotty.tools.dotc.core.Constants.Constant(1)))
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(handler("a") { input =>
+          ExpansionEdit.finish(
+            ExpansionEdit.start(input)
+              .flatMap(ExpansionTransforms.placeMemberInPrimary(shared))
+              .flatMap(ExpansionTransforms.placeMemberInCompanion(shared))
+          )
+        })
       )
 
       assert(result.left.toOption.exists(_.contains("same noncanonical raw tree object")))

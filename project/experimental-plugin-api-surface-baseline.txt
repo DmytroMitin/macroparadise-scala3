@@ -153,6 +153,8 @@ CLASS|paradise3/api/helpers/ExpansionHelpers$$anon$2.class|HANDLER_CONTRACT|publ
 CLASS|paradise3/api/helpers/ExpansionHelpers$$anon$3.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$$anon$3 extends scala.runtime.AbstractPartialFunction<dotty.tools.dotc.ast.Trees$Tree<dotty.tools.dotc.core.Types$Type>, java.lang.String> implements java.io.Serializable
 CLASS|paradise3/api/helpers/ExpansionHelpers$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$ implements java.io.Serializable
 CLASS|paradise3/api/helpers/ExpansionHelpers.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers
+CLASS|paradise3/api/helpers/ExpansionTransforms$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionTransforms$ implements java.io.Serializable
+CLASS|paradise3/api/helpers/ExpansionTransforms.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionTransforms
 CLASS|paradise3/api/helpers/MemberConflictPolicy$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.MemberConflictPolicy$$anon$1 extends paradise3.api.helpers.MemberConflictPolicy implements scala.runtime.EnumValue,scala.deriving.Mirror$Singleton
 CLASS|paradise3/api/helpers/MemberConflictPolicy$.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.MemberConflictPolicy$ implements scala.deriving.Mirror$Sum,java.io.Serializable
 CLASS|paradise3/api/helpers/MemberConflictPolicy.class|HANDLER_CONTRACT|public abstract class paradise3.api.helpers.MemberConflictPolicy implements scala.reflect.Enum
@@ -2178,6 +2180,36 @@ MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|placeMembersInPrimary
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|prepareTraitSelf|0|public|static|(Lparadise3/api/ExpansionEdit;Ldotty/tools/dotc/ast/Trees$ValDef;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|replaceCompanionAnnotations|0|public|static|(Lparadise3/api/ExpansionEdit;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/helpers/ExpansionHelpers.class|METHOD|replacePrimaryAnnotations|0|public|static|(Lparadise3/api/ExpansionEdit;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|FIELD|MODULE$|0|public|static,final|Lparadise3/api/helpers/ExpansionTransforms$;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|createSibling|0|public|-|(Lparadise3/api/ExpansionTarget;Lparadise3/api/DefinitionPlacement;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMemberInCompanion$default$2|0|public|-|()Lparadise3/api/helpers/MissingCompanionPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMemberInCompanion$default$3|0|public|-|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMemberInCompanion|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/helpers/MissingCompanionPolicy;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMemberInPrimary$default$2|0|public|-|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMemberInPrimary|0|public|-|(Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMembersInCompanion$default$2|0|public|-|()Lparadise3/api/helpers/MissingCompanionPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMembersInCompanion$default$3|0|public|-|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMembersInCompanion|0|public|-|(Lscala/collection/immutable/List;Lparadise3/api/helpers/MissingCompanionPolicy;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMembersInPrimary$default$2|0|public|-|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|placeMembersInPrimary|0|public|-|(Lscala/collection/immutable/List;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|prepareTraitSelf|0|public|-|(Ldotty/tools/dotc/ast/Trees$ValDef;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|replaceCompanionAnnotations|0|public|-|(Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|METHOD|replacePrimaryAnnotations|0|public|-|(Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms$.class|STATIC_INITIALIZER|<clinit>|0|public|static|()V
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|createSibling|0|public|static|(Lparadise3/api/ExpansionTarget;Lparadise3/api/DefinitionPlacement;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMemberInCompanion$default$2|0|public|static|()Lparadise3/api/helpers/MissingCompanionPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMemberInCompanion$default$3|0|public|static|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMemberInCompanion|0|public|static|(Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/helpers/MissingCompanionPolicy;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMemberInPrimary$default$2|0|public|static|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMemberInPrimary|0|public|static|(Ldotty/tools/dotc/ast/Trees$Tree;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMembersInCompanion$default$2|0|public|static|()Lparadise3/api/helpers/MissingCompanionPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMembersInCompanion$default$3|0|public|static|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMembersInCompanion|0|public|static|(Lscala/collection/immutable/List;Lparadise3/api/helpers/MissingCompanionPolicy;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMembersInPrimary$default$2|0|public|static|()Lparadise3/api/helpers/MemberConflictPolicy;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|placeMembersInPrimary|0|public|static|(Lscala/collection/immutable/List;Lparadise3/api/helpers/MemberConflictPolicy;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|prepareTraitSelf|0|public|static|(Ldotty/tools/dotc/ast/Trees$ValDef;Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|replaceCompanionAnnotations|0|public|static|(Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
+MEMBER|paradise3/api/helpers/ExpansionTransforms.class|METHOD|replacePrimaryAnnotations|0|public|static|(Lscala/collection/immutable/List;Ldotty/tools/dotc/core/Contexts$Context;)Lscala/Function1;
 MEMBER|paradise3/api/helpers/MemberConflictPolicy$$anon$1.class|CONSTRUCTOR|<init>|0|public|-|(Ljava/lang/String;I)V
 MEMBER|paradise3/api/helpers/MemberConflictPolicy$$anon$1.class|METHOD|canEqual|0|public|-|(Ljava/lang/Object;)Z
 MEMBER|paradise3/api/helpers/MemberConflictPolicy$$anon$1.class|METHOD|fromProduct|0|public|-|(Lscala/Product;)Ljava/lang/Object;
@@ -2344,6 +2376,7 @@ RESOURCE|paradise3/api/SiblingChange.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/SiblingRef.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/TargetPatch.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/ExpansionHelpers.tasty|SCALA_TASTY
+RESOURCE|paradise3/api/helpers/ExpansionTransforms.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/MemberConflictPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/MissingCompanionPolicy.tasty|SCALA_TASTY
 RESOURCE|paradise3/api/helpers/SelfAliasOrigin.tasty|SCALA_TASTY
@@ -2392,4 +2425,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=cf9aaf2476f01f7e28d353b34eb2e389ad4009bf28d50398adc405a90c217a3f
+normalized-sha256=9baa173a03a33e6f98f5cd61e5751cad781109a2e31b97b45af7baeae25d3244

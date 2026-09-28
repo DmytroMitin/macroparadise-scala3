@@ -44,20 +44,53 @@ Primary/companion/sibling labels are input addresses, not durable output roles. 
 
 ## Immutable edits and helpers
 
-For composable structured authoring, start once with `ExpansionEdit.start(input)`, thread the immutable edit through helpers, and finish once with `ExpansionEdit.finish`.
+For composable structured authoring, start once with
+ExpansionEdit.start(input), compose edit-first factories through Either.flatMap,
+and finish once with ExpansionEdit.finish.
 
-The generic helpers are:
+~~~scala
+val edited = ExpansionEdit.start(input)
+  .flatMap(ExpansionTransforms.placeMemberInPrimary(primaryMember))
+  .flatMap(
+    ExpansionTransforms.placeMemberInCompanion(
+      companionMember,
+      MissingCompanionPolicy.Create(
+        ExpansionTargetKind.Object,
+        DefinitionPlacement.AfterPrimary
+      )
+    )
+  )
 
-- `placeMember(s)InPrimary`;
-- `placeMember(s)InCompanion`;
-- `replacePrimaryAnnotations`;
-- `replaceCompanionAnnotations`;
-- `createSibling`;
-- `prepareTraitSelf`.
+ExpansionEdit.finish(edited)
+~~~
 
-One `MemberConflictPolicy` covers member kinds. `MissingCompanionPolicy` makes missing-companion creation explicit. Creating a missing companion and then adding more members stays one normalized `CompanionChange.Create` with the updated tree. Any helper error propagates through the edit and becomes a rejected outcome at `finish`.
+ExpansionTransforms provides factories for:
+
+- placeMember(s)InPrimary;
+- placeMember(s)InCompanion;
+- replacePrimaryAnnotations;
+- replaceCompanionAnnotations;
+- createSibling;
+- prepareTraitSelf.
+
+The factories return
+ExpansionEdit => Either[ExpansionDiagnostic, ExpansionEdit] and delegate
+directly to ExpansionHelpers. ExpansionHelpers remains the primitive layer;
+there is one placement and validation implementation, and Cats is not required.
+
+One MemberConflictPolicy covers member kinds. MissingCompanionPolicy makes
+missing-companion creation explicit. Creating a missing companion and then
+adding more members stays one normalized CompanionChange.Create with the
+updated tree. The first Left short-circuits subsequent flatMap steps and becomes
+a rejected outcome at finish.
+
+Each independently owned position needs a distinct raw tree instance. Lower the
+same source-shaped definition separately for primary and companion placement.
+The recursive alias validator rejects reuse of one noncanonical tree object
+without relaxing its existing sentinel exceptions.
 
 ## Raw exact replacement
+
 
 `ExpansionOutcome.Expanded(trees)` is the expert escape hatch. It replaces exactly the invocation primary and its verified current companion, even when they are nonadjacent. The returned list may contain zero or more supported Class/Trait/Object definitions:
 

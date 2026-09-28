@@ -95,7 +95,7 @@ package starter.handler
 
 import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.*
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.helpers.ExpansionTransforms
 import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
 import scala.meta.*
 import scala.meta.dialects.Scala3
@@ -118,9 +118,15 @@ final class GenerateGreetingHandler extends ExpansionHandler:
           )
           .left
           .map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
-        result <- ExpansionHelpers.placeMemberInPrimary(edit, lowered.tree)
+        result <- ExpansionTransforms.placeMemberInPrimary(lowered.tree)(edit)
       yield result
 ```
+
+ExpansionTransforms is the preferred edit-first API for multi-step handlers:
+its factories plug directly into Either.flatMap and delegate to the existing
+ExpansionHelpers primitive layer. Missing-companion creation remains an
+explicit policy choice, and independently owned output positions must receive
+separately lowered raw trees.
 
 The handler project declares
 `("com.github.dmytromitin" % "quasiquotes-scala3-dotty-internal" % "0.3.0").cross(CrossVersion.full)`.

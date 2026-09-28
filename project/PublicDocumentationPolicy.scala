@@ -128,6 +128,14 @@ object PublicDocumentationPolicy {
         "\"org.scala-lang\" %% \"scala3-compiler\""
       )
       requireAll(
+        "EDIT_FIRST_TRANSFORMS_MISSING",
+        "canonical guide must present edit-first transform composition, retain primitive helper layering, and keep missing-companion policy explicit",
+        "ExpansionTransforms.placeMemberInPrimary",
+        "Either.flatMap",
+        "ExpansionHelpers remains the primitive layer",
+        "MissingCompanionPolicy.Create"
+      )
+      requireAll(
         "MANUAL_LOCAL_RECIPE_INCOMPLETE",
         "canonical guide must show the complete same-build manual translation inline",
         "## Manual same-build local projects",

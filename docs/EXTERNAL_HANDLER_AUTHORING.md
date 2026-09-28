@@ -118,7 +118,7 @@ MacroParadise placement helper:
 ```scala
 import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.*
-import paradise3.api.helpers.ExpansionHelpers
+import paradise3.api.helpers.ExpansionTransforms
 import quasiquotes.definitions.dotty.ScalametaDefinitionGeneratedOriginBridge
 import scala.meta.*
 import scala.meta.dialects.Scala3
@@ -137,7 +137,7 @@ final class GenerateGreetingHandler extends ExpansionHandler:
         lowered <- ScalametaDefinitionGeneratedOriginBridge
           .lower(definition, "<macroparadise-generated:GenerateGreetingHandler:generatedGreeting>")
           .left.map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
-        result <- ExpansionHelpers.placeMemberInPrimary(edit, lowered.tree)
+        result <- ExpansionTransforms.placeMemberInPrimary(lowered.tree)(edit)
       yield result
 ```
 
@@ -148,41 +148,44 @@ constructors remain an expert path only.
 
 ## Structured edits
 
-Prefer the immutable edit pipeline for ordinary changes:
+ExpansionTransforms is the preferred edit-first surface for multi-step handlers.
+Each factory captures one operation and returns an
+ExpansionEdit => Either[ExpansionDiagnostic, ExpansionEdit], so ordinary
+Either.flatMap composition carries the first diagnostic forward without
+numbered edit variables:
 
-```scala
+~~~scala
 def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
-  val edited = for
-    start <- ExpansionEdit.start(input)
-    withoutCurrent <- ExpansionHelpers.replacePrimaryAnnotations(
-      start,
-      dotty.tools.dotc.ast.Trees.mods(input.primary.tree).annotations
-        .filterNot(_ eq input.currentAnnotation)
+  val edited = ExpansionEdit.start(input)
+    .flatMap(
+      ExpansionTransforms.replacePrimaryAnnotations(
+        dotty.tools.dotc.ast.Trees.mods(input.primary.tree).annotations
+          .filterNot(_ eq input.currentAnnotation)
+      )
     )
-    withMember <- ExpansionHelpers.placeMemberInPrimary(
-      withoutCurrent,
-      authoredMember
-    )
-  yield withMember
+    .flatMap(ExpansionTransforms.placeMemberInPrimary(authoredMember))
 
   ExpansionEdit.finish(edited)
-```
+~~~
 
-Available helpers place one or more caller-authored members in the primary or
-companion, replace annotations, create a sibling, and prepare a trait self.
-`MemberConflictPolicy.Reject` is the default; `PreserveExisting` filters
-conflicting names. Missing-companion behavior is explicit:
+The eight factories cover one or many primary members, one or many companion
+members, both annotation replacements, sibling creation, and trait-self
+preparation. MemberConflictPolicy.Reject remains the default;
+PreserveExisting filters conflicting names.
 
-```scala
-ExpansionHelpers.placeMemberInCompanion(
-  edit,
+ExpansionHelpers remains the primitive layer when direct edit-first application
+is not useful. ExpansionTransforms delegates to it and adds no second semantic
+implementation. Missing-companion behavior remains explicit:
+
+~~~scala
+ExpansionTransforms.placeMemberInCompanion(
   authoredMember,
   MissingCompanionPolicy.Create(
     ExpansionTargetKind.Object,
     DefinitionPlacement.AfterPrimary
   )
-)
-```
+)(edit)
+~~~
 
 A create followed by additional companion member placement remains one Create
 operation. Finish exactly once; do not reconstruct an input from an outcome.
@@ -191,31 +194,40 @@ Primary members, companion members, siblings, and separate member slots are
 independent ownership regions. If the same source-shaped definition is needed
 twice, lower or construct it twice:
 
-```scala
+~~~scala
 for
   edit <- ExpansionEdit.start(input)
   primaryMethod <- lowerGeneratedMethod()
   companionMethod <- lowerGeneratedMethod()
-  withPrimary <- ExpansionHelpers.placeMemberInPrimary(edit, primaryMethod.tree)
-  withCompanion <- ExpansionHelpers.placeMemberInCompanion(
-    withPrimary,
+  withPrimary <- ExpansionTransforms.placeMemberInPrimary(primaryMethod.tree)(edit)
+  withCompanion <- ExpansionTransforms.placeMemberInCompanion(
     companionMethod.tree,
     MissingCompanionPolicy.Reject
-  )
+  )(withPrimary)
 yield withCompanion
-```
+~~~
 
-`lowerGeneratedMethod()` must produce a fresh lowered raw tree on each call.
-Do not place one `lowered.tree` object in both locations. The validator permits
-some canonical compiler empty/sentinel objects internally; those exceptions
-are implementation details, not an authoring technique.
+lowerGeneratedMethod() must produce a fresh lowered raw tree on each call.
+Do not place one lowered.tree object in both locations. The recursive ownership
+validator rejects reused noncanonical raw tree objects; canonical compiler
+empty/sentinel exceptions are implementation details, not an authoring
+technique.
 
-For direct structured authoring, use `ExpansionChanges` with `PrimaryChange`,
-`CompanionChange`, `SiblingChange`, and nonempty ordered `TargetPatch` lists.
+The executable external-handler starter includes AddFooHandler. It separately
+lowers source-equivalent foo methods for the primary and companion, generates
+foo1 and foo2 in the primary, proves an existing companion, and proves explicit
+missing-companion creation with
+MissingCompanionPolicy.Create(ExpansionTargetKind.Object,
+DefinitionPlacement.AfterPrimary). Every lowering failure stays in Either and
+therefore becomes a controlled rejected expansion.
+
+For direct structured authoring, use ExpansionChanges with PrimaryChange,
+CompanionChange, SiblingChange, and nonempty ordered TargetPatch lists.
 Unmentioned domains are preserved. Replace addresses the input occurrence and
 may change its name or kind; the plugin recomputes final relationships.
 
 ## Raw output
+
 
 `ExpansionOutcome.Expanded(trees)` is an exact replacement of the current
 primary plus its verified companion, if any. It may return Nil, one definition,

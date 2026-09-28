@@ -531,9 +531,12 @@ lazy val root: Project = project.in(file("."))
       writeLines(evidence / "runtime-command.txt", command)
       val exit = runCommand(command, baseDirectory.value, evidence / "runtime.log")
       require(exit == 0, s"starter runtime failed with exit $exit")
-      require(IO.read(evidence / "runtime.log", StandardCharsets.UTF_8).contains("Hello, Greeter!"), "starter runtime value was not observed")
+      val runtimeLog = IO.read(evidence / "runtime.log", StandardCharsets.UTF_8)
+      require(runtimeLog.contains("Hello, Greeter!"), "starter greeting runtime value was not observed")
+      require(runtimeLog.contains("addFoo-existing=10,10,10,10"), "existing-companion transform runtime values were not observed")
+      require(runtimeLog.contains("addFoo-created=10,10,10,10"), "created-companion transform runtime values were not observed")
       val expansions = if (expansionTrace.isFile) IO.readLines(expansionTrace).filter(_ == "expand") else Nil
-      require(expansions.size == 1, s"expected one real consumer expansion after precheck, found ${expansions.size}")
+      require(expansions.size == 3, s"expected three real consumer expansions after precheck, found ${expansions.size}")
       appendEvent(evidence / "positive-flow.trace", "runtime-success")
       val expectedFlow = List(
         "precheck-start",

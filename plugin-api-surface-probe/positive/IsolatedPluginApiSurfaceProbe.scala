@@ -1,7 +1,9 @@
 package surfaceprobe
 
+import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.core.Contexts.Context
 import paradise3.api.*
+import paradise3.api.helpers.ExpansionTransforms
 
 final class IsolatedSurfaceProbeHandler extends ExpansionHandler:
   val annotationName = "surfaceProbe"
@@ -13,6 +15,17 @@ final class IsolatedSurfaceProbeHandler extends ExpansionHandler:
   def structuredPower(changes: ExpansionChanges): ExpansionOutcome =
     ExpansionOutcome.Structured(changes)
 
+  def primaryMemberTransform(
+      member: untpd.Tree
+  )(using Context): ExpansionEdit => Either[ExpansionDiagnostic, ExpansionEdit] =
+    ExpansionTransforms.placeMemberInPrimary(member)
+
+  def composedPrimaryEdit(
+      edit: Either[ExpansionDiagnostic, ExpansionEdit],
+      member: untpd.Tree
+  )(using Context): Either[ExpansionDiagnostic, ExpansionEdit] =
+    edit.flatMap(ExpansionTransforms.placeMemberInPrimary(member))
+
   def diagnosticRoundTrip(diagnostic: ExpansionDiagnostic): ExpansionDiagnostic = diagnostic
 
 object IsolatedPluginApiSurfaceRuntime:
@@ -23,10 +36,33 @@ object IsolatedPluginApiSurfaceRuntime:
     val expand = handlerClass.getMethod("expand", classOf[ExpansionInput], classOf[Context])
     val annotationName = handlerClass.getMethod("annotationName")
 
+    val transformsClass = ExpansionTransforms.getClass
+    val requiredTransformMethods = Set(
+      "placeMemberInPrimary",
+      "placeMembersInPrimary",
+      "placeMemberInCompanion",
+      "placeMembersInCompanion",
+      "replacePrimaryAnnotations",
+      "replaceCompanionAnnotations",
+      "createSibling",
+      "prepareTraitSelf"
+    )
+    val transformMethods = transformsClass.getDeclaredMethods.map(_.getName).toSet
+    val catsPresent =
+      try
+        Class.forName("cats.Monad", false, transformsClass.getClassLoader)
+        true
+      catch
+        case _: ClassNotFoundException => false
+
     require(api.isAssignableFrom(handlerClass), "handler does not implement the shared pluginApi interface")
     require(handler.annotationName == "surfaceProbe")
     require(annotationName.getReturnType == classOf[String])
     require(expand.getReturnType == classOf[ExpansionOutcome])
+
+    require(java.lang.reflect.Modifier.isPublic(transformsClass.getModifiers))
+    require(requiredTransformMethods.subsetOf(transformMethods))
+    require(!catsPresent, "isolated pluginApi unexpectedly requires Cats")
 
     def loaderName(value: Class[?]): String =
       Option(value.getClassLoader).fold("bootstrap")(_.getClass.getName)
@@ -46,3 +82,7 @@ object IsolatedPluginApiSurfaceRuntime:
     println(s"annotationName=${handler.annotationName}")
     println(s"apiIdentityShared=${api.isAssignableFrom(handlerClass)}")
     println(s"expandDescriptor=$expandDescriptor")
+    println(s"transformsPublic=${java.lang.reflect.Modifier.isPublic(transformsClass.getModifiers)}")
+    println(s"transformsCodeSource=${codeSource(transformsClass)}")
+    println(s"transformsMethods=${requiredTransformMethods.toVector.sorted.mkString(",")}")
+    println(s"catsPresent=$catsPresent")
