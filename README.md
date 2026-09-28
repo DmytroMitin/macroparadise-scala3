@@ -110,7 +110,7 @@ final class GenerateGreetingHandler extends ExpansionHandler:
         _ <- input.primary match
           case ExpansionTarget.Class(_) => Right(())
           case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
-        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """
         lowered <- ScalametaDefinitionGeneratedOriginBridge
           .lower(
             definition,
@@ -386,6 +386,15 @@ to the combinations in the test suite.
 
 See [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 for the detailed boundary.
+
+## Talks / presentations
+
+**Can Scala 3 Have Macro Annotations Again? Rebuilding Macro Paradise** was
+presented to the London Scala User Group on 9 September 2026.
+
+- [Talk repository](https://github.com/DmytroMitin/macroparadise-talk-09-2026)
+- [Text](https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/draft/draft_v8.md)
+- [Slides](https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/macroparadise-talk-09-2026-literal-v8.pdf)
 
 ## Related projects
 

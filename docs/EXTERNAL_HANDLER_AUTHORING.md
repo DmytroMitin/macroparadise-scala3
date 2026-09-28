@@ -133,7 +133,7 @@ final class GenerateGreetingHandler extends ExpansionHandler:
         _ <- input.primary match
           case ExpansionTarget.Class(_) => Right(())
           case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
-        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """
         lowered <- ScalametaDefinitionGeneratedOriginBridge
           .lower(definition, "<macroparadise-generated:GenerateGreetingHandler:generatedGreeting>")
           .left.map(error => ExpansionDiagnostic(s"${error.code}: ${error.detail}", input.currentAnnotation.sourcePos))
@@ -186,6 +186,30 @@ ExpansionHelpers.placeMemberInCompanion(
 
 A create followed by additional companion member placement remains one Create
 operation. Finish exactly once; do not reconstruct an input from an outcome.
+Each independently owned output position must receive its own raw tree object.
+Primary members, companion members, siblings, and separate member slots are
+independent ownership regions. If the same source-shaped definition is needed
+twice, lower or construct it twice:
+
+```scala
+for
+  edit <- ExpansionEdit.start(input)
+  primaryMethod <- lowerGeneratedMethod()
+  companionMethod <- lowerGeneratedMethod()
+  withPrimary <- ExpansionHelpers.placeMemberInPrimary(edit, primaryMethod.tree)
+  withCompanion <- ExpansionHelpers.placeMemberInCompanion(
+    withPrimary,
+    companionMethod.tree,
+    MissingCompanionPolicy.Reject
+  )
+yield withCompanion
+```
+
+`lowerGeneratedMethod()` must produce a fresh lowered raw tree on each call.
+Do not place one `lowered.tree` object in both locations. The validator permits
+some canonical compiler empty/sentinel objects internally; those exceptions
+are implementation details, not an authoring technique.
+
 For direct structured authoring, use `ExpansionChanges` with `PrimaryChange`,
 `CompanionChange`, `SiblingChange`, and nonempty ordered `TargetPatch` lists.
 Unmentioned domains are preserved. Replace addresses the input occurrence and

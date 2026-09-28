@@ -21,7 +21,7 @@ final class GenerateGreetingHandler extends ExpansionHandler:
         _ <- input.primary match
           case ExpansionTarget.Class(_) => Right(())
           case _ => Left(ExpansionDiagnostic("@generateGreeting requires a class primary", input.currentAnnotation.sourcePos))
-        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """.asInstanceOf[Defn.Def]
+        definition = q"""def generatedGreeting: String = "Hello, Greeter!" """
         lowered <- ScalametaDefinitionGeneratedOriginBridge
           .lower(
             definition,

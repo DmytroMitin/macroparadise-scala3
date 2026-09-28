@@ -105,6 +105,7 @@ object PublicDocumentationPolicy {
 
   private def scanDocumentationAcceptance(path: String, text: String): Vector[Finding] = {
     val findings = Vector.newBuilder[Finding]
+    val lower = text.toLowerCase(java.util.Locale.ROOT)
     def requireAll(code: String, detail: String, required: String*): Unit =
       if (required.exists(token => !text.contains(token)))
         findings += Finding(code, path, detail)
@@ -185,6 +186,71 @@ object PublicDocumentationPolicy {
     }
 
 
+    if (path == "README.md") {
+      requireAll(
+        "TALK_PRESENTATION_REFERENCE_MISSING",
+        "README must retain the public London Scala User Group talk repository, text, and slide references",
+        "## Talks / presentations",
+        "Can Scala 3 Have Macro Annotations Again? Rebuilding Macro Paradise",
+        "London Scala User Group",
+        "9 September 2026",
+        "https://github.com/DmytroMitin/macroparadise-talk-09-2026",
+        "https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/draft/draft_v8.md",
+        "https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/macroparadise-talk-09-2026-literal-v8.pdf"
+      )
+    }
+
+    if (path == "ROADMAP.md") {
+      val staleComposition =
+        """(?is)(?:source-ordered\s+composition.{0,80}opt-in|composition\s+opt-in)""".r
+          .findFirstIn(text)
+          .nonEmpty
+      val currentComposition =
+        lower.contains("no composition switch") &&
+          lower.contains("current-staged-tree") &&
+          lower.contains("rescan") &&
+          text.contains("ExpansionHandler.expand") &&
+          lower.contains("framework-level") &&
+          lower.contains("target eligibility") &&
+          lower.contains("no public admission/profile metadata")
+      if (staleComposition || !currentComposition)
+        findings += Finding(
+          "STALE_COMPOSITION_OPT_IN",
+          path,
+          "roadmap must retain plugin-owned current-staged-tree scheduling with handler applicability and no public composition switch"
+        )
+
+      val staleSetup =
+        """(?i)three(?:\s+qualified)?\s+setup\s+(?:modes|lanes)""".r
+          .findFirstIn(text)
+          .nonEmpty
+      val fourQuadrants =
+        """(?is)two\s+producer\s+topologies""".r.findFirstIn(text).nonEmpty &&
+          """(?is)two\s+wiring\s+styles""".r.findFirstIn(text).nonEmpty &&
+          (
+            lower.contains("four quadrants") ||
+              lower.contains("4 quadrants") ||
+              lower.contains("2 x 2")
+          )
+      if (staleSetup || !fourQuadrants)
+        findings += Finding(
+          "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE",
+          path,
+          "roadmap must retain two producer topologies crossed with two wiring styles as four setup quadrants"
+        )
+    }
+
+    if (
+      (path == "README.md" || path == "docs/EXTERNAL_HANDLER_AUTHORING.md") &&
+      text.contains(".asInstanceOf[Defn.Def]")
+    )
+      findings += Finding(
+        "CANONICAL_GENERATED_DEFINITION_CAST",
+        path,
+        "canonical generated-definition examples must retain the mechanically qualified cast-free Scalameta quasiquote form"
+      )
+
+
     val structuredIdentity = "ExpansionEdit.finish(ExpansionEdit.start(input))"
     if (
       (path == "README.md" || path == "docs/EXTERNAL_HANDLER_AUTHORING.md") &&
@@ -254,6 +320,7 @@ object PublicDocumentationPolicy {
       root: File,
       includedPaths: Set[String]
   ): Vector[Finding] = {
+    val findings = Vector.newBuilder[Finding]
     val gettingStartedPath = "docs/GETTING_STARTED.md"
     val readmePath = "README.md"
     val canReadBoth =
@@ -261,8 +328,7 @@ object PublicDocumentationPolicy {
         includedPaths.contains(readmePath) &&
         new File(root, gettingStartedPath).isFile &&
         new File(root, readmePath).isFile
-    if (!canReadBoth) Vector.empty
-    else {
+    if (canReadBoth) {
       val gettingStarted =
         new String(Files.readAllBytes(new File(root, gettingStartedPath).toPath), StandardCharsets.UTF_8)
       val readme =
@@ -277,15 +343,28 @@ object PublicDocumentationPolicy {
           readme.contains("GenerateGreetingHandler") &&
           readme.contains("generatedGreeting")
       if (staleClaim || !currentReference)
-        Vector(
-          Finding(
-            "STALE_GENERATED_EXAMPLE_CROSS_REFERENCE",
-            gettingStartedPath,
-            "Getting Started must name the current README GenerateGreetingHandler/generatedGreeting example and must not claim README contains @gen/GenHandler"
-          )
+        findings += Finding(
+          "STALE_GENERATED_EXAMPLE_CROSS_REFERENCE",
+          gettingStartedPath,
+          "Getting Started must name the current README GenerateGreetingHandler/generatedGreeting example and must not claim README contains @gen/GenHandler"
         )
-      else Vector.empty
     }
+
+    val starterPath =
+      "examples/external-handler-starter/handler/src/main/scala/starter/handler/GenerateGreetingHandler.scala"
+    val starter = new File(root, starterPath)
+    if (starter.isFile) {
+      val text =
+        new String(Files.readAllBytes(starter.toPath), StandardCharsets.UTF_8)
+      if (text.contains(".asInstanceOf[Defn.Def]"))
+        findings += Finding(
+          "CANONICAL_GENERATED_DEFINITION_CAST",
+          starterPath,
+          "executable generated-definition starter must retain the mechanically qualified cast-free Scalameta quasiquote form"
+        )
+    }
+
+    findings.result()
   }
 
   private def scanLinks(

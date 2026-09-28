@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 25
+  val CaseCount = 31
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -93,6 +93,41 @@ object PublicDocumentationPolicySpec {
       "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE"
     )
 
+    assertFinding(
+      "README.md",
+      CanonicalReadme.replace("## Talks / presentations", "## Community"),
+      "TALK_PRESENTATION_REFERENCE_MISSING"
+    )
+    assertFinding(
+      "ROADMAP.md",
+      CanonicalRoadmap.replace(
+        "There is no composition switch.",
+        "Keep source-ordered composition opt-in."
+      ),
+      "STALE_COMPOSITION_OPT_IN"
+    )
+    assertFinding(
+      "ROADMAP.md",
+      CanonicalRoadmap.replace("four quadrants", "three qualified setup modes"),
+      "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE"
+    )
+    assertFinding(
+      "README.md",
+      CanonicalReadme + "q\"def generated: Int = 1\".asInstanceOf[Defn.Def]\n",
+      "CANONICAL_GENERATED_DEFINITION_CAST"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring + "q\"def generated: Int = 1\".asInstanceOf[Defn.Def]\n",
+      "CANONICAL_GENERATED_DEFINITION_CAST"
+    )
+    assertFinding(
+      "examples/external-handler-starter/handler/src/main/scala/starter/handler/GenerateGreetingHandler.scala",
+      CanonicalStarter + "q\"def generated: Int = 1\".asInstanceOf[Defn.Def]\n",
+      "CANONICAL_GENERATED_DEFINITION_CAST"
+    )
+
+
     val missing = fixture()
     try {
       Files.delete(new File(missing, "SUPPORT.md").toPath)
@@ -125,10 +160,16 @@ object PublicDocumentationPolicySpec {
     write(root, "docs/GETTING_STARTED.md", CanonicalGetting)
     write(root, "sbt-integration/README.md", CanonicalIntegration)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
-    write(root, "ROADMAP.md", "# Roadmap\n\nSee [support](SUPPORT.md#support).\n")
+    write(root, "ROADMAP.md", CanonicalRoadmap)
     write(root, "CONTRIBUTING.md", "# Contributing\n\nOrdinary input and review are welcome. See [security](SECURITY.md).\n")
     write(root, "SECURITY.md", "# Security\n\nSee [stability](docs/VERSIONING_AND_STABILITY.md).\n")
     write(root, "SUPPORT.md", "# Support\n\nSee [limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md).\n")
+    write(
+      root,
+      "examples/external-handler-starter/handler/src/main/scala/starter/handler/GenerateGreetingHandler.scala",
+      CanonicalStarter
+    )
+
     root
   }
 
@@ -143,8 +184,35 @@ object PublicDocumentationPolicySpec {
       |The next step is source-like member generation.
       |final class GenerateGreetingHandler extends ExpansionHandler
       |def generatedGreeting: String = "Hello"
+      |
+      |## Talks / presentations
+      |**Can Scala 3 Have Macro Annotations Again? Rebuilding Macro Paradise**
+      |London Scala User Group, 9 September 2026
+      |https://github.com/DmytroMitin/macroparadise-talk-09-2026
+      |https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/draft/draft_v8.md
+      |https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/macroparadise-talk-09-2026-literal-v8.pdf
+
       |See [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), [external handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md), and [website](https://example.com).
       |""".stripMargin
+
+  private val CanonicalRoadmap =
+    """# Roadmap
+      |
+      |There is no composition switch. Handled annotations use the plugin-owned current-staged-tree scheduler, which rescans after committed stages. Annotation-specific applicability belongs in ExpansionHandler.expand; MacroParadise owns framework-level syntactic target eligibility. No public admission/profile metadata is required.
+      |
+      |The setup contract is two producer topologies crossed with two wiring styles: four quadrants.
+      |
+      |See [support](SUPPORT.md#support).
+      |""".stripMargin
+
+  private val CanonicalStarter =
+    """package starter.handler
+      |
+      |import scala.meta.*
+      |
+      |val definition = q"def generatedGreeting: String = \"Hello, Greeter!\""
+      |""".stripMargin
+
 
   private val CanonicalAuthoring =
     """# External handler authoring

@@ -2,13 +2,16 @@
 
 ## Compiler strategy
 
-The project uses a Scala 3 standard compiler plugin whose custom phase is
-scheduled after `parser` and before `typer`. The phase rewrites untyped compiler
-trees and replaces the compilation-unit tree before ordinary typing continues.
+The project extends Scala 3 `StandardPlugin`; it is not a Scala 3
+`ResearchPlugin`. Its unusual property is phase placement: the custom phase is
+scheduled after `parser` and before ordinary `typer`. The phase rewrites
+untyped compiler trees and replaces the compilation-unit tree before ordinary
+typing continues.
+
 
 ```text
 source parsing
-  -> pre-typer annotation discovery and target admission
+  -> pre-typer annotation discovery and framework target eligibility
   -> built-in or precompiled handler expansion
   -> output validation and transactional composition
   -> package-stat replacement
@@ -19,12 +22,26 @@ Pre-typer placement is the central mechanism. Generated class members,
 companions, and sibling definitions exist before user-written references are
 typed.
 
+## Standard plugin, pre-typer trade-off
+
+MacroParadise performs a syntactic transformation before typing, then hands the
+rewritten program back to stock Dotty. Ordinary typer enters symbols, resolves
+names, and types both source and generated definitions. In this bounded
+architecture, that is why generated class members, companions, and siblings
+can participate in ordinary typing without Scala-2-style analyzer hooks.
+
+The trade-off is deliberate: a pre-typer handler has raw syntax and bounded
+normalized syntactic views, not general typed semantic information. This
+describes the current Scala 3 design; it is not a theorem that Scala 2 could
+not have used a different syntactic-transformer architecture.
+
+
 ## Main modules
 
 - `plugin-api` contains the experimental shared handler contract and marker
   metadata carrier.
-- `plugin` contains the compiler plugin, handler loading, admission,
-  orchestration, validation, diagnostics, and preconsumer checker.
+- `plugin` contains the compiler plugin, handler loading, framework target
+  eligibility, orchestration, validation, diagnostics, and preconsumer checker.
 - `plugin-test-markers` and `plugin-test-handlers` contain unpublished product
   fixtures for marker and precompiled-handler behavior.
 - `plugin-tests` is an ordinary consumer compiled with the packaged plugin.
@@ -59,7 +76,7 @@ construction, but they do not make the boundary compiler independent.
 
 The plugin owns:
 
-- annotation matching and target admission;
+- annotation matching and framework-level supported-target recognition/eligibility;
 - handler discovery, loading, descriptor capture, and failure adaptation;
 - current-revision companion discovery and final relationship recomputation;
 - deterministic current-staged-tree annotation scheduling;

@@ -26,8 +26,12 @@ release cadence, or compatibility duration.
   ambiguous simple identities.
 - Expand supported target and output shapes only through bounded,
   independently tested contracts.
-- Keep source-ordered composition opt-in, transactional, and backed by concrete
-  positive combinations rather than broad structural claims.
+- Retain plugin-owned current-staged-tree scheduling with no composition switch:
+  after every committed stage, validate and rescan deterministically from the
+  current trees. Annotation-specific target and shape applicability belongs in
+  `ExpansionHandler.expand`; MacroParadise owns framework-level syntactic
+  target eligibility. No public admission/profile metadata is required.
+
 
 ## Usability and compatibility hardening
 
@@ -74,15 +78,18 @@ The first opt-in precompiled-handler slice is implemented and published as
 - retains a separate bounded same-module source-identity lifecycle without
   broadening the default precompiled-handler contract.
 
-User onboarding permanently retains three qualified setup modes: manual wiring
-with the copied build-definition identity helper, sbt integration with
-same-build local marker/handler projects and no producer `publishLocal`, and sbt
-integration with genuinely published modules. Public examples must use explicit
-project locations when directory names are hyphenated. The integration plugin
-is remotely published as `0.1.1`; current `0.2.0-SNAPSHOT` development remains
-source-built/local-only. Manual wiring remains an inspectable escape hatch. A
-downstream project may provide application-specific conveniences;
-compiler/plugin behavior remains in the product API rather than in sbt.
+User onboarding permanently retains two producer topologies crossed with two
+wiring styles: four quadrants. The sbt integration and manual wiring both
+support same-build local marker/handler projects without producer
+`publishLocal`, and both support genuinely published or resolver-installed
+marker/handler modules. The manual quadrants use the copied build-definition
+identity helper. Public examples must use explicit project locations when
+directory names are hyphenated. The integration plugin is remotely published
+as `0.1.1`; current `0.2.0-SNAPSHOT` development remains source-built/local-only.
+Manual wiring remains an inspectable escape hatch. A downstream project may
+provide application-specific conveniences; compiler/plugin behavior remains in
+the product API rather than in sbt.
+
 
 ## Next public-contract work
 
