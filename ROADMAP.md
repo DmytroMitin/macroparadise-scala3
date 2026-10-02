@@ -100,7 +100,14 @@ context are plugin-minted read-only values, the current annotation occurrence
 is available as a raw tree, and occupied enclosing-definition names are exposed
 honestly. Structured primary/companion/sibling changes run through the staged
 transactional scheduler with configurable runaway protection, recursive owned-
-tree alias checks, and provenance checks. See
+tree alias checks, and provenance checks. The current unreleased `0.2.0-SNAPSHOT` source line
+also exposes immutable scheduler provenance through
+`ExpansionInput.sourceOrderedHandledAnnotationNames: List[String]`: handled
+canonical annotation identities in annotation-list order, with duplicates
+preserved. A preserved physical annotation occurrence keeps its first cohort;
+a fresh generated or reconstructed occurrence receives the cohort from the
+first visible staged revision in which it appears. This is scheduler provenance,
+not an admission or composition-policy declaration. See
 [Expansion model and composition](docs/EXPANSION_MODEL_AND_COMPOSITION.md) for
 the current topology and verification boundary.
 

@@ -9,9 +9,472 @@ import dotty.tools.dotc.parsing.Parsers
 import paradise3.api.*
 import paradise3.api.helpers.ExpansionTransforms
 
+import java.util.IdentityHashMap
 import scala.collection.mutable.ListBuffer
 
 class StagedSchedulerSpec extends munit.FunSuite:
+  test("handled participant names are canonical source ordered duplicate preserving and target local") {
+    withStats("import alpha.a; import beta.b; @a @ignored @b @a class A; @b class B") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val calls = ListBuffer.empty[(String, List[String])]
+      val cohorts = ListBuffer.empty[List[String]]
+      def observing(name: String): ExpansionHandler = handler(name) { input =>
+        calls += name -> input.sourceOrderedHandledAnnotationNames
+        cohorts += input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(observing("alpha.a"), observing("beta.b"))
+      )
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(
+        calls.toList,
+        List(
+          "alpha.a" -> List("alpha.a", "beta.b", "alpha.a"),
+          "beta.b" -> List("alpha.a", "beta.b", "alpha.a"),
+          "alpha.a" -> List("alpha.a", "beta.b", "alpha.a"),
+          "beta.b" -> List("beta.b")
+        )
+      )
+      assert(cohorts.take(3).forall(_ eq cohorts.head))
+      assert(!(cohorts.last eq cohorts.head))
+    }
+  }
+
+  test("both original participants observe the exact source order") {
+    List(
+      "@a @b class A" -> List("a", "b"),
+      "@b @a class A" -> List("b", "a")
+    ).foreach { (source, expected) =>
+      withStats(source) { (ctx: Context) ?=> (stats: List[Tree]) =>
+        val observed = ListBuffer.empty[(String, List[String])]
+        def observing(name: String): ExpansionHandler = handler(name) { input =>
+          observed += name -> input.sourceOrderedHandledAnnotationNames
+          ExpansionOutcome.Structured(ExpansionChanges())
+        }
+
+        val result = ParadiseTreeRewrite.scheduleForTesting(
+          stats,
+          List(observing("a"), observing("b"))
+        )
+
+        assert(result.isRight, result.left.toOption.getOrElse(""))
+        assertEquals(observed.map(_._2).toList, List(expected, expected))
+      }
+    }
+  }
+
+  test("participant discovery uses canonical qualified and simple identities") {
+    withStats("@alpha.a @legacy class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val observed = ListBuffer.empty[List[String]]
+      def observing(name: String): ExpansionHandler = handler(name) { input =>
+        observed += input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(
+        stats,
+        List(observing("alpha.a"), observing("legacy"))
+      )
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(
+        observed.toList,
+        List(
+          List("alpha.a", "legacy"),
+          List("alpha.a", "legacy")
+        )
+      )
+    }
+  }
+
+  test("a preserved occurrence keeps its original cohort after an earlier participant is consumed") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val a = handler("a") { input =>
+        val primary = input.primary.tree.asInstanceOf[TypeDef]
+        val preservedB = Trees.mods(primary).annotations(1)
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Merge(List(TargetPatch.ReplaceAnnotations(List(preservedB)))))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(a, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, List("a", "b"))
+    }
+  }
+
+  test("a fresh occurrence on a previously registered target gets the current unregistered cohort") {
+    withStats("@a class A; @b object A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val introduceFreshB = handler("a") { input =>
+        val companion = input.companion.get.tree.asInstanceOf[ModuleDef]
+        val freshB = copyAnnotation(Trees.mods(companion).annotations.head)
+        ExpansionOutcome.Structured(
+          ExpansionChanges(
+            primary = PrimaryChange.Merge(List(TargetPatch.ReplaceAnnotations(List(input.currentAnnotation, freshB)))),
+            companion = CompanionChange.Delete
+          )
+        )
+      }
+      val b = handler("b") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(introduceFreshB, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, List("b"))
+    }
+  }
+
+  test("a selected occurrence without a registered cohort is an internal invariant failure") {
+    withStats("@a class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val annotation = Trees.mods(stats.head.asInstanceOf[TypeDef]).annotations.head
+      val result = ParadiseTreeRewrite.registeredParticipantNames(
+        annotation,
+        IdentityHashMap[Tree, List[String]]()
+      )
+
+      assert(result.left.toOption.exists(_.contains("INTERNAL_PARTICIPANT_COHORT_INVARIANT")))
+    }
+  }
+
+  test("fresh handled occurrences on replacement sibling and companion use first-visible staged cohorts") {
+    withStats("@seed class A; @x @y object Donor") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val observed = ListBuffer.empty[(String, String, List[String])]
+      val donor = stats.collectFirst { case value: ModuleDef if value.name.toString == "Donor" => value }.get
+      val donorAnnotations = Trees.mods(donor).annotations
+      val seed = handler("seed") { input =>
+        val primary = input.primary.tree.asInstanceOf[TypeDef]
+        def generated(name: String): TypeDef =
+          cpy.TypeDef(primary)(typeName(name), freshTemplate(primary.rhs.asInstanceOf[Template]))
+            .withMods(
+              Trees.mods(primary).withAnnotations(
+                List(copyAnnotation(donorAnnotations.head), copyAnnotation(donorAnnotations(1)))
+              )
+            )
+            .asInstanceOf[TypeDef]
+        val replacement = generated("A")
+        val sibling = generated("Sibling")
+        val companion = ModuleDef(termName("A"), freshTemplate(primary.rhs.asInstanceOf[Template]))
+          .withMods(
+            Trees.mods(donor).withAnnotations(
+              List(copyAnnotation(donorAnnotations.head), copyAnnotation(donorAnnotations(1)))
+            )
+          )
+          .asInstanceOf[ModuleDef]
+        ExpansionOutcome.Structured(
+          ExpansionChanges(
+            primary = PrimaryChange.Replace(ExpansionTarget.Class(replacement)),
+            companion = CompanionChange.Create(ExpansionTarget.Object(companion), DefinitionPlacement.AfterPrimary),
+            siblings = List(
+              SiblingChange.Create(ExpansionTarget.Class(sibling), DefinitionPlacement.AfterPrimary)
+            )
+          )
+        )
+      }
+      def observer(name: String): ExpansionHandler = handler(name) { input =>
+        if input.primary.name != "Donor" then
+          observed += ((input.primary.name, name, input.sourceOrderedHandledAnnotationNames))
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(seed, observer("x"), observer("y")))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(
+        observed.toList,
+        List(
+          ("A", "x", List("x", "y")),
+          ("A", "y", List("x", "y")),
+          ("A", "x", List("x", "y")),
+          ("A", "y", List("x", "y")),
+          ("Sibling", "x", List("x", "y")),
+          ("Sibling", "y", List("x", "y"))
+        )
+      )
+    }
+  }
+
+  test("structured rename transports each physical occurrence's frozen cohort") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed: Option[(String, List[String])] = None
+      val rename = handler("a") { input =>
+        val current = input.primary.tree.asInstanceOf[TypeDef]
+        val renamed = cpy.TypeDef(current)(typeName("B"), current.rhs)
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Class(renamed)))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = Some(input.primary.name -> input.sourceOrderedHandledAnnotationNames)
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(rename, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, Some("B" -> List("a", "b")))
+    }
+  }
+
+  test("structured kind replacement transports each physical occurrence's frozen cohort") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed: Option[(ExpansionTargetKind, List[String])] = None
+      val replaceKind = handler("a") { input =>
+        val current = input.primary.tree.asInstanceOf[TypeDef]
+        val replacement = ModuleDef(termName("A"), freshTemplate(current.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(current))
+          .asInstanceOf[ModuleDef]
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Object(replacement)))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = Some(input.primary.kind -> input.sourceOrderedHandledAnnotationNames)
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(replaceKind, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, Some(ExpansionTargetKind.Object -> List("a", "b")))
+    }
+  }
+
+  test("raw replacement transports each physical occurrence's frozen cohort") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed: Option[(String, List[String])] = None
+      val rawRename = handler("a") { input =>
+        val current = input.primary.tree.asInstanceOf[TypeDef]
+        val renamed = cpy.TypeDef(current)(typeName("RawB"), freshTemplate(current.rhs.asInstanceOf[Template]))
+        ExpansionOutcome.Expanded(List(renamed))
+      }
+      val b = handler("b") { input =>
+        observed = Some(input.primary.name -> input.sourceOrderedHandledAnnotationNames)
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(rawRename, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, Some("RawB" -> List("a", "b")))
+    }
+  }
+
+  test("structured same-name same-kind replacement transports a pending physical occurrence's cohort") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed: Option[(String, ExpansionTargetKind, List[String])] = None
+      val replace = handler("a") { input =>
+        val current = input.primary.tree.asInstanceOf[TypeDef]
+        val replacement = cpy.TypeDef(current)(current.name, freshTemplate(current.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(current))
+          .asInstanceOf[TypeDef]
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Replace(ExpansionTarget.Class(replacement)))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = Some((input.primary.name, input.primary.kind, input.sourceOrderedHandledAnnotationNames))
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(replace, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, Some(("A", ExpansionTargetKind.Class, List("a", "b"))))
+    }
+  }
+
+  test("earlier primary work cannot reclassify original companion participants after preserve or replacement") {
+    List(false, true).foreach { replaceCompanion =>
+      withStats("@a class A; @b @c object A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+        val observed = ListBuffer.empty[(String, List[String])]
+        val a = handler("a") { input =>
+          if replaceCompanion then
+            val current = input.companion.get.tree.asInstanceOf[ModuleDef]
+            val replacement = cpy.ModuleDef(current)(current.name, freshTemplate(current.impl))
+              .withMods(Trees.mods(current))
+              .asInstanceOf[ModuleDef]
+            ExpansionOutcome.Structured(
+              ExpansionChanges(companion = CompanionChange.Replace(ExpansionTarget.Object(replacement)))
+            )
+          else
+            ExpansionOutcome.Structured(
+              ExpansionChanges(primary = PrimaryChange.Merge(List(TargetPatch.ReplaceAnnotations(Nil))))
+            )
+        }
+        def observing(name: String): ExpansionHandler = handler(name) { input =>
+          observed += name -> input.sourceOrderedHandledAnnotationNames
+          ExpansionOutcome.Structured(ExpansionChanges())
+        }
+
+        val result = ParadiseTreeRewrite.scheduleForTesting(
+          stats,
+          List(a, observing("b"), observing("c"))
+        )
+
+        assert(result.isRight, result.left.toOption.getOrElse(""))
+        assertEquals(observed.toList, List("b" -> List("b", "c"), "c" -> List("b", "c")))
+      }
+    }
+  }
+
+  test("raw many replacement transports a pending occurrence on a non-first output") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed: Option[(String, List[String])] = None
+      val expandMany = handler("a") { input =>
+        val current = input.primary.tree.asInstanceOf[TypeDef]
+        val pendingB = Trees.mods(current).annotations(1)
+        val first = cpy.TypeDef(current)(typeName("First"), freshTemplate(current.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(current).withAnnotations(Nil))
+          .asInstanceOf[TypeDef]
+        val second = cpy.TypeDef(current)(typeName("Second"), freshTemplate(current.rhs.asInstanceOf[Template]))
+          .withMods(Trees.mods(current).withAnnotations(List(pendingB)))
+          .asInstanceOf[TypeDef]
+        ExpansionOutcome.Expanded(List(first, second))
+      }
+      val b = handler("b") { input =>
+        observed = Some(input.primary.name -> input.sourceOrderedHandledAnnotationNames)
+        ExpansionOutcome.Structured(ExpansionChanges())
+      }
+
+      val result = ParadiseTreeRewrite.scheduleForTesting(stats, List(expandMany, b))
+
+      assert(result.isRight, result.left.toOption.getOrElse(""))
+      assertEquals(observed, Some("Second" -> List("a", "b")))
+      assertEquals(result.toOption.get.map(definitionName), List("First", "Second"))
+    }
+  }
+
+  test("later rejection observes the preserved original cohort and rolls back the successful prefix") {
+    withStats("@a @b class A; class Stable") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val a = handler("a") { input =>
+        val pendingB = Trees.mods(input.primary.tree.asInstanceOf[TypeDef]).annotations(1)
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Merge(List(TargetPatch.ReplaceAnnotations(List(pendingB)))))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Rejected(List(ExpansionDiagnostic("late stop", input.currentAnnotation.sourcePos)))
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(a, b))
+
+      assertEquals(observed, List("a", "b"))
+      assert(failure.exists(_.contains("handler rejected")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
+  test("later validation failure observes the preserved original cohort and rolls back the successful prefix") {
+    withStats("@a @b class A; class Stable") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val a = handler("a") { input =>
+        val pendingB = Trees.mods(input.primary.tree.asInstanceOf[TypeDef]).annotations(1)
+        ExpansionOutcome.Structured(
+          ExpansionChanges(primary = PrimaryChange.Merge(List(TargetPatch.ReplaceAnnotations(List(pendingB)))))
+        )
+      }
+      val b = handler("b") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Expanded(List(input.primary.tree, input.primary.tree))
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(a, b))
+
+      assertEquals(observed, List("a", "b"))
+      assert(failure.exists(_.contains("same noncanonical raw tree object")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
+  test("rejection after participant registration rolls the whole unit back") {
+    withStats("@a @b class A; class Stable") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val reject = handler("a") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Rejected(List(ExpansionDiagnostic("stop", input.currentAnnotation.sourcePos)))
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(reject, handler("b")(_ => ExpansionOutcome.Structured(ExpansionChanges()))))
+
+      assertEquals(observed, List("a", "b"))
+      assert(failure.exists(_.contains("handler rejected")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
+  test("thrown handler failure after participant registration rolls the whole unit back") {
+    withStats("@a @b class A; class Stable") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val throwing = handler("a") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        throw IllegalStateException("boom")
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(throwing, handler("b")(_ => ExpansionOutcome.Structured(ExpansionChanges()))))
+
+      assertEquals(observed, List("a", "b"))
+      assert(failure.exists(_.contains("IllegalStateException")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
+  test("validation failure after participant registration rolls the whole unit back") {
+    withStats("@a @b class A; class Stable") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      var observed = List.empty[String]
+      val invalid = handler("a") { input =>
+        observed = input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Expanded(List(input.primary.tree, input.primary.tree))
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(stats, List(invalid, handler("b")(_ => ExpansionOutcome.Structured(ExpansionChanges()))))
+
+      assertEquals(observed, List("a", "b"))
+      assert(failure.exists(_.contains("same noncanonical raw tree object")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
+  test("budget exhaustion keeps each reconstructed occurrence's first-visible cohort and rolls back") {
+    withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
+      val observed = ListBuffer.empty[List[String]]
+      val recursive = handler("a") { input =>
+        observed += input.sourceOrderedHandledAnnotationNames
+        ExpansionOutcome.Structured(
+          ExpansionChanges(
+            primary = PrimaryChange.Merge(
+              List(TargetPatch.ReplaceAnnotations(List(copyAnnotation(input.currentAnnotation))))
+            )
+          )
+        )
+      }
+
+      val (rolledBack, failure) = ParadiseTreeRewrite.scheduleAtomicallyForTesting(
+        stats,
+        List(recursive, handler("b")(_ => ExpansionOutcome.Structured(ExpansionChanges()))),
+        expansionBudget = 2
+      )
+
+      assertEquals(observed.toList, List(List("a", "b"), List("a")))
+      assert(failure.exists(_.contains("2-success budget")))
+      assert(rolledBack.zip(stats).forall((actual, original) => actual eq original))
+    }
+  }
+
   test("source order is recomputed from the current staged target") {
     withStats("@a @b class A") { (ctx: Context) ?=> (stats: List[Tree]) =>
       val calls = ListBuffer.empty[String]

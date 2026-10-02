@@ -187,7 +187,8 @@ class ExpansionTargetViewSpec extends munit.FunSuite:
       ExpansionTarget.Class(annotated),
       Some(ExpansionTarget.Object(companion)),
       PluginInvocationMinting.container(names),
-      currentAnnotation
+      currentAnnotation,
+      List("deprecated")
     )
 
     val decoded = input.targetView

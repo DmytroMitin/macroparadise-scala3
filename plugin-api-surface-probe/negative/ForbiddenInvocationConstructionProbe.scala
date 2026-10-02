@@ -16,7 +16,7 @@ object ForbiddenInvocationConstructionProbe:
       container: ExpansionContainerContext,
       annotation: untpd.Tree
   ): ExpansionInput =
-    new ExpansionInput(primary, companion, container, annotation)
+    new ExpansionInput(primary, companion, container, annotation, List("surfaceprobe.Forbidden"))
 
   def copyInput(value: ExpansionInput): ExpansionInput =
     value.copy(companion = None)

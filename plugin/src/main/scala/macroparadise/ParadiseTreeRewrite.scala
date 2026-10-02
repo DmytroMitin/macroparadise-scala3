@@ -30,6 +30,12 @@ private[macroparadise] object ParadiseTreeRewrite:
       handler: Handler
   )
 
+  private final case class HandledAnnotation(
+      annotation: Tree,
+      handler: Handler,
+      canonicalName: String
+  )
+
   private final case class Relationship(
       primaryIndex: Int,
       primary: ExpansionTarget,
@@ -113,8 +119,10 @@ private[macroparadise] object ParadiseTreeRewrite:
       expansionBudget: Int
   )(using Context, ExplicitImportAnnotationIdentityResolver): Either[Failure, List[Tree]] =
     val consumed = IdentityHashMap[Tree, java.lang.Boolean]()
+    val participantCohorts = IdentityHashMap[Tree, List[String]]()
 
     def loop(staged: List[Tree], successful: Int): Either[Failure, List[Tree]] =
+      registerParticipantCohorts(staged, handlers, participantCohorts)
       firstOccurrence(staged, handlers, consumed) match
         case Left(failure) => Left(failure)
         case Right(None) => Right(staged)
@@ -127,40 +135,71 @@ private[macroparadise] object ParadiseTreeRewrite:
             )
           )
         case Right(Some(occurrence)) =>
-          relationship(staged, occurrence.primaryIndex, occurrence.primary).flatMap: relation =>
-            val container = PluginInvocationMinting.container(
-              occupiedDefinitionNames(staged)
-            )
-            val input = PluginInvocationMinting.input(
-              relation.primary,
-              relation.companion,
-              container,
-              occurrence.annotation
-            )
-            occurrence.handler.trace.foreach(
-              _.record(
-                occurrence.handler.identity,
-                occurrence.handler.instance.annotationName,
-                relation.primary.name
+          registeredParticipantNames(occurrence.annotation, participantCohorts)
+            .left.map: detail =>
+              Failure(
+                "INTERNAL_PARTICIPANT_COHORT_INVARIANT",
+                detail,
+                occurrence.annotation.sourcePos
               )
-            )
-            val outcome =
-              try Right(occurrence.handler.instance.expand(input))
-              catch
-                case NonFatal(error) =>
-                  Left(
-                    Failure(
-                      "HANDLER_INVOCATION_FAILURE",
-                      s"${error.getClass.getName}: ${Option(error.getMessage).getOrElse("<no-message>")}",
-                      occurrence.annotation.sourcePos
-                    )
+            .flatMap: participantNames =>
+              relationship(staged, occurrence.primaryIndex, occurrence.primary).flatMap: relation =>
+                val container = PluginInvocationMinting.container(
+                  occupiedDefinitionNames(staged)
+                )
+                val input = PluginInvocationMinting.input(
+                  relation.primary,
+                  relation.companion,
+                  container,
+                  occurrence.annotation,
+                  participantNames
+                )
+                occurrence.handler.trace.foreach(
+                  _.record(
+                    occurrence.handler.identity,
+                    occurrence.handler.instance.annotationName,
+                    relation.primary.name
                   )
-            outcome.flatMap: result =>
-              applyOutcome(staged, relation, result, occurrence).flatMap: next =>
-                consumed.put(occurrence.annotation, java.lang.Boolean.TRUE)
-                loop(next, successful + 1)
+                )
+                val outcome =
+                  try Right(occurrence.handler.instance.expand(input))
+                  catch
+                    case NonFatal(error) =>
+                      Left(
+                        Failure(
+                          "HANDLER_INVOCATION_FAILURE",
+                          s"${error.getClass.getName}: ${Option(error.getMessage).getOrElse("<no-message>")}",
+                          occurrence.annotation.sourcePos
+                        )
+                      )
+                outcome.flatMap: result =>
+                  applyOutcome(staged, relation, result, occurrence).flatMap: next =>
+                    consumed.put(occurrence.annotation, java.lang.Boolean.TRUE)
+                    loop(next, successful + 1)
 
     loop(original, 0)
+
+  private def registerParticipantCohorts(
+      stats: List[Tree],
+      handlers: List[Handler],
+      participantCohorts: IdentityHashMap[Tree, List[String]]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Unit =
+    stats.foreach: tree =>
+      ExpansionTarget.fromTree(tree).toOption.foreach: target =>
+        val freshHandled = targetAnnotations(target).flatMap: annotation =>
+          if participantCohorts.containsKey(annotation) then None
+          else resolveHandledAnnotation(annotation, handlers)
+        if freshHandled.nonEmpty then
+          val names = freshHandled.map(_.canonicalName)
+          freshHandled.foreach(value => participantCohorts.put(value.annotation, names))
+
+  private[macroparadise] def registeredParticipantNames(
+      annotation: Tree,
+      participantCohorts: IdentityHashMap[Tree, List[String]]
+  ): Either[String, List[String]] =
+    Option(participantCohorts.get(annotation)).toRight(
+      "INTERNAL_PARTICIPANT_COHORT_INVARIANT: selected handled annotation occurrence has no registered source-ordered participant cohort"
+    )
 
   private def firstOccurrence(
       stats: List[Tree],
@@ -173,17 +212,14 @@ private[macroparadise] object ParadiseTreeRewrite:
     while index < stats.size && result.isEmpty && failure.isEmpty do
       ExpansionTarget.fromTree(stats(index)) match
         case Right(target) =>
-          val currentAnnotations = target match
-            case ExpansionTarget.Class(value)  => annotations(value)
-            case ExpansionTarget.Trait(value)  => annotations(value)
-            case ExpansionTarget.Object(value) => annotations(value)
+          val currentAnnotations = targetAnnotations(target)
           var annotationIndex = 0
           while annotationIndex < currentAnnotations.size && result.isEmpty && failure.isEmpty do
             val annotation = currentAnnotations(annotationIndex)
             if !consumed.containsKey(annotation) then
-              handlers.find(value => annotationMatches(annotation, value.instance.annotationName)) match
-                case Some(handler) =>
-                  result = Some(Occurrence(index, target, annotation, handler))
+              resolveHandledAnnotation(annotation, handlers) match
+                case Some(handled) =>
+                  result = Some(Occurrence(index, target, annotation, handled.handler))
                 case None => ()
             annotationIndex += 1
         case Left(_) => ()
@@ -555,11 +591,25 @@ private[macroparadise] object ParadiseTreeRewrite:
 
   private def annotations(tree: DefTree)(using Context): List[Tree] = Trees.mods(tree).annotations
 
+  private def targetAnnotations(target: ExpansionTarget)(using Context): List[Tree] = target match
+    case ExpansionTarget.Class(value)  => annotations(value)
+    case ExpansionTarget.Trait(value)  => annotations(value)
+    case ExpansionTarget.Object(value) => annotations(value)
+
   private def annotationSyntax(tree: Tree)(using Context): Option[String] =
     SyntacticAnnotationIdentity.fromTree(tree).map(_.value)
 
-  private def annotationMatches(tree: Tree, expected: String)(using Context, ExplicitImportAnnotationIdentityResolver): Boolean =
-    summon[ExplicitImportAnnotationIdentityResolver].identityOfUsingWitnesses(tree, Nil).toOption.exists(_.value == expected)
+  private def resolveHandledAnnotation(
+      annotation: Tree,
+      handlers: List[Handler]
+  )(using Context, ExplicitImportAnnotationIdentityResolver): Option[HandledAnnotation] =
+    summon[ExplicitImportAnnotationIdentityResolver]
+      .identityOfUsingWitnesses(annotation, Nil)
+      .toOption
+      .flatMap: identity =>
+        handlers
+          .find(_.instance.annotationName == identity.value)
+          .map(handler => HandledAnnotation(annotation, handler, identity.value))
 
   private def collectAnnotationIdentityRequests(
       tree: Tree

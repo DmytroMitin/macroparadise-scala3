@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object IndependentPrecompiledHandlerPackagedConsumerSpec {
-  val CaseCount = 20
+  val CaseCount = 27
 
   def run(repositoryRoot: File): Unit = {
     def source(path: String): String =
@@ -17,6 +17,8 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
     val union = source("plugin-api-handler-contract-probe/closed-target-union/IndependentClosedTargetUnionMarkerAndHandler.scala")
     val consumer = source("plugin-api-handler-contract-probe/e2e/IndependentPackagedConsumer.scala")
 
+    val provenance = source("plugin-api-handler-contract-probe/participant-provenance/IndependentParticipantProvenanceMarkerAndHandler.scala")
+    val provenanceConsumer = source("plugin-api-handler-contract-probe/participant-provenance-e2e/IndependentParticipantProvenanceConsumer.scala")
     val checks = Vector(
       "unified handler" -> independent.contains("extends ExpansionHandler"),
       "handler metadata" -> independent.contains("@expander(\"contractprobe.IndependentHandler\")"),
@@ -37,7 +39,14 @@ object IndependentPrecompiledHandlerPackagedConsumerSpec {
       "closed target union" -> union.contains("ExpansionTargetKind"),
       "no old target profile" -> !Vector(independent, body, types, modules, self, union).exists(_.contains("ExpansionTargetProfile")),
       "no old companion lease" -> !Vector(independent, body, types, modules, self, union).exists(_.contains("consumesExistingCompanion")),
-      "thin artifact inventory" -> (IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries.size == 4)
+      "thin artifact inventory" -> (IndependentPrecompiledHandlerPackagedConsumer.expectedCompiledEntries.size == 4),
+      "participant provenance getter only" -> (provenance.contains("input.sourceOrderedHandledAnnotationNames") && !provenance.contains("Trees.mods") && !provenance.contains("currentAnnotation")),
+      "participant instance handler" -> provenance.contains("final class ParticipantInstanceHandler extends ExpansionHandler"),
+      "participant apply handler" -> provenance.contains("final class ParticipantApplyHandler extends ExpansionHandler"),
+      "standalone participant consumer" -> provenanceConsumer.contains("@instance\nfinal class StandaloneInstance"),
+      "apply then instance consumer" -> provenanceConsumer.contains("@apply @instance\nfinal class ApplyThenInstance"),
+      "instance then apply consumer" -> provenanceConsumer.contains("@instance @apply\nfinal class InstanceThenApply"),
+      "legacy independent handler remains provenance-neutral" -> !independent.contains("sourceOrderedHandledAnnotationNames")
     )
     checks.foreach { case (name, ok) => require(ok, s"independent packaged model check failed: $name") }
     require(checks.size == CaseCount, s"focused model spec ran ${checks.size}/$CaseCount cases")

@@ -25,6 +25,22 @@ definition. Definitions need not be adjacent.
 in that staged package container. Inputs and container contexts are read-only
 final values minted by the plugin, with no public construction or copy contract.
 
+`ExpansionInput.sourceOrderedHandledAnnotationNames: List[String]` is immutable
+scheduler provenance for the current physical handled annotation occurrence.
+It contains only handled annotations on that target, uses the same canonical
+annotation identities as handler selection, preserves annotation-list order and
+duplicates, and omits unhandled annotations without reordering participants.
+For parsed source, this is source annotation-list order. For a generated or
+reconstructed handled annotation, it is the annotation-list order of the
+**first visible staged revision** in which its fresh cohort appears.
+
+A preserved physical occurrence keeps its frozen cohort after earlier
+participants run or are removed. A physically fresh occurrence receives a new
+target-local cohort; it does not inherit a previous source stack. The
+provenance is carried by occurrence identity across supported replacement,
+rename, and kind changes, not by target name, kind, position, or index. This is
+scheduler provenance, not an admission or composition-policy declaration.
+
 The target, body, and type-structure views provide normalized read-only syntax for the supported handler use cases. Raw tree construction remains the handler or Quasiquotes caller's responsibility.
 
 ## Structured sparse changes

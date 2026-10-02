@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 31
+  val CaseCount = 33
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -135,6 +135,16 @@ object PublicDocumentationPolicySpec {
       "CANONICAL_GENERATED_DEFINITION_CAST"
     )
 
+    assertFinding(
+      "docs/EXPANSION_MODEL_AND_COMPOSITION.md",
+      CanonicalExpansionModel.replace("sourceOrderedHandledAnnotationNames: List[String]", "participantNames"),
+      "PARTICIPANT_PROVENANCE_CONTRACT_MISSING"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("first visible staged revision", "generated order"),
+      "PARTICIPANT_PROVENANCE_CONTRACT_MISSING"
+    )
 
     val missing = fixture()
     try {
@@ -168,6 +178,7 @@ object PublicDocumentationPolicySpec {
     write(root, "docs/GETTING_STARTED.md", CanonicalGetting)
     write(root, "sbt-integration/README.md", CanonicalIntegration)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
+    write(root, "docs/EXPANSION_MODEL_AND_COMPOSITION.md", CanonicalExpansionModel)
     write(root, "ROADMAP.md", CanonicalRoadmap)
     write(root, "CONTRIBUTING.md", "# Contributing\n\nOrdinary input and review are welcome. See [security](SECURITY.md).\n")
     write(root, "SECURITY.md", "# Security\n\nSee [stability](docs/VERSIONING_AND_STABILITY.md).\n")
@@ -272,6 +283,17 @@ object PublicDocumentationPolicySpec {
       |macroParadiseHandlerModules
       |ExternalArtifactIdentity.combined
       |externalArtifactIdentity
+      |sourceOrderedHandledAnnotationNames: List[String]
+      |first visible staged revision
+      |scheduler provenance
+      |""".stripMargin
+
+  private val CanonicalExpansionModel =
+    """# Expansion model and scheduling
+      |
+      |sourceOrderedHandledAnnotationNames: List[String]
+      |first visible staged revision
+      |scheduler provenance
       |""".stripMargin
 
   private val CanonicalGetting =

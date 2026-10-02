@@ -182,7 +182,8 @@ class ExpansionTargetTypeStructureViewSpec extends munit.FunSuite:
       ExpansionTarget.Trait(target),
       None,
       PluginInvocationMinting.container(Set("Input")),
-      target
+      target,
+      List("fixture")
     )
 
     assertEquals(input.targetTypeStructureView.map(_.directTypeMembers.map(_.name)), Right(List("Out")))

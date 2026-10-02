@@ -258,6 +258,19 @@ object PublicDocumentationPolicy {
         "canonical generated-definition examples must retain the mechanically qualified cast-free Scalameta quasiquote form"
       )
 
+    if (
+      path == "docs/EXPANSION_MODEL_AND_COMPOSITION.md" ||
+      path == "docs/EXTERNAL_HANDLER_AUTHORING.md"
+    ) {
+      requireAll(
+        "PARTICIPANT_PROVENANCE_CONTRACT_MISSING",
+        "scheduler documentation must retain the public getter and generated-cohort ordering boundary",
+        "sourceOrderedHandledAnnotationNames: List[String]",
+        "first visible staged revision",
+        "scheduler provenance"
+      )
+    }
+
 
     val structuredIdentity = "ExpansionEdit.finish(ExpansionEdit.start(input))"
     if (

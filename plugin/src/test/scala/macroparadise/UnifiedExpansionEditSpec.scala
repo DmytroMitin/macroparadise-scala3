@@ -224,6 +224,7 @@ class UnifiedExpansionEditSpec extends munit.FunSuite:
         PluginInvocationMinting.container(
           stats.collect { case value: MemberDef => value.name.toString }.toSet
         ),
-        Trees.mods(primary).annotations.head
+        Trees.mods(primary).annotations.head,
+        List("fixture")
       )
     )

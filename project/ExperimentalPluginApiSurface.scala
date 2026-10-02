@@ -18,9 +18,9 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "401f81adfa01cb20e0bde0be12480699dbff55f95bce9bdaef56662c2e8affee",
-    "3.8.4" -> "9baa173a03a33e6f98f5cd61e5751cad781109a2e31b97b45af7baeae25d3244",
-    "3.9.0" -> "b6074b77abf1fc09f131cbc0904007f0674306527162681b4ba73d455b23f440"
+    "3.3.8" -> "c3c5b41571db5dfce425a521d3a8e209dbbd58ecb719be6bb1cffb9eb35a22af",
+    "3.8.4" -> "56bdeafb9f105e071c6f586023abf88af7e0a9302caf63fd2e4e9bebde778a07",
+    "3.9.0" -> "1144d5e2861d673399d66f513c8969d30dc0e7e5d11300d1ecd65ead996de9ce"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
   val ArtifactRole =
@@ -296,6 +296,7 @@ object ExperimentalPluginApiSurface {
       "annotationName=surfaceProbe",
       "apiIdentityShared=true",
       "expandDescriptor=(paradise3.api.ExpansionInput,dotty.tools.dotc.core.Contexts$Context)paradise3.api.ExpansionOutcome",
+      "sourceOrderedHandledAnnotationNamesGetter=scala.collection.immutable.List",
       "transformsPublic=true",
       s"transformsCodeSource=${contractArtifact.getCanonicalPath}",
       "transformsMethods=createSibling,placeMemberInCompanion,placeMemberInPrimary,placeMembersInCompanion,placeMembersInPrimary,prepareTraitSelf,replaceCompanionAnnotations,replacePrimaryAnnotations",

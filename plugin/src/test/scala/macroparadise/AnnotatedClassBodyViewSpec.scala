@@ -386,7 +386,8 @@ class ExpansionTargetBodyViewSpec extends munit.FunSuite:
       ExpansionTarget.Trait(target),
       None,
       PluginInvocationMinting.container(Set("Input")),
-      target
+      target,
+      List("fixture")
     )
 
     assertEquals(input.targetBodyView.map(_.members.map(_.name)), Right(List("empty")))

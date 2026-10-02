@@ -30,6 +30,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     s"independent-self-trait-marker-handler_3-$ExpectedProjectVersion.jar"
   val ClosedUnionIndependentArtifactBasename =
     s"independent-closed-target-union-marker-handler_3-$ExpectedProjectVersion.jar"
+  val ParticipantProvenanceIndependentArtifactBasename =
+    s"independent-participant-provenance-marker-handler_3-$ExpectedProjectVersion.jar"
   val MetadataValue = "contractprobe.IndependentHandler"
   val HandlerAnnotationName = "IndependentMarker"
   val ExpectedRuntimeOutput = "IndependentConsumerUser\nIndependentConsumerObject\n"
@@ -39,6 +41,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   val ExpectedSelfTraitRuntimeOutput =
     "anonymous|original\nexisting|original\ncollision|original\n"
   val ExpectedClosedUnionRuntimeOutput = "Show\nAdd\n"
+  val ExpectedParticipantProvenanceRuntimeOutput = "standalone\nstacked\nstacked\n"
   val deterministicTimestamp = LocalDateTime.of(1980, 1, 1, 0, 0)
   val deterministicManifest =
     "Manifest-Version: 1.0\r\n" +
@@ -88,6 +91,16 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     "contractprobeunion/IndependentClosedTargetUnionHandler.tasty",
     "contractprobeunion/IndependentClosedTargetUnionMarker.class",
     "contractprobeunion/IndependentClosedTargetUnionMarker.tasty"
+  )
+  val expectedParticipantProvenanceCompiledEntries = Set(
+    "contractprobeprovenance/ParticipantApplyHandler.class",
+    "contractprobeprovenance/ParticipantApplyHandler.tasty",
+    "contractprobeprovenance/ParticipantInstanceHandler.class",
+    "contractprobeprovenance/ParticipantInstanceHandler.tasty",
+    "contractprobeprovenance/apply.class",
+    "contractprobeprovenance/apply.tasty",
+    "contractprobeprovenance/instance.class",
+    "contractprobeprovenance/instance.tasty"
   )
 
   val forbiddenClasspathFragments = Vector(
@@ -246,6 +259,24 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       s"exit=$exitCode diagnosticCount=$diagnosticCount invocationCount=$invocationCount outputFiles=$outputFiles"
   }
 
+  final case class ParticipantProvenanceEvidence(
+      artifact: ArtifactIdentity,
+      compile: CompileEvidence,
+      exitCode: Int,
+      outputFiles: Vector[String],
+      metadataSelectionCount: Int,
+      instanceInvocationCount: Int,
+      applyInvocationCount: Int,
+      runtimeExit: Int,
+      runtimeOutput: String
+  ) {
+    def render: String =
+      s"artifact={${artifact.render}} compile={${compile.render}} exit=$exitCode " +
+        s"outputFiles=${outputFiles.mkString(",")} metadataSelectionCount=$metadataSelectionCount " +
+        s"instanceInvocationCount=$instanceInvocationCount applyInvocationCount=$applyInvocationCount " +
+        s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim.replace("\n", "|")}"
+  }
+
   final case class ClosedUnionEvidence(
       artifact: ArtifactIdentity,
       compile: CompileEvidence,
@@ -289,6 +320,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       modulePlacement: ModulePlacementEvidence,
       selfTrait: SelfTraitEvidence,
       closedUnion: ClosedUnionEvidence,
+      participantProvenance: ParticipantProvenanceEvidence,
       runtimeExit: Int,
       runtimeOutput: String,
       runtimeUsesIndependentArtifact: Boolean,
@@ -303,6 +335,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
         s"compile={${compile.render}} metadata={${metadata.render}} positive={${positive.render}} bodyView={${bodyView.render}} " +
         s"typePlacement={${typePlacement.render}} modulePlacement={${modulePlacement.render}} selfTrait={${selfTrait.render}} " +
         s"closedUnion={${closedUnion.render}} " +
+        s"participantProvenance={${participantProvenance.render}} " +
         s"runtimeExit=$runtimeExit runtimeOutput=${runtimeOutput.trim} runtimeUsesIndependentArtifact=$runtimeUsesIndependentArtifact " +
         s"negatives=${negatives.map(_.render).mkString(",")} classloader={${classloader.render}} modelCases=$modelCases"
   }
@@ -399,6 +432,14 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       repositoryRoot,
       "plugin-api-handler-contract-probe/e2e-closed-target-union-reject/IndependentClosedTargetUnionRejectConsumer.scala"
     )
+    val participantProvenanceHandlerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/participant-provenance/IndependentParticipantProvenanceMarkerAndHandler.scala"
+    )
+    val participantProvenanceConsumerSource = new File(
+      repositoryRoot,
+      "plugin-api-handler-contract-probe/participant-provenance-e2e/IndependentParticipantProvenanceConsumer.scala"
+    )
     require(bodyViewHandlerSource.isFile, s"missing body-view handler source: $bodyViewHandlerSource")
     require(targetRejectSource.isFile, s"missing target-reject source: $targetRejectSource")
     require(bodyViewConsumerSource.isFile, s"missing body-view consumer source: $bodyViewConsumerSource")
@@ -419,6 +460,8 @@ object IndependentPrecompiledHandlerPackagedConsumer {
     require(closedUnionConsumerSource.isFile, s"missing closed-union consumer source: $closedUnionConsumerSource")
     require(closedUnionRejectSource.isFile, s"missing closed-union reject source: $closedUnionRejectSource")
     val compilerJars = compilerClasspath(repositoryRoot, apiDependencyClasspath ++ pluginDependencyClasspath, config)
+    require(participantProvenanceHandlerSource.isFile, s"missing participant-provenance handler source: $participantProvenanceHandlerSource")
+    require(participantProvenanceConsumerSource.isFile, s"missing participant-provenance consumer source: $participantProvenanceConsumerSource")
     validateClasspath("compiler universe", compilerJars, allowApi = false)
     validateClasspath("independent compile", apiArtifact +: compilerJars, allowApi = true)
 
@@ -699,6 +742,15 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       closedUnionRuntime._2,
       closedUnionReject
     )
+    val participantProvenance = verifyParticipantProvenance(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      participantProvenanceHandlerSource,
+      participantProvenanceConsumerSource,
+      evidenceDirectory
+    )
     val negatives = Vector(
       compileMissingHandler(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
       compileMissingMarker(repositoryRoot, compilerJars, apiArtifact, pluginArtifact, independentIdentity.path, consumerSource, evidenceDirectory),
@@ -766,6 +818,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       modulePlacement,
       selfTrait,
       closedUnion,
+      participantProvenance,
       runtime._1,
       runtime._2,
       runtimeUsesIndependentArtifact = false,
@@ -792,6 +845,124 @@ object IndependentPrecompiledHandlerPackagedConsumer {
       source.getAbsolutePath
     )
     runProcess(command, repositoryRoot, log)._1
+  }
+
+  private def verifyParticipantProvenance(
+      repositoryRoot: File,
+      compilerJars: Vector[File],
+      apiArtifact: File,
+      pluginArtifact: File,
+      handlerSource: File,
+      consumerSource: File,
+      evidenceDirectory: File
+  ): ParticipantProvenanceEvidence = {
+    val firstOutput = new File(evidenceDirectory, "participant-provenance-handler-compile/first-classes")
+    val secondOutput = new File(evidenceDirectory, "participant-provenance-handler-compile/second-classes")
+    recreateDirectory(firstOutput.toPath)
+    recreateDirectory(secondOutput.toPath)
+    val firstExit = compilePlain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      handlerSource,
+      firstOutput,
+      new File(evidenceDirectory, "participant-provenance-handler-compile/first.log")
+    )
+    val secondExit = compilePlain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      handlerSource,
+      secondOutput,
+      new File(evidenceDirectory, "participant-provenance-handler-compile/second.log")
+    )
+    require(firstExit == 0 && secondExit == 0, s"participant-provenance handler compile exits were $firstExit and $secondExit")
+    val firstFiles = regularRelativeFiles(firstOutput)
+    val secondFiles = regularRelativeFiles(secondOutput)
+    require(firstFiles.toSet == expectedParticipantProvenanceCompiledEntries, s"unexpected participant-provenance handler output: ${firstFiles.mkString(", ")}")
+    require(secondFiles == firstFiles, s"participant-provenance handler output inventory drifted: ${secondFiles.mkString(", ")}")
+    val compileEvidence = CompileEvidence(firstExit, secondExit, firstFiles, inventoriesEqual = true)
+
+    val firstJar = new File(evidenceDirectory, s"participant-provenance-handler-artifact/render-one/$ParticipantProvenanceIndependentArtifactBasename")
+    val secondJar = new File(evidenceDirectory, s"participant-provenance-handler-artifact/render-two/$ParticipantProvenanceIndependentArtifactBasename")
+    renderThinArtifact(firstOutput, firstJar, expectedParticipantProvenanceCompiledEntries, "contractprobeprovenance/")
+    renderThinArtifact(firstOutput, secondJar, expectedParticipantProvenanceCompiledEntries, "contractprobeprovenance/")
+    require(java.util.Arrays.equals(Files.readAllBytes(firstJar.toPath), Files.readAllBytes(secondJar.toPath)), "participant-provenance thin artifact renders are not byte-identical")
+    val identity = thinArtifactIdentity(firstJar, expectedParticipantProvenanceCompiledEntries, "contractprobeprovenance/")
+
+    val output = participantProvenancePositiveOutput(evidenceDirectory)
+    recreateDirectory(output.toPath)
+    val metadataTrace = new File(evidenceDirectory, "participant-provenance-positive/metadata.trace")
+    val invocationTrace = new File(evidenceDirectory, "participant-provenance-positive/invocation.trace")
+    val command = pluginCompileCommand(
+      compilerJars,
+      apiArtifact,
+      pluginArtifact,
+      Some(identity.path),
+      Some(identity.path),
+      consumerSource,
+      output,
+      Vector(
+        s"-P:macroparadise:metadataReaderTrace=${metadataTrace.getAbsolutePath}",
+        s"-P:macroparadise:externalHandlerInvocationTrace=${invocationTrace.getAbsolutePath}"
+      )
+    )
+    validatePluginCommand(command, apiArtifact, pluginArtifact, identity.path, requireHandler = true)
+    val (exit, log) = runProcess(command, repositoryRoot, new File(evidenceDirectory, "participant-provenance-positive/compile.log"))
+    require(exit == 0, s"participant-provenance consumer compile failed with exit $exit: $log")
+    val outputs = regularRelativeFiles(output)
+    val required = Set(
+      "contractprobeprovenanceconsumer/StandaloneInstance.class",
+      "contractprobeprovenanceconsumer/StandaloneInstance.tasty",
+      "contractprobeprovenanceconsumer/ApplyThenInstance.class",
+      "contractprobeprovenanceconsumer/ApplyThenInstance.tasty",
+      "contractprobeprovenanceconsumer/InstanceThenApply.class",
+      "contractprobeprovenanceconsumer/InstanceThenApply.tasty",
+      "contractprobeprovenanceconsumer/IndependentParticipantProvenanceConsumer.class",
+      "contractprobeprovenanceconsumer/IndependentParticipantProvenanceConsumer$.class",
+      "contractprobeprovenanceconsumer/IndependentParticipantProvenanceConsumer.tasty"
+    )
+    require(required.subsetOf(outputs.toSet), s"participant-provenance consumer output is missing: ${(required -- outputs.toSet).mkString(", ")}")
+    require(outputs.forall(_.startsWith("contractprobeprovenanceconsumer/")), s"participant-provenance output leaked fixtures: ${outputs.mkString(", ")}")
+    val metadataLines = readLines(metadataTrace)
+    val metadataSelectionCount = metadataLines.count(line =>
+      (line.contains("contractprobeprovenance.instance") && line.contains("Found(contractprobeprovenance.ParticipantInstanceHandler)")) ||
+        (line.contains("contractprobeprovenance.apply") && line.contains("Found(contractprobeprovenance.ParticipantApplyHandler)"))
+    )
+    require(metadataSelectionCount == 2, s"expected two participant-provenance metadata selections, found $metadataSelectionCount: ${metadataLines.mkString(" | ")}")
+    val invocationLines = readLines(invocationTrace)
+    val instanceInvocationCount = invocationLines.count(_.contains("handler=contractprobeprovenance.ParticipantInstanceHandler"))
+    val applyInvocationCount = invocationLines.count(_.contains("handler=contractprobeprovenance.ParticipantApplyHandler"))
+    require(instanceInvocationCount == 3, s"expected three participant-instance invocations, found $instanceInvocationCount: ${invocationLines.mkString(" | ")}")
+    require(applyInvocationCount == 2, s"expected two participant-apply invocations, found $applyInvocationCount: ${invocationLines.mkString(" | ")}")
+    Vector("StandaloneInstance", "ApplyThenInstance", "InstanceThenApply").foreach { className =>
+      val javap = runProcess(
+        Vector(javaTool("javap"), "-classpath", output.getAbsolutePath, s"contractprobeprovenanceconsumer.$className"),
+        repositoryRoot,
+        new File(evidenceDirectory, s"participant-provenance-positive/javap-$className.log")
+      )
+      require(javap._1 == 0 && javap._2.contains("java.lang.String participantContext()"), s"generated participantContext method missing from $className: ${javap._2}")
+    }
+    val runtime = runMain(
+      repositoryRoot,
+      compilerJars,
+      apiArtifact,
+      output,
+      "contractprobeprovenanceconsumer.IndependentParticipantProvenanceConsumer",
+      ExpectedParticipantProvenanceRuntimeOutput,
+      new File(evidenceDirectory, "participant-provenance-positive/runtime.log")
+    )
+    ParticipantProvenanceEvidence(
+      identity,
+      compileEvidence,
+      exit,
+      outputs,
+      metadataSelectionCount,
+      instanceInvocationCount,
+      applyInvocationCount,
+      runtime._1,
+      runtime._2
+    )
   }
 
   private def compilePositive(
@@ -1738,6 +1909,7 @@ object IndependentPrecompiledHandlerPackagedConsumer {
   private def modulePlacementPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "module-placement-positive/classes")
   private def selfTraitPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "self-trait-positive/classes")
   private def closedUnionPositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "closed-union-positive/classes")
+  private def participantProvenancePositiveOutput(evidenceDirectory: File): File = new File(evidenceDirectory, "participant-provenance-positive/classes")
   private def classpath(files: Seq[File]): String = files.map(_.getAbsolutePath).distinct.mkString(File.pathSeparator)
   private def javaTool(name: String): String = new File(new File(System.getProperty("java.home"), "bin"), name).getAbsolutePath
   private def isWithin(root: File, file: File): Boolean = file.toPath.toAbsolutePath.normalize.startsWith(root.toPath.toAbsolutePath.normalize)

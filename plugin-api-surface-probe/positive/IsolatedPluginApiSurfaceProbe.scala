@@ -28,6 +28,9 @@ final class IsolatedSurfaceProbeHandler extends ExpansionHandler:
 
   def diagnosticRoundTrip(diagnostic: ExpansionDiagnostic): ExpansionDiagnostic = diagnostic
 
+  def participantNames(input: ExpansionInput): List[String] =
+    input.sourceOrderedHandledAnnotationNames
+
 object IsolatedPluginApiSurfaceRuntime:
   def main(args: Array[String]): Unit =
     val handler = new IsolatedSurfaceProbeHandler()
@@ -35,6 +38,7 @@ object IsolatedPluginApiSurfaceRuntime:
     val handlerClass = handler.getClass
     val expand = handlerClass.getMethod("expand", classOf[ExpansionInput], classOf[Context])
     val annotationName = handlerClass.getMethod("annotationName")
+    val participantNames = classOf[ExpansionInput].getMethod("sourceOrderedHandledAnnotationNames")
 
     val transformsClass = ExpansionTransforms.getClass
     val requiredTransformMethods = Set(
@@ -59,6 +63,7 @@ object IsolatedPluginApiSurfaceRuntime:
     require(handler.annotationName == "surfaceProbe")
     require(annotationName.getReturnType == classOf[String])
     require(expand.getReturnType == classOf[ExpansionOutcome])
+    require(participantNames.getReturnType.getName == "scala.collection.immutable.List")
 
     require(java.lang.reflect.Modifier.isPublic(transformsClass.getModifiers))
     require(requiredTransformMethods.subsetOf(transformMethods))
@@ -81,6 +86,7 @@ object IsolatedPluginApiSurfaceRuntime:
     println(s"apiCodeSource=${codeSource(api)}")
     println(s"annotationName=${handler.annotationName}")
     println(s"apiIdentityShared=${api.isAssignableFrom(handlerClass)}")
+    println(s"sourceOrderedHandledAnnotationNamesGetter=${participantNames.getReturnType.getName}")
     println(s"expandDescriptor=$expandDescriptor")
     println(s"transformsPublic=${java.lang.reflect.Modifier.isPublic(transformsClass.getModifiers)}")
     println(s"transformsCodeSource=${codeSource(transformsClass)}")

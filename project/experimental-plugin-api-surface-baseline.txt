@@ -574,11 +574,12 @@ MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated$default$3|0|public|-|()L
 MEMBER|paradise3/api/ExpansionEdit.class|METHOD|updated|0|public|-|(Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionChanges;)Lparadise3/api/ExpansionEdit;
 MEMBER|paradise3/api/ExpansionHandler.class|METHOD|annotationName|0|public|abstract|()Ljava/lang/String;
 MEMBER|paradise3/api/ExpansionHandler.class|METHOD|expand|0|public|abstract|(Lparadise3/api/ExpansionInput;Ldotty/tools/dotc/core/Contexts$Context;)Lparadise3/api/ExpansionOutcome;
-MEMBER|paradise3/api/ExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;)V
+MEMBER|paradise3/api/ExpansionInput.class|CONSTRUCTOR|<init>|0|public|-|(Lparadise3/api/ExpansionTarget;Lscala/Option;Lparadise3/api/ExpansionContainerContext;Ldotty/tools/dotc/ast/Trees$Tree;Lscala/collection/immutable/List;)V
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|companion|0|public|-|()Lscala/Option;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|container|0|public|-|()Lparadise3/api/ExpansionContainerContext;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|currentAnnotation|0|public|-|()Ldotty/tools/dotc/ast/Trees$Tree;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|primary|0|public|-|()Lparadise3/api/ExpansionTarget;
+MEMBER|paradise3/api/ExpansionInput.class|METHOD|sourceOrderedHandledAnnotationNames|0|public|-|()Lscala/collection/immutable/List;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetBodyView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetTypeStructureView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
 MEMBER|paradise3/api/ExpansionInput.class|METHOD|targetView|0|public|-|(Ldotty/tools/dotc/core/Contexts$Context;)Lscala/util/Either;
@@ -2425,4 +2426,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=9baa173a03a33e6f98f5cd61e5751cad781109a2e31b97b45af7baeae25d3244
+normalized-sha256=56bdeafb9f105e071c6f586023abf88af7e0a9302caf63fd2e4e9bebde778a07

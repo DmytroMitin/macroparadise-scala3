@@ -58,7 +58,8 @@ final class ExpansionInput private[api] (
     val primary: ExpansionTarget,
     val companion: Option[ExpansionTarget],
     val container: ExpansionContainerContext,
-    val currentAnnotation: untpd.Tree
+    val currentAnnotation: untpd.Tree,
+    val sourceOrderedHandledAnnotationNames: List[String]
 ):
   def targetView(using Context): Either[ExpansionDiagnostic, ExpansionTargetView] =
     primary match

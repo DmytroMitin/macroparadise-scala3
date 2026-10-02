@@ -255,6 +255,29 @@ resolve defaults, fold constants, or supply semantic types. Return
 `ExpansionOutcome.Rejected(List(ExpansionDiagnostic(...)))` for controlled
 failures. A rejection list must be nonempty.
 
+`input.sourceOrderedHandledAnnotationNames: List[String]` lets a handler inspect
+the handled-participant cohort attached to its current physical annotation
+occurrence without reading raw target annotations. The list contains handled
+annotations only, uses the same canonical identity resolver as handler
+selection, preserves annotation-list order and duplicates, and omits unhandled
+annotations. For example, a neutral standalone-versus-stacked decision can be:
+
+~~~scala
+private val InstanceIdentity = "com.example.macros.instance"
+
+val standalone =
+  input.sourceOrderedHandledAnnotationNames == List(InstanceIdentity)
+~~~
+
+For parsed source, list order is source annotation-list order. A preserved
+physical occurrence keeps its original frozen list even after an earlier
+participant succeeds or removes itself. A generated or reconstructed physical
+occurrence receives a new target-local cohort, whose order is the annotation
+list of the **first visible staged revision** in which that cohort appears.
+Replacement, rename, or kind change does not alter a pending occurrence's
+cohort when the same annotation tree survives. The field is scheduler provenance
+only: it neither admits a target nor declares a composition policy.
+
 There is no composition switch. All handled annotations participate in the
 current-staged-tree scheduler. After each successful stage the plugin rescans
 from the beginning. A handler should remove its current annotation when it

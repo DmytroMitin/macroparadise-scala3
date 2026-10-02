@@ -11,6 +11,13 @@ object PluginInvocationMinting:
       primary: ExpansionTarget,
       companion: Option[ExpansionTarget],
       container: ExpansionContainerContext,
-      currentAnnotation: untpd.Tree
+      currentAnnotation: untpd.Tree,
+      sourceOrderedHandledAnnotationNames: List[String]
   ): ExpansionInput =
-    new ExpansionInput(primary, companion, container, currentAnnotation)
+    new ExpansionInput(
+      primary,
+      companion,
+      container,
+      currentAnnotation,
+      sourceOrderedHandledAnnotationNames
+    )
