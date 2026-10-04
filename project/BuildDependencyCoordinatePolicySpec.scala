@@ -1,5 +1,5 @@
 object BuildDependencyCoordinatePolicySpec {
-  val CaseCount = 18
+  val CaseCount = 25
 
   def run(): Unit = {
     import BuildDependencyCoordinatePolicy._
@@ -138,6 +138,87 @@ object BuildDependencyCoordinatePolicySpec {
       assert(result.errors.exists(_.contains("surface baseline file is missing")))
       assert(result.errors.exists(_.contains("surface verifier tasks are missing")))
     }
+    check("producer project identity and separation") {
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler),
+        validShape.copy(
+          embeddedProducerProjectId = "plugin",
+          embeddedProducerIsSeparate = false
+        )
+      )
+      assert(result.errors.exists(_.contains("producer project identity drift")))
+      assert(result.errors.exists(_.contains("rooted at embedded-producer-plugin")))
+    }
+    check("producer project depends only on pluginApi") {
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler),
+        validShape.copy(embeddedProducerProjectDependencies = Set("pluginApi", "plugin"))
+      )
+      assert(result.errors.exists(_.contains("depend only on pluginApi")))
+    }
+    check("forbidden reverse producer dependencies") {
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler),
+        validShape.copy(
+          pluginApiDependsOnEmbeddedProducer = true,
+          consumerPluginDependsOnEmbeddedProducer = true,
+          sbtIntegrationMentionsEmbeddedProducer = true
+        )
+      )
+      assert(result.errors.exists(_.contains("pluginApi must not depend")))
+      assert(result.errors.exists(_.contains("consumer plugin must not depend")))
+      assert(result.errors.exists(_.contains("sbt integration must remain unchanged")))
+    }
+    check("producer compiler dependency is exact") {
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler),
+        validShape.copy(
+          embeddedProducerDependencies = Seq(compiler.copy(version = "0.0.0"))
+        )
+      )
+      assert(result.errors.exists(_.contains("producer compiler version must equal")))
+    }
+    check("producer peer product dependency is forbidden") {
+      val peer = Dependency("example", "quasiquotes-scala3", "1")
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler, peer),
+        validShape.copy(embeddedProducerDependencies = Seq(compiler, peer))
+      )
+      assert(result.errors.exists(_.contains("must not depend on peer product")))
+    }
+
+    check("unexpected producer library dependency is forbidden") {
+      val extra = Dependency("com.example", "unrelated-helper", "1.0.0")
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler, extra),
+        validShape.copy(embeddedProducerDependencies = Seq(compiler, extra))
+      )
+      assert(
+        result.errors.exists(_.contains("unexpected direct library dependency")),
+        result.errors.mkString("; ")
+      )
+    }
+
+
+    check("spoofed producer Scala library dependency is forbidden") {
+      val spoofed = Dependency("com.example", "scala3-library_3", "1.0.0")
+      val result = verify(
+        Seq(compiler),
+        Seq(compiler, spoofed),
+        validShape.copy(embeddedProducerDependencies = Seq(compiler, spoofed))
+      )
+      assert(
+        result.errors.exists(_.contains("Scala library organization must be org.scala-lang")) &&
+          result.errors.exists(_.contains("Scala library version must equal scalaVersion")),
+        result.errors.mkString("; ")
+      )
+    }
 
     assert(completed == CaseCount, s"expected $CaseCount cases, completed $completed")
   }
@@ -147,6 +228,17 @@ object BuildDependencyCoordinatePolicySpec {
       scalaVersion = BuildDependencyCoordinatePolicy.ExpectedScalaVersion,
       sbtVersion = BuildDependencyCoordinatePolicy.ExpectedSbtVersion,
       jdkFeature = BuildDependencyCoordinatePolicy.ExpectedJdkFeature,
+      embeddedProducerProjectId = BuildDependencyCoordinatePolicy.ExpectedEmbeddedProducerProjectId,
+      embeddedProducerIsSeparate = true,
+      embeddedProducerProjectDependencies = Set("pluginApi"),
+      embeddedProducerDependencies = Seq(
+        BuildDependencyCoordinatePolicy.correctedCompiler(
+          BuildDependencyCoordinatePolicy.ExpectedScalaVersion
+        )
+      ),
+      pluginApiDependsOnEmbeddedProducer = false,
+      consumerPluginDependsOnEmbeddedProducer = false,
+      sbtIntegrationMentionsEmbeddedProducer = false,
       pluginApiProjectId = BuildDependencyCoordinatePolicy.ExpectedPluginApiProjectId,
       pluginApiIsSeparate = true,
       pluginTestMarkersProjectId = BuildDependencyCoordinatePolicy.ExpectedPluginTestMarkersProjectId,

@@ -37,6 +37,8 @@ object PublicProductBoundary {
 
   private val ProductRoots = Set(
     "examples",
+    "embedded-producer-plugin",
+    "embedded-producer-plugin-fixture",
     "experimental-structured-metadata-consumer",
     "legacy-metadata-consumers",
     "legacy-metadata-marker-fixture",

@@ -1,0 +1,3 @@
+package p218.negatives.crossfileadaptercollision
+
+final class collided__MacroParadiseEmbeddedExpansionHandler

@@ -53,6 +53,7 @@ object PluginApiSourceProjectSplitPolicy {
     val expectedContract = classified.collect {
       case (entry, "HANDLER_CONTRACT") => entry
       case (entry, "METADATA_CARRIER") => entry
+      case (entry, "PRODUCER_OPT_IN") => entry
     }.toSet
     val expectedMarkers = classified.collect {
       case (entry, "INTEGRATION_FIXTURE_MARKER") => entry
@@ -75,7 +76,7 @@ object PluginApiSourceProjectSplitPolicy {
 
     val contractSources = sources(repositoryRoot, "plugin-api")
     val markerSources = sources(repositoryRoot, "plugin-test-markers")
-    require(contractSources.size == 13, s"expected thirteen contract sources, found ${contractSources.size}")
+    require(contractSources.size == 14, s"expected fourteen contract sources, found ${contractSources.size}")
     require(markerSources.size == 22, s"expected twenty-two marker sources, found ${markerSources.size}")
     require(
       contractSources.forall(_.replace(File.separatorChar, '/').contains("/paradise3/api/")),

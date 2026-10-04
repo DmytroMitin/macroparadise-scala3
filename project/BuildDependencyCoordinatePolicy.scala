@@ -8,9 +8,11 @@ object BuildDependencyCoordinatePolicy {
   val ExpectedJdkFeature = 25
   val ExpectedPluginApiProjectId = "pluginApi"
   val ExpectedPluginTestMarkersProjectId = "pluginTestMarkers"
+  val ExpectedEmbeddedProducerProjectId = "embeddedProducerPlugin"
   val ExpectedRootAggregate = Set(
     "legacyMetadataMarkerFixture",
     "pluginApi",
+    "embeddedProducerPlugin",
     "plugin",
     "pluginTestMarkers",
     "pluginTestHandlers",
@@ -51,6 +53,13 @@ object BuildDependencyCoordinatePolicy {
       pluginTestMarkersIsSeparate: Boolean,
       pluginTestMarkersDependsOnPluginApi: Boolean,
       pluginApiDependsOnPluginTestMarkers: Boolean,
+      embeddedProducerProjectId: String,
+      embeddedProducerIsSeparate: Boolean,
+      embeddedProducerProjectDependencies: Set[String],
+      embeddedProducerDependencies: Seq[Dependency],
+      pluginApiDependsOnEmbeddedProducer: Boolean,
+      consumerPluginDependsOnEmbeddedProducer: Boolean,
+      sbtIntegrationMentionsEmbeddedProducer: Boolean,
       rootAggregate: Set[String],
       surfaceBaselineExists: Boolean,
       surfaceTaskLabels: Set[String]
@@ -99,6 +108,56 @@ object BuildDependencyCoordinatePolicy {
           s"pluginApi compiler dependency must use ordinary compile scope, found ${dependency.configuration}"
     }
 
+    val producerCompilerDependencies =
+      shape.embeddedProducerDependencies.filter(_.artifactBase == "scala3-compiler")
+    if (producerCompilerDependencies.size != 1)
+      errors +=
+        s"embedded producer must contain exactly one direct scala3-compiler dependency, found ${producerCompilerDependencies.size}"
+    producerCompilerDependencies.headOption.foreach { dependency =>
+      if (dependency.organization != "org.scala-lang")
+        errors +=
+          s"embedded producer compiler organization must be org.scala-lang, found ${dependency.organization}"
+      if (dependency.version != shape.scalaVersion)
+        errors +=
+          s"embedded producer compiler version must equal scalaVersion ${shape.scalaVersion}, found ${dependency.version}"
+      if (dependency.classifiers.nonEmpty)
+        errors +=
+          s"embedded producer compiler dependency must not declare classifiers, found ${dependency.classifiers.sorted.mkString(",")}"
+      if (normalizedConfiguration(dependency.configuration) != "compile")
+        errors +=
+          s"embedded producer compiler dependency must use ordinary compile scope, found ${dependency.configuration}"
+    }
+    shape.embeddedProducerDependencies
+      .filter(_.artifactBase == "scala3-library")
+      .foreach { dependency =>
+        if (dependency.organization != "org.scala-lang")
+          errors +=
+            s"embedded producer Scala library organization must be org.scala-lang, found ${dependency.organization}"
+        if (dependency.version != shape.scalaVersion)
+          errors +=
+            s"embedded producer Scala library version must equal scalaVersion ${shape.scalaVersion}, found ${dependency.version}"
+        if (dependency.classifiers.nonEmpty)
+          errors +=
+            s"embedded producer Scala library dependency must not declare classifiers, found ${dependency.classifiers.sorted.mkString(",")}"
+        if (normalizedConfiguration(dependency.configuration) != "compile")
+          errors +=
+            s"embedded producer Scala library dependency must use ordinary compile scope, found ${dependency.configuration}"
+        if (!Set("scala3-library", "scala3-library_3").contains(dependency.artifact))
+          errors +=
+            s"embedded producer Scala library artifact must be scala3-library or scala3-library_3, found ${dependency.artifact}"
+      }
+    shape.embeddedProducerDependencies
+      .filterNot(dependency => Set("scala3-compiler", "scala3-library").contains(dependency.artifactBase))
+      .foreach { dependency =>
+        errors += s"embedded producer has unexpected direct library dependency ${dependency.render}"
+      }
+    shape.embeddedProducerDependencies.foreach { dependency =>
+      val identity = s"${dependency.organization}:${dependency.artifact}".toLowerCase
+      if (identity.contains("quasiquotes") || identity.contains("auxify"))
+        errors +=
+          s"embedded producer must not depend on peer product ${dependency.organization}:${dependency.artifact}"
+    }
+
     allBuildDependencies.foreach { dependency =>
       if (PromptContamination.pattern.matcher(dependency.organization).matches())
         errors +=
@@ -134,6 +193,20 @@ object BuildDependencyCoordinatePolicy {
     if (shape.rootAggregate != ExpectedRootAggregate)
       errors +=
         s"root aggregate drift: expected ${ExpectedRootAggregate.toList.sorted.mkString(",")}, found ${shape.rootAggregate.toList.sorted.mkString(",")}"
+    if (shape.embeddedProducerProjectId != ExpectedEmbeddedProducerProjectId)
+      errors +=
+        s"embedded producer project identity drift: expected $ExpectedEmbeddedProducerProjectId, found ${shape.embeddedProducerProjectId}"
+    if (!shape.embeddedProducerIsSeparate)
+      errors += "embedded producer must remain a separate project rooted at embedded-producer-plugin/"
+    if (shape.embeddedProducerProjectDependencies != Set(ExpectedPluginApiProjectId))
+      errors +=
+        s"embedded producer must depend only on pluginApi; found ${shape.embeddedProducerProjectDependencies.toList.sorted.mkString(",")}"
+    if (shape.pluginApiDependsOnEmbeddedProducer)
+      errors += "pluginApi must not depend on embedded producer"
+    if (shape.consumerPluginDependsOnEmbeddedProducer)
+      errors += "consumer plugin must not depend on embedded producer"
+    if (shape.sbtIntegrationMentionsEmbeddedProducer)
+      errors += "sbt integration must remain unchanged and independent of embedded producer"
     if (!shape.surfaceBaselineExists)
       errors += "experimental API surface baseline file is missing"
     val missingTasks = RequiredSurfaceTasks -- shape.surfaceTaskLabels

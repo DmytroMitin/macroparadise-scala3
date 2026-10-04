@@ -18,11 +18,12 @@ object ExperimentalPluginApiSurface {
   val ExpectedSbtVersion = "1.12.15"
   val ExpectedProjectVersion = "0.1.0"
   val ReviewedNormalizedSha256ByScalaVersion = Map(
-    "3.3.8" -> "c3c5b41571db5dfce425a521d3a8e209dbbd58ecb719be6bb1cffb9eb35a22af",
-    "3.8.4" -> "56bdeafb9f105e071c6f586023abf88af7e0a9302caf63fd2e4e9bebde778a07",
-    "3.9.0" -> "1144d5e2861d673399d66f513c8969d30dc0e7e5d11300d1ecd65ead996de9ce"
+    "3.3.8" -> "8ac9f1bf15378b8a31652f053f12cd863745c038ceda59dac988a9fa005ea244",
+    "3.8.4" -> "e16a1ad304c329eef184a0328e786f7c07e199528b3a7ce8dfdb65c6dcb69722",
+    "3.9.0" -> "62e142e1bda846251c30acf59167f9df759912f5b1c61fc915a5c13605d7532b"
   )
   val MetadataCarrierEntry = "paradise3/api/expander.class"
+  val ProducerOptInEntry = "paradise3/api/embeddedExpander.class"
   val ArtifactRole =
     "exact-build-experimental-precompiled-handler-contract-and-fixtures"
   val ForbiddenPolicyIdentity = "plugin-api-thin-ownership-v1"
@@ -442,7 +443,8 @@ object ExperimentalPluginApiSurface {
         }
     }
 
-    val metadataRecord = metadataCarrierRecord(artifact)
+    val metadataRecords =
+      Vector(metadataCarrierRecord(artifact), producerOptInRecord(artifact))
     val resourceRecords = entries
       .filterNot(entry => entry.endsWith("/") || entry.endsWith(".class"))
       .map {
@@ -460,7 +462,7 @@ object ExperimentalPluginApiSurface {
       s"POLICY|standard-metadata|${StandardMetadataEntries.toVector.sorted.mkString(",")}"
     )
     val records = canonicalizeRecords(
-      classRecords ++ memberRecords ++ Vector(metadataRecord) ++ resourceRecords ++ policyRecords
+      classRecords ++ memberRecords ++ metadataRecords ++ resourceRecords ++ policyRecords
     )
     val body = Vector(
       s"format-version=$FormatVersion",
@@ -560,7 +562,8 @@ object ExperimentalPluginApiSurface {
     )
     val records = canonicalizeRecords(
       classRecords ++ memberRecords ++
-        Vector(metadataCarrierRecord(contractArtifact)) ++ resourceRecords ++ policyRecords
+        Vector(metadataCarrierRecord(contractArtifact), producerOptInRecord(contractArtifact)) ++
+        resourceRecords ++ policyRecords
     )
     val body = Vector(
       s"format-version=$FormatVersion",
@@ -819,6 +822,8 @@ object ExperimentalPluginApiSurface {
     val errors = mutable.ArrayBuffer.empty[String]
     if (classes.get(MetadataCarrierEntry) != Some("METADATA_CARRIER"))
       errors += s"missing metadata carrier classification for $MetadataCarrierEntry"
+    if (classes.get(ProducerOptInEntry) != Some("PRODUCER_OPT_IN"))
+      errors += s"missing producer opt-in classification for $ProducerOptInEntry"
     FixtureMarkerEntries.toVector.sorted.foreach { entry =>
       if (classes.get(entry) != Some("INTEGRATION_FIXTURE_MARKER"))
         errors += s"fixture marker category mismatch for $entry"
@@ -829,7 +834,9 @@ object ExperimentalPluginApiSurface {
     }
     classes.foreach {
       case (entry, "HANDLER_CONTRACT")
-          if !entry.startsWith("paradise3/api/") || entry == MetadataCarrierEntry =>
+          if !entry.startsWith("paradise3/api/") ||
+            entry == MetadataCarrierEntry ||
+            entry == ProducerOptInEntry =>
         errors += s"handler contract category leaked to $entry"
       case (entry, "INTEGRATION_FIXTURE_MARKER")
           if !FixtureMarkerEntries.contains(entry) =>
@@ -895,7 +902,8 @@ object ExperimentalPluginApiSurface {
   }
 
   private def classCategory(entry: String): String =
-    if (entry == MetadataCarrierEntry) "METADATA_CARRIER"
+    if (entry == ProducerOptInEntry) "PRODUCER_OPT_IN"
+    else if (entry == MetadataCarrierEntry) "METADATA_CARRIER"
     else if (entry.startsWith("paradise3/api/")) "HANDLER_CONTRACT"
     else if (FixtureMarkerEntries.contains(entry)) "INTEGRATION_FIXTURE_MARKER"
     else if (FixtureSupportEntries.contains(entry)) "INTEGRATION_FIXTURE_SUPPORT"
@@ -919,6 +927,26 @@ object ExperimentalPluginApiSurface {
       )
       val targets = target.value().map(_.name()).sorted.mkString(",")
       s"METADATA|$MetadataCarrierEntry|retention=${retention.value().name()}|targets=$targets|member=value|descriptor=()Ljava/lang/String;"
+    } finally loader.close()
+  }
+
+  private def producerOptInRecord(artifact: File): String = {
+    val loader = new URLClassLoader(Array(artifact.toURI.toURL), null)
+    try {
+      val carrier = Class.forName("paradise3.api.embeddedExpander", false, loader)
+      val retention = carrier.getAnnotation(classOf[java.lang.annotation.Retention])
+      val target = carrier.getAnnotation(classOf[java.lang.annotation.Target])
+      require(retention != null, "embeddedExpander producer opt-in has no Retention")
+      require(target != null, "embeddedExpander producer opt-in has no Target")
+      val methods = carrier.getDeclaredMethods.toVector
+      require(methods.isEmpty, s"unexpected embeddedExpander members: ${methods.toList}")
+      require(
+        retention.value() == java.lang.annotation.RetentionPolicy.SOURCE,
+        s"embeddedExpander producer opt-in must be SOURCE-retained, found ${retention.value()}"
+      )
+      val targets = target.value().map(_.name()).sorted.mkString(",")
+      require(targets == "TYPE", s"embeddedExpander producer opt-in must target TYPE, found $targets")
+      s"PRODUCER_OPT_IN|$ProducerOptInEntry|retention=${retention.value().name()}|targets=$targets|members=none"
     } finally loader.close()
   }
 

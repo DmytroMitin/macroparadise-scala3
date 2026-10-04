@@ -5,7 +5,7 @@ import java.util.jar.JarFile
 import scala.collection.JavaConverters._
 
 object ExperimentalHandlerContractArtifactSpec {
-  val CaseCount = 17
+  val CaseCount = 18
 
   def run(): Unit = {
     var completed = 0
@@ -35,9 +35,11 @@ object ExperimentalHandlerContractArtifactSpec {
       "CLASS|paradise3/api/Handler.class|HANDLER_CONTRACT|public class Handler",
       "CLASS|paradise3/api/Nested$.class|HANDLER_CONTRACT|public class Nested$",
       "CLASS|paradise3/api/expander.class|METADATA_CARRIER|public annotation expander",
+      "CLASS|paradise3/api/embeddedExpander.class|PRODUCER_OPT_IN|public annotation embeddedExpander",
       "CLASS|paradise3/Fixture.class|INTEGRATION_FIXTURE_MARKER|public class Fixture",
       "CLASS|paradise3/Support.class|INTEGRATION_FIXTURE_SUPPORT|public class Support",
       ExperimentalHandlerContractArtifact.ExpectedMetadataRecord,
+      ExperimentalHandlerContractArtifact.ExpectedProducerOptInRecord,
       "RESOURCE|META-INF/LICENSE|STANDARD_JAR_METADATA",
       "RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA",
       "RESOURCE|paradise3/api/Handler.tasty|SCALA_TASTY",
@@ -54,6 +56,7 @@ object ExperimentalHandlerContractArtifactSpec {
         "paradise3/api/Nested.tasty"
       ))
       assert(plan.metadataCarrier == "paradise3/api/expander.class")
+      assert(plan.producerOptIn == "paradise3/api/embeddedExpander.class")
       assert(plan.allowedEntries.contains("META-INF/LICENSE"))
     }
     check("malformed class record") {
@@ -88,6 +91,13 @@ object ExperimentalHandlerContractArtifactSpec {
       fails("exactly one METADATA_CARRIER") {
         ExperimentalHandlerContractArtifact.parsePlan(
           manifest(validBody :+ "CLASS|paradise3/api/other.class|METADATA_CARRIER|public annotation other")
+        )
+      }
+    }
+    check("missing producer opt-in") {
+      fails("exactly one PRODUCER_OPT_IN") {
+        ExperimentalHandlerContractArtifact.parsePlan(
+          manifest(validBody.filterNot(_.contains("embeddedExpander.class|PRODUCER_OPT_IN")))
         )
       }
     }

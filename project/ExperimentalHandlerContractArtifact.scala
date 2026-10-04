@@ -28,6 +28,7 @@ object ExperimentalHandlerContractArtifact {
   val AllowedCategories = Set(
     "HANDLER_CONTRACT",
     "METADATA_CARRIER",
+    "PRODUCER_OPT_IN",
     "INTEGRATION_FIXTURE_MARKER",
     "INTEGRATION_FIXTURE_SUPPORT"
   )
@@ -42,6 +43,8 @@ object ExperimentalHandlerContractArtifact {
   )
   val ExpectedMetadataRecord =
     "METADATA|paradise3/api/expander.class|retention=RUNTIME|targets=ANNOTATION_TYPE,TYPE|member=value|descriptor=()Ljava/lang/String;"
+  val ExpectedProducerOptInRecord =
+    "PRODUCER_OPT_IN|paradise3/api/embeddedExpander.class|retention=SOURCE|targets=TYPE|members=none"
 
   final case class Config(
       scalaVersion: String,
@@ -52,6 +55,7 @@ object ExperimentalHandlerContractArtifact {
   final case class ContractPlan(
       handlerClasses: Vector[String],
       metadataCarrier: String,
+      producerOptIn: String,
       fixtureMarkers: Vector[String],
       fixtureSupport: Vector[String],
       requiredTasty: Vector[String],
@@ -59,7 +63,7 @@ object ExperimentalHandlerContractArtifact {
       allowedEntries: Vector[String],
       metadataRecord: String
   ) {
-    def includedClassCount: Int = handlerClasses.size + 1
+    def includedClassCount: Int = handlerClasses.size + 2
     def excludedClassCount: Int = fixtureMarkers.size + fixtureSupport.size
   }
 
@@ -186,6 +190,7 @@ object ExperimentalHandlerContractArtifact {
       parsed.collect { case (entry, `category`) => entry }.sorted
 
     val handlers = classes("HANDLER_CONTRACT")
+    val producerOptIns = classes("PRODUCER_OPT_IN")
     val metadata = classes("METADATA_CARRIER")
     val markers = classes("INTEGRATION_FIXTURE_MARKER")
     val support = classes("INTEGRATION_FIXTURE_SUPPORT")
@@ -195,12 +200,20 @@ object ExperimentalHandlerContractArtifact {
       s"manifest must contain exactly one METADATA_CARRIER, found ${metadata.size}"
     )
     require(
+      producerOptIns.size == 1,
+      s"manifest must contain exactly one PRODUCER_OPT_IN, found ${producerOptIns.size}"
+    )
+    require(
       handlers.forall(_.startsWith("paradise3/api/")),
       s"handler contract escaped paradise3/api: ${handlers.filterNot(_.startsWith("paradise3/api/")).mkString(", ")}"
     )
     require(
       metadata.head == ExperimentalPluginApiSurface.MetadataCarrierEntry,
       s"unexpected metadata carrier `${metadata.head}`"
+    )
+    require(
+      producerOptIns.head == ExperimentalPluginApiSurface.ProducerOptInEntry,
+      s"unexpected producer opt-in `${producerOptIns.head}`"
     )
 
     val resourceRecords = body.filter(_.startsWith("RESOURCE|"))
@@ -236,13 +249,19 @@ object ExperimentalHandlerContractArtifact {
       s"runtime expander metadata evidence changed: ${metadataRecords.mkString(", ")}"
     )
 
+    val producerOptInRecords = body.filter(_.startsWith("PRODUCER_OPT_IN|"))
+    require(
+      producerOptInRecords == Vector(ExpectedProducerOptInRecord),
+      s"producer opt-in evidence changed: ${producerOptInRecords.mkString(", ")}"
+    )
     val allowed =
       (ExperimentalPluginApiSurface.StandardMetadataEntries.toVector ++
-        handlers ++ metadata ++ requiredTasty).sorted
+        handlers ++ metadata ++ producerOptIns ++ requiredTasty).sorted
     val fixtureTasty = (tastyResources -- requiredTasty.toSet).toVector.sorted
     ContractPlan(
       handlers,
       metadata.head,
+      producerOptIns.head,
       markers,
       support,
       requiredTasty,

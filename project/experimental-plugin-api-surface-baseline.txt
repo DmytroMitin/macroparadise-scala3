@@ -147,6 +147,7 @@ CLASS|paradise3/api/TargetPatch$ReplaceAnnotations.class|HANDLER_CONTRACT|public
 CLASS|paradise3/api/TargetPatch$SetSelf$.class|HANDLER_CONTRACT|public final class paradise3.api.TargetPatch$SetSelf$ implements scala.deriving.Mirror$Product,java.io.Serializable
 CLASS|paradise3/api/TargetPatch$SetSelf.class|HANDLER_CONTRACT|public final class paradise3.api.TargetPatch$SetSelf extends paradise3.api.TargetPatch
 CLASS|paradise3/api/TargetPatch.class|HANDLER_CONTRACT|public abstract class paradise3.api.TargetPatch implements scala.reflect.Enum
+CLASS|paradise3/api/embeddedExpander.class|PRODUCER_OPT_IN|public interface paradise3.api.embeddedExpander extends java.lang.annotation.Annotation
 CLASS|paradise3/api/expander.class|METADATA_CARRIER|public interface paradise3.api.expander extends java.lang.annotation.Annotation
 CLASS|paradise3/api/helpers/ExpansionHelpers$$anon$1.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$$anon$1 extends scala.runtime.AbstractPartialFunction<scala.Tuple2<dotty.tools.dotc.ast.Trees$Tree<dotty.tools.dotc.core.Types$Type>, java.lang.Object>, paradise3.api.ExpansionDiagnostic> implements java.io.Serializable
 CLASS|paradise3/api/helpers/ExpansionHelpers$$anon$2.class|HANDLER_CONTRACT|public final class paradise3.api.helpers.ExpansionHelpers$$anon$2 extends scala.runtime.AbstractPartialFunction<dotty.tools.dotc.ast.Trees$Tree<dotty.tools.dotc.core.Types$Type>, dotty.tools.dotc.core.Names$Name> implements java.io.Serializable
@@ -2354,6 +2355,7 @@ METADATA|paradise3/api/expander.class|retention=RUNTIME|targets=ANNOTATION_TYPE,
 POLICY|forbidden-package-identity|plugin-api-thin-ownership-v1
 POLICY|forbidden-prefixes|demo/,dotty/,macroparadise/,quasiquotes/,scala/,scala3/,tasty/
 POLICY|standard-metadata|META-INF/LICENSE,META-INF/MANIFEST.MF
+PRODUCER_OPT_IN|paradise3/api/embeddedExpander.class|retention=SOURCE|targets=TYPE|members=none
 RESOURCE|META-INF/LICENSE|STANDARD_JAR_METADATA
 RESOURCE|META-INF/MANIFEST.MF|STANDARD_JAR_METADATA
 RESOURCE|paradise3/api/AnnotationApplication.tasty|SCALA_TASTY
@@ -2426,4 +2428,4 @@ RESOURCE|qualifiedone/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedtwo/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedunknown/audit.tasty|SCALA_TASTY
 RESOURCE|qualifiedwrong/audit.tasty|SCALA_TASTY
-normalized-sha256=56bdeafb9f105e071c6f586023abf88af7e0a9302caf63fd2e4e9bebde778a07
+normalized-sha256=e16a1ad304c329eef184a0328e786f7c07e199528b3a7ce8dfdb65c6dcb69722

@@ -181,18 +181,45 @@ verifyPublicProductPublicationPolicy := {
     "sameModuleHandlerCycleSpike" -> (sameModuleHandlerCycleSpike / publish / skip).value,
     "pluginTestMarkers" -> (pluginTestMarkers / publish / skip).value,
     "pluginTestHandlers" -> (pluginTestHandlers / publish / skip).value,
-    "pluginTests" -> (pluginTests / publish / skip).value
+    "pluginTests" -> (pluginTests / publish / skip).value,
+    "embeddedProducerFixture" -> (embeddedProducerFixture / publish / skip).value,
+    "embeddedProducerOrdinaryMarker" -> (embeddedProducerOrdinaryMarker / publish / skip).value,
+    "embeddedProducerOrdinaryHandler" -> (embeddedProducerOrdinaryHandler / publish / skip).value,
+    "embeddedProducerPackaging" -> (embeddedProducerPackaging / publish / skip).value,
+    "embeddedProducerConsumer" -> (embeddedProducerConsumer / publish / skip).value,
+    "embeddedProducerNegativeTarget" -> (embeddedProducerNegativeTarget / publish / skip).value
   )
   val publishable = Vector(
     "pluginApi" -> (pluginApi / publish / skip).value,
+    "embeddedProducerPlugin" -> (embeddedProducerPlugin / publish / skip).value,
     "plugin" -> (plugin / publish / skip).value
   )
   require(internalSkips.forall(_._2), s"internal publication enabled: ${internalSkips.filterNot(_._2).map(_._1).mkString(", ")}")
   require(publishable.forall(!_._2), s"selected user artifact remains skipped: ${publishable.filter(_._2).map(_._1).mkString(", ")}")
-  require((plugin / publishTo).value.isEmpty && (pluginApi / publishTo).value.isEmpty, "product publication destination is configured")
-  require((plugin / credentials).value.isEmpty && (pluginApi / credentials).value.isEmpty, "product publication credentials are configured")
-  require((plugin / Compile / packageSrc / publishArtifact).value && (pluginApi / Compile / packageSrc / publishArtifact).value, "source artifacts are disabled")
-  require((plugin / Compile / packageDoc / publishArtifact).value && (pluginApi / Compile / packageDoc / publishArtifact).value, "documentation artifacts are disabled")
+  require(
+    (plugin / publishTo).value.isEmpty &&
+      (pluginApi / publishTo).value.isEmpty &&
+      (embeddedProducerPlugin / publishTo).value.isEmpty,
+    "product publication destination is configured"
+  )
+  require(
+    (plugin / credentials).value.isEmpty &&
+      (pluginApi / credentials).value.isEmpty &&
+      (embeddedProducerPlugin / credentials).value.isEmpty,
+    "product publication credentials are configured"
+  )
+  require(
+    (plugin / Compile / packageSrc / publishArtifact).value &&
+      (pluginApi / Compile / packageSrc / publishArtifact).value &&
+      (embeddedProducerPlugin / Compile / packageSrc / publishArtifact).value,
+    "source artifacts are disabled"
+  )
+  require(
+    (plugin / Compile / packageDoc / publishArtifact).value &&
+      (pluginApi / Compile / packageDoc / publishArtifact).value &&
+      (embeddedProducerPlugin / Compile / packageDoc / publishArtifact).value,
+    "documentation artifacts are disabled"
+  )
   streams.value.log.info(s"public-product publication policy verified: publishable=${publishable.map(_._1).mkString(",")} internalSkipped=${internalSkips.size} publishTo=none credentials=none")
 }
 
@@ -211,8 +238,14 @@ verifyPublicProductBoundary := Def
     verifyExperimentalStructuredMetadataDistributionContract,
     verifyLegacyMetadataCompatibilityMatrix,
     verifyPluginApiSourceProjectSplit,
-    pluginApi / Compile / packageBin,
-    plugin / Compile / packageBin,
+    Def.sequential(
+      pluginApi / Compile / packageBin,
+      embeddedProducerPlugin / Compile / packageBin,
+      verifyEmbeddedProducerContract,
+      verifyEmbeddedProducerBodyEditProtocol,
+      verifyEmbeddedProducerNegativeMatrix,
+      plugin / Compile / packageBin
+    ),
     verifyExperimentalPluginApiSurfaceBaseline,
     verifyExperimentalHandlerContractArtifact,
     verifyIndependentPrecompiledHandlerPackagedConsumer,
@@ -295,6 +328,24 @@ lazy val verifySbtPrecompiledIntegrationModule =
   taskKey[Unit]("Verify the source-built sbt integration module in its sbt 1.x / Scala 2.12 universe")
 
 
+lazy val embeddedMarkerRoleJar =
+  taskKey[File]("Package generated embedded marker classes without handler-role classes")
+
+lazy val embeddedHandlerRoleJar =
+  taskKey[File]("Package generated embedded companions and adapters without marker-role classes")
+
+lazy val embeddedCombinedProducerJar =
+  taskKey[File]("Package the unsplit embedded producer output for role-collision rejection")
+
+lazy val verifyEmbeddedProducerContract =
+  taskKey[Unit]("Verify embedded generation, split roles, unchanged consumer loading, and runtime behavior")
+
+lazy val verifyEmbeddedProducerBodyEditProtocol =
+  taskKey[Unit]("Verify clean no-op and transform-body-only producer rebuild semantics")
+
+lazy val verifyEmbeddedProducerNegativeMatrix =
+  taskKey[Unit]("Verify the 15-category embedded producer diagnostic matrix in isolated outputs")
+
 
 lazy val root = (project in file("."))
   .configs(Legacy011Compatibility)
@@ -302,6 +353,7 @@ lazy val root = (project in file("."))
   .aggregate(
     legacyMetadataMarkerFixture,
     pluginApi,
+    embeddedProducerPlugin,
     plugin,
     pluginTestMarkers,
     pluginTestHandlers,
@@ -482,6 +534,763 @@ lazy val sameModuleHandlerCycleSpike =
       }
     )
 
+lazy val embeddedProducerPlugin =
+  (project in file("embedded-producer-plugin"))
+    .dependsOn(pluginApi % "compile-internal")
+    .settings(selectedPublicationSettings)
+    .settings(
+      name := "Macro Paradise Scala 3 Embedded Producer Plugin",
+      moduleName := "macroparadise-scala3-embedded-producer-plugin",
+      crossVersion := CrossVersion.full,
+      description := "Exact-build producer-only compiler plugin for the experimental embeddedExpander declaration frontend.",
+      libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
+      Compile / unmanagedSourceDirectories +=
+        (Compile / sourceDirectory).value / s"scala-${scalaVersion.value}",
+      Compile / packageBin / mappings ++=
+        (pluginApi / Compile / packageBin / mappings).value.filter {
+          case (_, path) => path.startsWith("paradise3/api/")
+        }
+    )
+
+lazy val embeddedProducerFixture =
+  (project in file("embedded-producer-plugin-fixture/producer"))
+    .dependsOn(pluginApi)
+    .settings(
+      name := "macroparadise-scala3-embedded-producer-fixture",
+      publish / skip := true,
+      libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
+      Compile / compile := (Compile / compile)
+        .dependsOn(embeddedProducerPlugin / Compile / packageBin)
+        .value,
+      Compile / scalacOptions += "-Xno-forwarders",
+      Compile / scalacOptions +=
+        s"-Xplugin:${(embeddedProducerPlugin / Compile / packageBin).value.getAbsolutePath}",
+      Compile / scalacOptions +=
+        "-Xplugin-require:macroparadise-embedded-producer"
+    )
+
+lazy val embeddedProducerOrdinaryMarker =
+  (project in file("embedded-producer-plugin-fixture/ordinary-marker"))
+    .dependsOn(pluginApi)
+    .settings(
+      name := "macroparadise-scala3-embedded-producer-ordinary-marker-fixture",
+      publish / skip := true
+    )
+
+lazy val embeddedProducerOrdinaryHandler =
+  (project in file("embedded-producer-plugin-fixture/ordinary-handler"))
+    .dependsOn(pluginApi)
+    .settings(
+      name := "macroparadise-scala3-embedded-producer-ordinary-handler-fixture",
+      publish / skip := true,
+      libraryDependencies += "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
+    )
+
+def embeddedProducerZip(classes: File, names: Seq[String], output: File): File = {
+  val mappings = names.distinct.sorted.map { name =>
+    val source = classes / name
+    require(source.isFile, s"missing generated producer entry $name in $classes")
+    source -> name
+  }
+  IO.delete(output)
+  IO.createDirectory(output.getParentFile)
+  IO.zip(mappings, output, Some(0L))
+  output.getCanonicalFile
+}
+
+def embeddedProducerSha256(file: File): String = {
+  val digest = java.security.MessageDigest.getInstance("SHA-256")
+  val input = java.nio.file.Files.newInputStream(file.toPath)
+  try {
+    val buffer = new Array[Byte](8192)
+    var read = input.read(buffer)
+    while (read >= 0) {
+      if (read > 0) digest.update(buffer, 0, read)
+      read = input.read(buffer)
+    }
+  } finally input.close()
+  digest.digest().map(value => f"${value & 0xff}%02x").mkString
+}
+
+def embeddedProducerSha256(value: String): String =
+  java.security.MessageDigest.getInstance("SHA-256")
+    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+    .map(byte => f"${byte & 0xff}%02x").mkString
+
+lazy val embeddedProducerPackaging =
+  (project in file("embedded-producer-plugin-fixture/packaging"))
+    .settings(
+      publish / skip := true,
+      embeddedMarkerRoleJar := {
+        (embeddedProducerFixture / Compile / compile).value
+        val classes = (embeddedProducerFixture / Compile / classDirectory).value
+        val names = Seq(
+          "identityEmbedded", "addGreeting", "companionEmbedded",
+          "defaultedEmbedded", "genericEmbedded"
+        ).flatMap(name => Seq(s"p218/marker/$name.class", s"p218/marker/$name.tasty")) ++
+          Seq(
+            "p218/marker/defaultedEmbedded$.class",
+            "paradise3/apiary/MarkerConstructorType.class",
+            "paradise3/apiary/MarkerConstructorType.tasty"
+          )
+        embeddedProducerZip(
+          classes,
+          names,
+          target.value / s"embedded-producer-marker-role-${scalaVersion.value}.jar"
+        )
+      },
+      embeddedHandlerRoleJar := {
+        (embeddedProducerFixture / Compile / compile).value
+        val classes = (embeddedProducerFixture / Compile / classDirectory).value
+        val markerEntries = Set(
+          "p218/marker/identityEmbedded.class",
+          "p218/marker/addGreeting.class",
+          "p218/marker/companionEmbedded.class",
+          "p218/marker/defaultedEmbedded.class",
+          "p218/marker/defaultedEmbedded$.class",
+          "paradise3/apiary/MarkerConstructorType.class",
+          "paradise3/apiary/MarkerConstructorType.tasty",
+          "p218/marker/genericEmbedded.class",
+          "p218/marker/identityEmbedded.tasty",
+          "p218/marker/addGreeting.tasty",
+          "p218/marker/companionEmbedded.tasty",
+          "p218/marker/defaultedEmbedded.tasty",
+          "p218/marker/genericEmbedded.tasty"
+        )
+        val names = (classes ** "*").get.filter(_.isFile)
+          .flatMap(file => IO.relativize(classes, file))
+          .filterNot(markerEntries)
+        embeddedProducerZip(
+          classes,
+          names,
+          target.value / s"embedded-producer-handler-role-${scalaVersion.value}.jar"
+        )
+      },
+      embeddedCombinedProducerJar := {
+        (embeddedProducerFixture / Compile / compile).value
+        val classes = (embeddedProducerFixture / Compile / classDirectory).value
+        val names = (classes ** "*").get.filter(_.isFile)
+          .flatMap(file => IO.relativize(classes, file))
+        embeddedProducerZip(
+          classes,
+          names,
+          target.value / s"embedded-producer-combined-${scalaVersion.value}.jar"
+        )
+      }
+    )
+
+def embeddedProducerMarkerArtifacts: Def.Initialize[Task[Seq[File]]] = Def.task {
+  Seq(
+    (embeddedProducerPackaging / embeddedMarkerRoleJar).value,
+    (embeddedProducerOrdinaryMarker / Compile / packageBin).value.getCanonicalFile
+  )
+}
+
+def embeddedProducerHandlerClasspath: Def.Initialize[Task[Seq[File]]] = Def.task {
+  val embedded = (embeddedProducerPackaging / embeddedHandlerRoleJar).value
+  val ordinary = (embeddedProducerOrdinaryHandler / Compile / packageBin).value.getCanonicalFile
+  val api = (pluginApi / Compile / packageBin).value.getCanonicalFile
+  val ordinaryClasses =
+    (embeddedProducerOrdinaryHandler / Compile / classDirectory).value.getCanonicalFile
+  val runtime = (embeddedProducerOrdinaryHandler / Runtime / dependencyClasspath).value.files
+    .map(_.getCanonicalFile)
+    .filterNot(file => file == ordinaryClasses || file == ordinary)
+    .filter(_.isFile)
+  (Seq(embedded, ordinary, api) ++ runtime).distinct
+}
+
+def embeddedProducerExternalIdentity: Def.Initialize[Task[String]] = Def.task {
+  val manifest =
+    embeddedProducerMarkerArtifacts.value.zipWithIndex.map { case (file, index) =>
+      s"marker\tmarker-$index%04d\t${embeddedProducerSha256(file)}\n"
+    }.mkString +
+      embeddedProducerHandlerClasspath.value.zipWithIndex.map { case (file, index) =>
+        s"handler\t$index%04d:handler-$index%04d\t${embeddedProducerSha256(file)}\n"
+      }.mkString
+  embeddedProducerSha256(manifest)
+}
+
+lazy val embeddedProducerConsumer =
+  (project in file("embedded-producer-plugin-fixture/consumer"))
+    .settings(
+      name := "macroparadise-scala3-embedded-producer-consumer-fixture",
+      publish / skip := true,
+      Compile / unmanagedJars ++=
+        embeddedProducerMarkerArtifacts.value.map(Attributed.blank),
+      Compile / scalacOptions ++= {
+        val handlers = embeddedProducerHandlerClasspath.value
+        Seq(
+          s"-Xplugin:${(plugin / Compile / packageBin).value.getAbsolutePath}",
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=${handlers.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
+          s"-P:macroparadise:externalArtifactIdentity=sha256:${embeddedProducerExternalIdentity.value}"
+        )
+      },
+      Compile / run / mainClass := Some("p218.consumer.Positive")
+    )
+
+lazy val embeddedProducerNegativeTarget =
+  (project in file("embedded-producer-plugin-fixture/negative-target"))
+    .settings(
+      name := "macroparadise-scala3-embedded-producer-negative-target-fixture",
+      publish / skip := true,
+      Compile / unmanagedJars ++=
+        embeddedProducerMarkerArtifacts.value.map(Attributed.blank),
+      Compile / scalacOptions ++= {
+        val handlers = embeddedProducerHandlerClasspath.value
+        Seq(
+          s"-Xplugin:${(plugin / Compile / packageBin).value.getAbsolutePath}",
+          "-Xplugin-require:macroparadise",
+          s"-P:macroparadise:handlerClasspath=${handlers.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
+          s"-P:macroparadise:externalArtifactIdentity=sha256:${embeddedProducerExternalIdentity.value}"
+        )
+      }
+    )
+
+verifyEmbeddedProducerContract := {
+  import scala.collection.JavaConverters._
+  import scala.sys.process.{Process, ProcessLogger}
+
+  val marker = (embeddedProducerPackaging / embeddedMarkerRoleJar).value
+  val handler = (embeddedProducerPackaging / embeddedHandlerRoleJar).value
+  val combined = (embeddedProducerPackaging / embeddedCombinedProducerJar).value
+  val pluginJar = (plugin / Compile / packageBin).value.getCanonicalFile
+  val apiJar = (pluginApi / Compile / packageBin).value.getCanonicalFile
+  val producerClasses = (embeddedProducerFixture / Compile / classDirectory).value
+  (embeddedProducerConsumer / Compile / compile).value
+
+  val consumerDependencies =
+    (embeddedProducerConsumer / Compile / dependencyClasspath).value.files
+      .filter(_.isFile).map(_.getName).toVector
+  require(
+    !consumerDependencies.exists(name =>
+      name.startsWith("macroparadise-scala3-plugin-api") || name.startsWith("scala3-compiler")
+    ),
+    s"embedded marker consumer leaks handler/compiler dependencies: ${consumerDependencies.sorted.mkString(",")}"
+  )
+
+  def entries(file: File): Vector[String] = {
+    val jar = new java.util.jar.JarFile(file)
+    try jar.entries().asScala.map(_.getName).filterNot(_.endsWith("/")).toVector
+    finally jar.close()
+  }
+
+  val markerEntries = entries(marker)
+  val handlerEntries = entries(handler)
+  require(
+    markerEntries.toSet.intersect(handlerEntries.toSet).isEmpty,
+    "derived embedded marker/handler role JARs are not disjoint"
+  )
+  require(
+    markerEntries.toSet == Set(
+      "p218/marker/identityEmbedded.class",
+      "p218/marker/identityEmbedded.tasty",
+      "p218/marker/addGreeting.class",
+      "p218/marker/addGreeting.tasty",
+      "p218/marker/companionEmbedded.class",
+      "p218/marker/companionEmbedded.tasty",
+      "p218/marker/defaultedEmbedded.class",
+      "p218/marker/defaultedEmbedded$.class",
+      "p218/marker/defaultedEmbedded.tasty",
+      "p218/marker/genericEmbedded.class",
+      "paradise3/apiary/MarkerConstructorType.class",
+      "paradise3/apiary/MarkerConstructorType.tasty",
+      "p218/marker/genericEmbedded.tasty"
+    ),
+    s"unexpected embedded marker-role inventory: ${markerEntries.mkString(",")}"
+  )
+
+  def entryBytes(file: File, name: String): Array[Byte] = {
+    val jar = new java.util.jar.JarFile(file)
+    try {
+      val entry = Option(jar.getJarEntry(name)).getOrElse(
+        sys.error(s"missing role entry $name in ${file.getAbsolutePath}")
+      )
+      val stream = jar.getInputStream(entry)
+      try {
+        val output = new java.io.ByteArrayOutputStream
+        val buffer = new Array[Byte](8192)
+        var read = stream.read(buffer)
+        while (read >= 0) {
+          if (read > 0) output.write(buffer, 0, read)
+          read = stream.read(buffer)
+        }
+        output.toByteArray
+      } finally stream.close()
+    } finally jar.close()
+  }
+  val forbiddenMarkerTokens = Vector(
+    "transform", "ExpansionInput", "ExpansionOutcome", "Contexts$Context", "EmbeddedEvidence",
+    "embeddedExpander", "dotty.tools.dotc", "Contexts", "ExpansionTransforms",
+    "MissingCompanionPolicy", "paradise3.api.Expansion"
+  )
+  markerEntries.foreach { name =>
+    val raw = new String(entryBytes(marker, name), java.nio.charset.StandardCharsets.ISO_8859_1)
+    val leaked = forbiddenMarkerTokens.filter(raw.contains)
+    require(leaked.isEmpty, s"marker role entry $name leaks handler/compiler tokens: ${leaked.mkString(",")}")
+  }
+  require(
+    handlerEntries.contains(
+      "p218/marker/identityEmbedded__MacroParadiseEmbeddedExpansionHandler.class"
+    ),
+    "embedded handler role lacks generated identity adapter"
+  )
+  require(
+    handlerEntries.contains(
+      "p218/marker/identityEmbedded__MacroParadiseEmbeddedTransform$.class"
+    ) &&
+      !handlerEntries.contains("p218/marker/identityEmbedded.class") &&
+      !handlerEntries.contains("p218/marker/defaultedEmbedded$.class"),
+    "embedded handler role companion/marker split changed"
+  )
+
+  val markerNames = markerEntries
+  val handlerNames = handlerEntries
+  val markerSecond = target.value / "embedded-producer-contract" / "marker-second.jar"
+  val handlerSecond = target.value / "embedded-producer-contract" / "handler-second.jar"
+  embeddedProducerZip(producerClasses, markerNames, markerSecond)
+  embeddedProducerZip(producerClasses, handlerNames, handlerSecond)
+  require(
+    java.util.Arrays.equals(
+      java.nio.file.Files.readAllBytes(marker.toPath),
+      java.nio.file.Files.readAllBytes(markerSecond.toPath)
+    ),
+    "embedded marker role is not byte-deterministic"
+  )
+  require(
+    java.util.Arrays.equals(
+      java.nio.file.Files.readAllBytes(handler.toPath),
+      java.nio.file.Files.readAllBytes(handlerSecond.toPath)
+    ),
+    "embedded handler role is not byte-deterministic"
+  )
+
+  val runtimeClasspath =
+    (pluginJar +: (plugin / Runtime / dependencyClasspath).value.files.filter(_.isFile))
+      .map(_.getCanonicalPath).distinct
+  val handlerCompileClasspath =
+    (apiJar +: (embeddedProducerOrdinaryHandler / Compile / dependencyClasspath).value.files
+      .filter(_.isFile))
+      .map(_.getCanonicalPath).distinct
+  val javaCommand = java.nio.file.Path.of(
+    System.getProperty("java.home"),
+    "bin",
+    if (scala.util.Properties.isWin) "java.exe" else "java"
+  ).toString
+
+  def precheck(markerArtifact: File, handlerArtifact: File): (Int, String) = {
+    val output = new StringBuilder
+    val command = Seq(
+      javaCommand,
+      "-cp",
+      runtimeClasspath.mkString(java.io.File.pathSeparator),
+      "macroparadise.ExternalHandlerPrecheckMain",
+      s"--plugin=${pluginJar.getAbsolutePath}",
+      s"--plugin-api=${apiJar.getAbsolutePath}",
+      s"--marker=${markerArtifact.getAbsolutePath}",
+      s"--handler=${handlerArtifact.getAbsolutePath}",
+      s"--handler-compile-classpath=${handlerCompileClasspath.mkString(java.io.File.pathSeparator)}",
+      "--marker-class=p218.marker.identityEmbedded",
+      "--expected-handler-class=p218.marker.identityEmbedded__MacroParadiseEmbeddedExpansionHandler",
+      "--expected-annotation=p218.marker.identityEmbedded",
+      s"--expected-scala-version=${scalaVersion.value}",
+      s"--expected-jdk-major=${java.lang.Runtime.version().feature()}"
+    )
+    val exit = Process(command, baseDirectory.value).!(
+      ProcessLogger(line => output.append(line).append('\n'), line => output.append(line).append('\n'))
+    )
+    exit -> output.result()
+  }
+
+  val (splitExit, splitOutput) = precheck(marker, handler)
+  require(splitExit == 0, s"derived split roles failed current precheck: $splitOutput")
+  val (combinedExit, combinedOutput) = precheck(combined, combined)
+  require(
+    combinedExit != 0 && combinedOutput.contains("WRONG_ARTIFACT_ROLE"),
+    s"combined producer artifact was not rejected by current precheck: $combinedOutput"
+  )
+
+  val markerArtifacts = embeddedProducerMarkerArtifacts.value
+  val negativeCompilerClasspath =
+    (Seq(apiJar) ++ markerArtifacts ++
+      (embeddedProducerFixture / Compile / dependencyClasspath).value.files.filter(_.isFile))
+      .map(_.getCanonicalFile).distinct
+  val handlers = embeddedProducerHandlerClasspath.value
+  def compileConsumerNegative(sourceName: String): (Int, String, File) = {
+    val negativeOutput = target.value / "embedded-producer-contract" /
+      scalaVersion.value / s"negative-${sourceName.stripSuffix(".scala")}-classes"
+    IO.delete(negativeOutput)
+    IO.createDirectory(negativeOutput)
+    val negativeLog = new StringBuilder
+    val negativeCommand = Seq(
+      javaCommand,
+      "-cp",
+      negativeCompilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+      "dotty.tools.dotc.Main",
+      "-color:never",
+      "-classpath",
+      negativeCompilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+      "-d",
+      negativeOutput.getAbsolutePath,
+      s"-Xplugin:${pluginJar.getAbsolutePath}",
+      "-Xplugin-require:macroparadise",
+      s"-P:macroparadise:handlerClasspath=${handlers.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
+      s"-P:macroparadise:externalArtifactIdentity=sha256:${embeddedProducerExternalIdentity.value}",
+      (baseDirectory.value / "embedded-producer-plugin-fixture" / "negative-target" /
+        "src" / "main" / "scala" / "p218" / "consumer" / sourceName).getAbsolutePath
+    )
+    val negativeExit = Process(negativeCommand, baseDirectory.value).!(
+      ProcessLogger(
+        line => negativeLog.append(line).append('\n'),
+        line => negativeLog.append(line).append('\n')
+      )
+    )
+    (negativeExit, negativeLog.result(), negativeOutput)
+  }
+
+  val (objectExit, objectLog, objectOutput) =
+    compileConsumerNegative("NegativeTarget.scala")
+  require(
+    objectExit != 0 && objectLog.contains("P218_ADD_GREETING_CLASS_REQUIRED"),
+    s"object applicability negative lacked handler-owned rejection: $objectLog"
+  )
+  require(
+    (objectOutput ** "*").get.forall(!_.isFile),
+    "object applicability negative emitted partial consumer output"
+  )
+
+  val (argumentExit, argumentLog, argumentOutput) =
+    compileConsumerNegative("UnsupportedArgument.scala")
+  require(
+    argumentExit != 0 && argumentLog.contains("requires a string literal"),
+    s"unsupported annotation syntax lacked handler-owned rejection: $argumentLog"
+  )
+  require(
+    (argumentOutput ** "*").get.forall(!_.isFile),
+    "unsupported annotation syntax emitted partial consumer output"
+  )
+
+  val runResult = (embeddedProducerConsumer / Compile / runner).value.run(
+    "p218.consumer.Positive",
+    (embeddedProducerConsumer / Runtime / fullClasspath).value.files,
+    Seq.empty,
+    streams.value.log
+  )
+  runResult.get
+  streams.value.log.info(
+    s"embedded producer contract verified: markerSha256=${embeddedProducerSha256(marker)} " +
+      s"handlerSha256=${embeddedProducerSha256(handler)} splitPrecheck=PASS combinedRole=REJECTED"
+  )
+}
+
+verifyEmbeddedProducerBodyEditProtocol := {
+  import scala.collection.JavaConverters._
+  import scala.sys.process.{Process, ProcessLogger}
+
+  final case class Variant(marker: File, handler: File, markerHash: String, handlerHash: String)
+
+  val protocolRoot = target.value / "embedded-producer-body-edit" / scalaVersion.value
+  IO.delete(protocolRoot)
+  IO.createDirectory(protocolRoot)
+  val producerSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "producer" / "src" / "main" / "scala" / "p218" / "marker" / "EmbeddedAnnotations.scala"
+  val baselineSource = IO.read(producerSource)
+  val probeSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "producer" / "src" / "main" / "scala" / "p218" / "marker" /
+    "CompanionReferenceProbes.scala"
+  val probeSourceText = IO.read(probeSource)
+  val importedProbeSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "producer" / "src" / "main" / "scala" / "p218" / "probe" /
+    "ImportedCompanionReferenceProbe.scala"
+  val importedProbeSourceText = IO.read(importedProbeSource)
+  val importScopeProbeSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "producer" / "src" / "main" / "scala" / "p218" / "probe" /
+    "ImportScopeProbes.scala"
+  val importScopeProbeSourceText = IO.read(importScopeProbeSource)
+  val unrelatedSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "producer" / "src" / "main" / "scala" / "p218" / "unrelated" /
+    "Unrelated.scala"
+  val unrelatedSourceText = IO.read(unrelatedSource)
+  val markerConstructorTypeSource = baseDirectory.value /
+    "embedded-producer-plugin-fixture" / "producer" / "src" / "main" / "scala" /
+    "paradise3" / "apiary" / "MarkerConstructorType.scala"
+  val markerConstructorTypeSourceText = IO.read(markerConstructorTypeSource)
+  require(
+    baselineSource.sliding("P218_EDIT_V1".length).count(_ == "P218_EDIT_V1") == 1,
+    "body-edit protocol requires exactly one P218_EDIT_V1 transform literal"
+  )
+  val editedSource = baselineSource.replace("P218_EDIT_V1", "P218_EDIT_V2")
+  val producerPluginJar =
+    (embeddedProducerPlugin / Compile / packageBin).value.getCanonicalFile
+  val consumerPluginJar = (plugin / Compile / packageBin).value.getCanonicalFile
+  val apiJar = (pluginApi / Compile / packageBin).value.getCanonicalFile
+  val producerCompilerClasspath =
+    (apiJar +: (embeddedProducerFixture / Compile / dependencyClasspath).value.files
+      .filter(_.isFile)).map(_.getCanonicalFile).distinct
+  val javaCommand = java.nio.file.Path.of(
+    System.getProperty("java.home"),
+    "bin",
+    if (scala.util.Properties.isWin) "java.exe" else "java"
+  ).toString
+  val markerEntryNames = Seq(
+    "identityEmbedded", "addGreeting", "companionEmbedded",
+    "defaultedEmbedded", "genericEmbedded"
+  ).flatMap(name => Seq(s"p218/marker/$name.class", s"p218/marker/$name.tasty")) ++
+    Seq(
+      "p218/marker/defaultedEmbedded$.class",
+      "paradise3/apiary/MarkerConstructorType.class",
+      "paradise3/apiary/MarkerConstructorType.tasty"
+    )
+
+  def execute(command: Seq[String], label: String): String = {
+    val output = new StringBuilder
+    val exit = Process(command, baseDirectory.value).!(
+      ProcessLogger(
+        line => output.append(line).append('\n'),
+        line => output.append(line).append('\n')
+      )
+    )
+    require(exit == 0, s"$label failed with exit=$exit:\n$output")
+    output.result()
+  }
+
+  def compileVariant(label: String, sourceText: String): Variant = {
+    val variantRoot = protocolRoot / label
+    val sourceCopy = protocolRoot / "src" / "p218" / "marker" / "EmbeddedAnnotations.scala"
+    val probeCopy = protocolRoot / "src" / "p218" / "marker" /
+      "CompanionReferenceProbes.scala"
+    val importedProbeCopy = protocolRoot / "src" / "p218" / "probe" /
+      "ImportedCompanionReferenceProbe.scala"
+    val importScopeProbeCopy = protocolRoot / "src" / "p218" / "probe" /
+      "ImportScopeProbes.scala"
+    val unrelatedCopy = protocolRoot / "src" / "p218" / "unrelated" /
+      "Unrelated.scala"
+    val markerConstructorTypeCopy = protocolRoot / "src" / "paradise3" / "apiary" /
+      "MarkerConstructorType.scala"
+    val classes = variantRoot / "classes"
+    IO.createDirectory(sourceCopy.getParentFile)
+    IO.createDirectory(classes)
+    IO.write(sourceCopy, sourceText)
+    IO.write(probeCopy, probeSourceText)
+    IO.createDirectory(importedProbeCopy.getParentFile)
+    IO.write(importedProbeCopy, importedProbeSourceText)
+    IO.write(importScopeProbeCopy, importScopeProbeSourceText)
+    IO.createDirectory(unrelatedCopy.getParentFile)
+    IO.write(unrelatedCopy, unrelatedSourceText)
+    IO.createDirectory(markerConstructorTypeCopy.getParentFile)
+    IO.write(markerConstructorTypeCopy, markerConstructorTypeSourceText)
+    execute(
+      Seq(
+        javaCommand,
+        "-cp",
+        producerCompilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+        "dotty.tools.dotc.Main",
+        "-color:never",
+        "-classpath",
+        producerCompilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+        "-d",
+        classes.getAbsolutePath,
+        "-Xno-forwarders",
+        s"-Xplugin:${producerPluginJar.getAbsolutePath}",
+        "-Xplugin-require:macroparadise-embedded-producer",
+        sourceCopy.getAbsolutePath,
+        probeCopy.getAbsolutePath,
+        importedProbeCopy.getAbsolutePath,
+        importScopeProbeCopy.getAbsolutePath,
+        unrelatedCopy.getAbsolutePath,
+        markerConstructorTypeCopy.getAbsolutePath
+      ),
+      s"$label producer compilation"
+    )
+    val markerEntries = markerEntryNames
+    val markerSet = markerEntries.toSet
+    val handlerEntries = (classes ** "*").get.filter(_.isFile)
+      .flatMap(file => IO.relativize(classes, file))
+      .filterNot(markerSet)
+    val marker = embeddedProducerZip(classes, markerEntries, variantRoot / "marker.jar")
+    val handler = embeddedProducerZip(classes, handlerEntries, variantRoot / "handler.jar")
+    Variant(
+      marker,
+      handler,
+      embeddedProducerSha256(marker),
+      embeddedProducerSha256(handler)
+    )
+  }
+
+  val ordinaryMarker =
+    (embeddedProducerOrdinaryMarker / Compile / packageBin).value.getCanonicalFile
+  val ordinaryHandler =
+    (embeddedProducerOrdinaryHandler / Compile / packageBin).value.getCanonicalFile
+  val ordinaryHandlerClasses =
+    (embeddedProducerOrdinaryHandler / Compile / classDirectory).value.getCanonicalFile
+  val handlerRuntime =
+    (embeddedProducerOrdinaryHandler / Runtime / dependencyClasspath).value.files
+      .map(_.getCanonicalFile)
+      .filterNot(file => file == ordinaryHandlerClasses || file == ordinaryHandler)
+      .filter(_.isFile)
+  val consumerCompilerClasspath = producerCompilerClasspath.filter { file =>
+    val name = file.getName
+    name.startsWith("scala3-library_3-") || name.startsWith("scala-library-")
+  }
+  val consumerRuntimeClasspath = consumerCompilerClasspath
+  val consumerSource = baseDirectory.value / "embedded-producer-plugin-fixture" /
+    "consumer" / "src" / "main" / "scala" / "p218" / "consumer" / "Positive.scala"
+
+  def verifyBehavior(label: String, variant: Variant, expectedEdit: String): Unit = {
+    val output = protocolRoot / label / "consumer-classes"
+    IO.createDirectory(output)
+    val markerArtifacts = Seq(variant.marker, ordinaryMarker)
+    val handlerClasspath =
+      (Seq(variant.handler, ordinaryHandler, apiJar) ++ handlerRuntime).distinct
+    val identityManifest =
+      markerArtifacts.zipWithIndex.map { case (file, index) =>
+        s"marker\tmarker-$index%04d\t${embeddedProducerSha256(file)}\n"
+      }.mkString +
+        handlerClasspath.zipWithIndex.map { case (file, index) =>
+          s"handler\t$index%04d:handler-$index%04d\t${embeddedProducerSha256(file)}\n"
+        }.mkString
+    val externalIdentity = embeddedProducerSha256(identityManifest)
+    val compileClasspath = (markerArtifacts ++ consumerCompilerClasspath).distinct
+    execute(
+      Seq(
+        javaCommand,
+        "-cp",
+        producerCompilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+        "dotty.tools.dotc.Main",
+        "-color:never",
+        "-classpath",
+        compileClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+        "-d",
+        output.getAbsolutePath,
+        s"-Xplugin:${consumerPluginJar.getAbsolutePath}",
+        "-Xplugin-require:macroparadise",
+        s"-P:macroparadise:handlerClasspath=${handlerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator)}",
+        s"-P:macroparadise:externalArtifactIdentity=sha256:$externalIdentity",
+        consumerSource.getAbsolutePath
+      ),
+      s"$label consumer compilation"
+    )
+    val runtimeOutput = execute(
+      Seq(
+        javaCommand,
+        s"-Dp218.expectedEdit=$expectedEdit",
+        "-cp",
+        (output +: consumerRuntimeClasspath).map(_.getAbsolutePath)
+          .mkString(java.io.File.pathSeparator),
+        "p218.consumer.Positive"
+      ),
+      s"$label consumer runtime"
+    )
+    require(runtimeOutput.contains("P218_POSITIVE_RUNTIME_PASS"), s"$label runtime proof missing")
+  }
+
+  val baseline = compileVariant("baseline", baselineSource)
+  val noOp = compileVariant("no-op", baselineSource)
+  require(baseline.markerHash == noOp.markerHash, "no-op rebuild changed marker role")
+  require(baseline.handlerHash == noOp.handlerHash, "no-op rebuild changed handler role")
+  verifyBehavior("baseline", baseline, "P218_EDIT_V1")
+
+  val edited = compileVariant("edited", editedSource)
+  require(baseline.markerHash == edited.markerHash, "transform-only edit changed marker role")
+  require(baseline.handlerHash != edited.handlerHash, "transform-only edit did not change handler role")
+  verifyBehavior("edited", edited, "P218_EDIT_V2")
+
+  val restored = compileVariant("restored", baselineSource)
+  require(baseline.markerHash == restored.markerHash, "restored marker role missed baseline")
+  require(baseline.handlerHash == restored.handlerHash, "restored handler role missed baseline")
+  streams.value.log.info(
+    s"embedded producer body-edit protocol verified: baselineMarker=${baseline.markerHash} " +
+      s"baselineHandler=${baseline.handlerHash} editedMarker=${edited.markerHash} " +
+      s"editedHandler=${edited.handlerHash} restored=PASS"
+  )
+}
+
+verifyEmbeddedProducerNegativeMatrix := {
+  import scala.collection.JavaConverters._
+  import scala.sys.process.{Process, ProcessLogger}
+
+  val cases = Vector(
+    ("missing-companion", "EMBEDDED_COMPANION_REQUIRED"),
+    ("missing-transform", "EMBEDDED_TRANSFORM_COUNT"),
+    ("multiple-transform", "EMBEDDED_TRANSFORM_COUNT"),
+    ("wrong-clauses", "EMBEDDED_TRANSFORM_SIGNATURE"),
+    ("wrong-types", "EMBEDDED_TRANSFORM_SIGNATURE"),
+    ("inaccessible-transform", "EMBEDDED_TRANSFORM_ACCESS"),
+    ("not-static", "EMBEDDED_STATIC_ANNOTATION_PARENT"),
+    ("non-final", "EMBEDDED_FINAL_CLASS_REQUIRED"),
+    ("nested", "EMBEDDED_TOPOLOGY"),
+    ("adapter-collision", "EMBEDDED_ADAPTER_COLLISION"),
+    ("metadata-collision", "EMBEDDED_METADATA_COLLISION"),
+    ("duplicate-opt-in", "EMBEDDED_DUPLICATE_OPT_IN"),
+    ("ambiguous-opt-in", "EMBEDDED_OPT_IN_IDENTITY"),
+    ("legacy-implicit", "EMBEDDED_TRANSFORM_SIGNATURE"),
+    ("cross-file-adapter-collision", "EMBEDDED_ADAPTER_COLLISION"),
+    ("cross-file-shadow", "EMBEDDED_OPT_IN_IDENTITY"),
+    ("duplicate-canonical", "EMBEDDED_DUPLICATE_CANONICAL_IDENTITY"),
+    ("adapter-typing", "Found:")
+  )
+  val pluginJar =
+    (embeddedProducerPlugin / Compile / packageBin).value.getCanonicalFile
+  val apiJar = (pluginApi / Compile / packageBin).value.getCanonicalFile
+  val compilerClasspath =
+    (apiJar +: (embeddedProducerFixture / Compile / dependencyClasspath).value.files
+      .filter(_.isFile))
+      .map(_.getCanonicalFile).distinct
+  val javaCommand = java.nio.file.Path.of(
+    System.getProperty("java.home"),
+    "bin",
+    if (scala.util.Properties.isWin) "java.exe" else "java"
+  ).toString
+  val evidence = target.value / "embedded-producer-negative-matrix" / scalaVersion.value
+  IO.delete(evidence)
+  IO.createDirectory(evidence)
+
+  cases.foreach { case (id, expected) =>
+    val sourceRoot = baseDirectory.value / "embedded-producer-plugin-fixture" /
+      "negatives" / id
+    val sources = (sourceRoot ** "*.scala").get.sorted
+    require(sources.nonEmpty, s"negative matrix case $id has no source")
+    val output = evidence / id / "classes"
+    val logFile = evidence / id / "compile.log"
+    IO.createDirectory(output)
+    val command = Seq(
+      javaCommand,
+      "-cp",
+      compilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+      "dotty.tools.dotc.Main",
+      "-color:never",
+      "-classpath",
+      compilerClasspath.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+      "-d",
+      output.getAbsolutePath,
+      s"-Xplugin:${pluginJar.getAbsolutePath}",
+      "-Xplugin-require:macroparadise-embedded-producer"
+    ) ++ sources.map(_.getAbsolutePath)
+    val captured = new StringBuilder
+    val exit = Process(command, baseDirectory.value).!(
+      ProcessLogger(
+        line => captured.append(line).append('\n'),
+        line => captured.append(line).append('\n')
+      )
+    )
+    val logText = captured.result()
+    IO.write(logFile, logText)
+    require(exit != 0, s"negative matrix case $id unexpectedly compiled")
+    require(
+      logText.contains(expected),
+      s"negative matrix case $id lacked expected $expected evidence:\n$logText"
+    )
+    val outputs = (output ** "*").get.filter(_.isFile)
+    require(
+      !outputs.exists(_.getName.contains("__MacroParadiseEmbeddedExpansionHandler")),
+      s"negative matrix case $id emitted a consumer-ready adapter: ${outputs.mkString(",")}"
+    )
+  }
+  streams.value.log.info(
+    s"embedded producer negative matrix verified: cases=${cases.size}/18 evidence=${evidence.getAbsolutePath}"
+  )
+}
+
 lazy val pluginApi = (project in file("plugin-api"))
   .settings(selectedPublicationSettings)
   .settings(
@@ -549,6 +1358,18 @@ verifyBuildDependencyCoordinatePolicy := {
     structure.allProjectPairs.find(_._2 == pluginTestMarkersRef).map(_._1).getOrElse {
       sys.error("pluginTestMarkers project definition is missing from the loaded build")
     }
+  val embeddedProducerRef =
+    rootBuildRefs.find(_.project == "embeddedProducerPlugin").getOrElse {
+      sys.error("embeddedProducerPlugin project is missing from the loaded build")
+    }
+  val embeddedProducerProject =
+    structure.allProjectPairs.find(_._2 == embeddedProducerRef).map(_._1).getOrElse {
+      sys.error("embeddedProducerPlugin project definition is missing from the loaded build")
+    }
+  val consumerPluginRef = rootBuildRefs.find(_.project == "plugin").get
+  val consumerPluginProject =
+    structure.allProjectPairs.find(_._2 == consumerPluginRef).map(_._1).get
+
   val expectedPluginApiBase = (baseDirectory.value / "plugin-api").getCanonicalFile
   val expectedPluginTestMarkersBase =
     (baseDirectory.value / "plugin-test-markers").getCanonicalFile
@@ -563,7 +1384,17 @@ verifyBuildDependencyCoordinatePolicy := {
       pluginTestMarkersProject.base.getCanonicalFile == expectedPluginTestMarkersBase,
     pluginTestMarkersProject.dependencies.exists(_.project == pluginApiRef),
     pluginApiProject.dependencies.exists(_.project == pluginTestMarkersRef),
+    embeddedProducerProject.id,
+    embeddedProducerProject.base.getCanonicalFile ==
+      (baseDirectory.value / "embedded-producer-plugin").getCanonicalFile,
+    embeddedProducerProject.dependencies.map(_.project.project).toSet,
+    (embeddedProducerPlugin / libraryDependencies).value.map(dependency),
+    pluginApiProject.dependencies.exists(_.project == embeddedProducerRef),
+    consumerPluginProject.dependencies.exists(_.project == embeddedProducerRef),
+    IO.read(baseDirectory.value / "sbt-integration" / "build.sbt")
+      .contains("embeddedProducerPlugin"),
     rootProject.aggregate.map(_.project).toSet,
+
     experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value).isFile,
     Set(
       renderExperimentalPluginApiSurfaceBaseline.key.label,
@@ -607,6 +1438,13 @@ verifyPluginApiCleanResolution := {
   val pluginTestMarkersRef = rootBuildRefs.find(_.project == "pluginTestMarkers").get
   val pluginTestMarkersProject =
     structure.allProjectPairs.find(_._2 == pluginTestMarkersRef).map(_._1).get
+  val embeddedProducerRef = rootBuildRefs.find(_.project == "embeddedProducerPlugin").get
+  val embeddedProducerProject =
+    structure.allProjectPairs.find(_._2 == embeddedProducerRef).map(_._1).get
+  val consumerPluginRef = rootBuildRefs.find(_.project == "plugin").get
+  val consumerPluginProject =
+    structure.allProjectPairs.find(_._2 == consumerPluginRef).map(_._1).get
+
   val shape = BuildDependencyCoordinatePolicy.BuildShape(
     scalaVersion.value,
     sbtVersion.value,
@@ -618,6 +1456,15 @@ verifyPluginApiCleanResolution := {
       (baseDirectory.value / "plugin-test-markers").getCanonicalFile,
     pluginTestMarkersProject.dependencies.exists(_.project == pluginApiRef),
     pluginApiProject.dependencies.exists(_.project == pluginTestMarkersRef),
+    embeddedProducerProject.id,
+    embeddedProducerProject.base.getCanonicalFile ==
+      (baseDirectory.value / "embedded-producer-plugin").getCanonicalFile,
+    embeddedProducerProject.dependencies.map(_.project.project).toSet,
+    (embeddedProducerPlugin / libraryDependencies).value.map(dependency),
+    pluginApiProject.dependencies.exists(_.project == embeddedProducerRef),
+    consumerPluginProject.dependencies.exists(_.project == embeddedProducerRef),
+    IO.read(baseDirectory.value / "sbt-integration" / "build.sbt")
+      .contains("embeddedProducerPlugin"),
     rootProject.aggregate.map(_.project).toSet,
     experimentalPluginApiSurfaceBaseline(baseDirectory.value, scalaVersion.value).isFile,
     Set(

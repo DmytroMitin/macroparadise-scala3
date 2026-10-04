@@ -1,5 +1,5 @@
 object ExperimentalPluginApiSurfaceSpec {
-  val CaseCount = 24
+  val CaseCount = 25
 
   def run(): Unit = {
     var completed = 0
@@ -185,6 +185,16 @@ object ExperimentalPluginApiSurfaceSpec {
         ExperimentalPluginApiSurface
           .validateClassification(Vector.empty)
           .exists(_.contains("missing metadata carrier"))
+      )
+    }
+    check("missing producer opt-in") {
+      val records = Vector(
+        s"CLASS|${ExperimentalPluginApiSurface.MetadataCarrierEntry}|METADATA_CARRIER|carrier"
+      )
+      assert(
+        ExperimentalPluginApiSurface
+          .validateClassification(records)
+          .exists(_.contains("missing producer opt-in"))
       )
     }
     check("marker category mismatch") {
