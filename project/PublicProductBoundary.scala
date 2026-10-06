@@ -69,6 +69,7 @@ object PublicProductBoundary {
     "project/ExperimentalHandlerContractArtifactSpec.scala",
     "project/ExperimentalPluginApiSurface.scala",
     "project/ExperimentalPluginApiSurfaceSpec.scala",
+    "project/EmbeddedProducerSbtIntegrationMatrix.scala",
     "project/ExactBuildIdentity.scala",
     "project/ExternalHandlerAuthoringStarter.scala",
     "project/ExternalHandlerAuthoringStarterSpec.scala",

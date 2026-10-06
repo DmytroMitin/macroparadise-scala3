@@ -252,6 +252,7 @@ verifyPublicProductBoundary := Def
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
     verifySbtPrecompiledIntegrationModule,
+    verifyEmbeddedProducerSbtIntegrationMatrix,
     Def.sequential(
       verifySbtPrecompiledIntegrationExternalMatrix,
       verifyUserOnboardingThreeModeSetup
@@ -326,6 +327,10 @@ lazy val verifyUserOnboardingThreeModeSetup =
 
 lazy val verifySbtPrecompiledIntegrationModule =
   taskKey[Unit]("Verify the source-built sbt integration module in its sbt 1.x / Scala 2.12 universe")
+
+
+lazy val verifyEmbeddedProducerSbtIntegrationMatrix =
+  taskKey[Unit]("Verify embedded producer derived roles through the four supported build quadrants")
 
 
 lazy val embeddedMarkerRoleJar =
@@ -1728,6 +1733,26 @@ verifySbtPrecompiledIntegrationModule := {
   val exit = scala.sys.process.Process(command, module).!
   require(exit == 0, s"sbt integration module verification failed with exit $exit")
   streams.value.log.info("sbt integration module verified: sbt1.x/scala2.12 unit+scripted+source+doc artifacts")
+}
+
+
+verifyEmbeddedProducerSbtIntegrationMatrix := {
+  val result = EmbeddedProducerSbtIntegrationMatrix.verify(
+    baseDirectory.value,
+    (pluginApi / Compile / packageBin).value,
+    (plugin / Compile / packageBin).value,
+    (embeddedProducerPlugin / Compile / packageBin).value,
+    (pluginApi / makePom).value,
+    (plugin / makePom).value,
+    (embeddedProducerPlugin / makePom).value,
+    target.value / "embedded-producer-sbt-integration-matrix" / scalaVersion.value,
+    EmbeddedProducerSbtIntegrationMatrix.Config(
+      scalaVersion.value,
+      sbtVersion.value,
+      version.value
+    )
+  )
+  streams.value.log.info(s"embedded producer sbt integration verified: ${result.render}")
 }
 
 

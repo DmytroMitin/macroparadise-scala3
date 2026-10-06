@@ -233,6 +233,7 @@ object MacroParadisePrecompiledPlugin extends AutoPlugin {
 
 object MacroParadiseIntegration {
   import MacroParadisePrecompiledPlugin.autoImport._
+  import MacroParadiseEmbeddedProducerPlugin.autoImport._
 
   def precompiledProjects(
       marker: ProjectReference,
@@ -303,6 +304,79 @@ object MacroParadiseIntegration {
     )
     reset ++ markerContributions ++ handlerPrimaries ++ handlerDependencies ++ canonicalDeduplication
   }
+
+  def precompiledEmbeddedProject(
+      producer: ProjectReference,
+      markerLabel: String = "embedded-marker",
+      handlerLabel: String = "embedded-handler"
+  ): Seq[Def.Setting[_]] = Seq(
+    macroParadiseMarkerArtifacts := Seq(
+      LabelledArtifact(markerLabel, (producer / macroParadiseEmbeddedMarkerArtifact).value)
+    ),
+    macroParadiseHandlerClasspath :=
+      (producer / macroParadiseEmbeddedHandlerClasspath).value.zipWithIndex.map {
+        case (file, 0) => LabelledArtifact(handlerLabel, file)
+        case (file, index) => LabelledArtifact(f"embedded-handler-runtime-$index%04d", file)
+      }
+  )
+
+  def embeddedModuleIds(
+      organization: String,
+      producerBaseModuleName: String,
+      producerVersion: String
+  ): (ModuleID, ModuleID) = {
+    require(organization.trim.nonEmpty, "embedded module organization must be nonempty")
+    require(producerBaseModuleName.trim.nonEmpty, "embedded producer base module name must be nonempty")
+    require(producerVersion.trim.nonEmpty, "embedded producer version must be nonempty")
+    val marker =
+      ((organization % (producerBaseModuleName + "-macro-annotations") % producerVersion)
+        .cross(CrossVersion.full)) % Provided
+    val handler =
+      (organization % (producerBaseModuleName + "-macro-handlers") % producerVersion)
+        .cross(CrossVersion.full)
+    marker -> handler
+  }
+
+  def precompiledEmbeddedModules(
+      organization: String,
+      producerBaseModuleName: String,
+      producerVersion: String
+  ): Seq[Def.Setting[_]] = {
+    val (marker, handler) = embeddedModuleIds(organization, producerBaseModuleName, producerVersion)
+    Seq(
+      macroParadiseMarkerModules := Seq(marker),
+      macroParadiseHandlerModules := Seq(handler)
+    )
+  }
+
+  def embeddedMarkerPublicationFacade(
+      producer: ProjectReference
+  ): Seq[Def.Setting[_]] = Seq(
+    moduleName := (producer / macroParadiseEmbeddedMarkerModuleName).value,
+    crossVersion := CrossVersion.full,
+    libraryDependencies := Seq((producer / macroParadiseEmbeddedPluginApiModule).value),
+    Compile / packageBin := (producer / macroParadiseEmbeddedMarkerArtifact).value,
+    Compile / packageSrc / publishArtifact := false,
+    Compile / packageDoc / publishArtifact := false
+  )
+
+  def embeddedHandlerPublicationFacade(
+      producer: ProjectReference
+  ): Seq[Def.Setting[_]] = Seq(
+    moduleName := (producer / macroParadiseEmbeddedHandlerModuleName).value,
+    crossVersion := CrossVersion.full,
+    libraryDependencies := {
+      val generator = (producer / macroParadiseEmbeddedProducerCompilerPluginModule).value
+      (producer / libraryDependencies).value.filterNot { module =>
+        module.organization == generator.organization &&
+          (module.name == generator.name || module.name.startsWith(generator.name + "_")) &&
+          module.revision == generator.revision
+      }
+    },
+    Compile / packageBin := (producer / macroParadiseEmbeddedHandlerArtifact).value,
+    Compile / packageSrc / publishArtifact := false,
+    Compile / packageDoc / publishArtifact := false
+  )
 
   private def canonicalFileDistinct(artifacts: Seq[LabelledArtifact]): Seq[LabelledArtifact] = {
     val seen = mutable.LinkedHashSet.empty[File]

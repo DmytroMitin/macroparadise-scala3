@@ -206,6 +206,53 @@ The primary settings remain explicit overrides, including
 `macroParadisePrecheckEnabled`. `macroParadiseExternalArtifactIdentity` is a
 derived output in supported AutoPlugin mode; replacing it fails validation.
 
+## Unreleased embedded producer integration reference
+
+Current `0.2.0-SNAPSHOT` source contains the producer-only
+`MacroParadiseEmbeddedProducerPlugin`. It derives deterministic, disjoint
+marker and handler JARs from one ordinary embedded-producer compile and exposes
+the complete ordered handler closure. This is source-snapshot functionality;
+no embedded role modules are remotely published by this repository.
+
+A same-build consumer keeps the ordinary marker relationship explicit and uses
+the static task-edge helper:
+
+```scala
+lazy val embeddedProducer = project
+  .enablePlugins(macroparadise.sbt.MacroParadiseEmbeddedProducerPlugin)
+
+lazy val core = project
+  .dependsOn(embeddedProducer % "provided->macroParadiseEmbeddedMarker")
+  .enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
+  .settings(
+    macroparadise.sbt.MacroParadiseIntegration
+      .precompiledEmbeddedProject(embeddedProducer)
+  )
+```
+
+The producer keys are inventoried in `sbt-public-surface.txt`. The primary
+outputs are `macroParadiseEmbeddedMarkerArtifact`,
+`macroParadiseEmbeddedHandlerArtifact`,
+`macroParadiseEmbeddedHandlerClasspath`, and
+`macroParadiseEmbeddedRoleInventory`. Marker and handler facade module names
+default to `<producer>-macro-annotations` and `<producer>-macro-handlers`, both
+with exact full cross-versioning. Static facade projects may use
+`embeddedMarkerPublicationFacade` and `embeddedHandlerPublicationFacade` for
+task-owned resolver tests; project runtime dependencies remain explicit static
+facade dependencies.
+
+For a build that does not enable the producer AutoPlugin, copy the self-contained
+Scala 2.12 build-definition source `EmbeddedProducerRoles.scala`, select the
+exact-full-cross embedded producer compiler plugin explicitly, and call its
+`packageRoles` and `completeHandlerClasspath` functions. The same source is the
+AutoPlugin implementation, so the manual route does not maintain a second
+splitting algorithm. Complete manual consumers continue to use the public
+`ExternalArtifactIdentity.scala` helper and the existing Macro-Paradise compiler
+options.
+
+The exact supported lines are 3.3.8, 3.8.4, and 3.9.0. Same-module embedded
+producer/use remains unsupported.
+
 ## Experimental same-module different-file Model A
 
 This path is included in released `0.1.1` but remains experimentally supported

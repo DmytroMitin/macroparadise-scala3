@@ -266,7 +266,14 @@ object ExternalHandlerAuthoringStarter {
       "IVY_HOME" -> ivy.getAbsolutePath
     )
     val childLog = new File(evidence, "child-sbt.log")
-    val exit = runProcess(command, starter, environment, childLog)
+    val firstExit = runProcess(command, starter, environment, childLog)
+    val firstLog = read(childLog)
+    val exit =
+      if (firstExit != 0 && firstLog.contains("Premature EOF") && firstLog.contains("while downloading")) {
+        val retained = new File(evidence, "child-sbt.transient-attempt-1.log")
+        Files.copy(childLog.toPath, retained.toPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        runProcess(command, starter, environment, childLog)
+      } else firstExit
     require(exit == 0, s"starter child build failed with exit $exit; see $childLog")
 
     val positiveFlow = readLines(new File(evidence, "positive-flow.trace"))

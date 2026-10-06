@@ -1210,7 +1210,12 @@ object IndependentExternalSbtConsumer {
       "COURSIER_CACHE" -> layout.coursier.getAbsolutePath,
       "IVY_HOME" -> layout.ivy.getAbsolutePath
     )
-    runProcess(command, directory, environment, log)._1
+    val first = runProcess(command, directory, environment, log)
+    if (first._1 != 0 && first._2.contains("Premature EOF") && first._2.contains("while downloading")) {
+      val retained = new File(log.getParentFile, log.getName.stripSuffix(".log") + ".transient-attempt-1.log")
+      Files.copy(log.toPath, retained.toPath, StandardCopyOption.REPLACE_EXISTING)
+      runProcess(command, directory, environment, log)._1
+    } else first._1
   }
 
   private def runProcess(

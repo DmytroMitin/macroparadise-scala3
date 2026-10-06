@@ -537,6 +537,16 @@ object SbtPrecompiledIntegrationExternalMatrix {
       new File(build, "project/MacroParadisePrecompiledPlugin.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/EmbeddedProducerRoles.scala").toPath,
+      new File(build, "project/EmbeddedProducerRoles.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/MacroParadiseEmbeddedProducerPlugin.scala").toPath,
+      new File(build, "project/MacroParadiseEmbeddedProducerPlugin.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
     write(new File(build, "handler-runtime/src/main/scala/DependencyValue.scala"), dependencySource("dependency-v1"))
     write(new File(build, "marker/src/main/scala/generated.scala"), markerSource)
     write(new File(build, "handler/src/main/scala/GeneratedHandler.scala"), handlerSource)
@@ -569,6 +579,16 @@ object SbtPrecompiledIntegrationExternalMatrix {
     Files.copy(
       new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/MacroParadisePrecompiledPlugin.scala").toPath,
       new File(build, "project/MacroParadisePrecompiledPlugin.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/EmbeddedProducerRoles.scala").toPath,
+      new File(build, "project/EmbeddedProducerRoles.scala").toPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
+    Files.copy(
+      new File(repositoryRoot, "sbt-integration/src/main/scala/macroparadise/sbt/MacroParadiseEmbeddedProducerPlugin.scala").toPath,
+      new File(build, "project/MacroParadiseEmbeddedProducerPlugin.scala").toPath,
       StandardCopyOption.REPLACE_EXISTING
     )
     write(new File(build, "shared-handler-runtime/src/main/scala/SharedRuntime.scala"), multiSharedRuntimeSource("runtime-v1"))
