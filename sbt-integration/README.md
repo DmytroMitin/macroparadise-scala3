@@ -206,52 +206,153 @@ The primary settings remain explicit overrides, including
 `macroParadisePrecheckEnabled`. `macroParadiseExternalArtifactIdentity` is a
 derived output in supported AutoPlugin mode; replacing it fails validation.
 
-## Unreleased embedded producer integration reference
+## Embedded same-build producer
 
-Current `0.2.0-SNAPSHOT` source contains the producer-only
-`MacroParadiseEmbeddedProducerPlugin`. It derives deterministic, disjoint
-marker and handler JARs from one ordinary embedded-producer compile and exposes
-the complete ordered handler closure. This is source-snapshot functionality;
-no embedded role modules are remotely published by this repository.
-
-A same-build consumer keeps the ordinary marker relationship explicit and uses
-the static task-edge helper:
+Current source-built `0.2.0-SNAPSHOT` contains the producer-only
+`MacroParadiseEmbeddedProducerPlugin`. It compiles one ordinary precompiled
+producer and derives deterministic, disjoint marker and handler JARs plus the
+complete ordered handler closure. Released `0.1.1` does not contain this
+frontend, and no current embedded product or role coordinate is remotely
+published.
 
 ```scala
+import macroparadise.sbt.{
+  MacroParadiseEmbeddedProducerPlugin,
+  MacroParadiseIntegration,
+  MacroParadisePrecompiledPlugin
+}
+import MacroParadiseEmbeddedProducerPlugin.autoImport._
+import MacroParadisePrecompiledPlugin.autoImport._
+
+val mpVersion = "0.2.0-SNAPSHOT"
+
 lazy val embeddedProducer = project
-  .enablePlugins(macroparadise.sbt.MacroParadiseEmbeddedProducerPlugin)
+  .in(file("embedded-producer"))
+  .enablePlugins(MacroParadiseEmbeddedProducerPlugin)
+  .settings(
+    macroParadiseEmbeddedCompilerProductVersion := mpVersion
+  )
 
 lazy val core = project
-  .dependsOn(embeddedProducer % "provided->macroParadiseEmbeddedMarker")
-  .enablePlugins(macroparadise.sbt.MacroParadisePrecompiledPlugin)
+  .in(file("core"))
+  .dependsOn(
+    embeddedProducer % "provided->macroParadiseEmbeddedMarker"
+  )
+  .enablePlugins(MacroParadisePrecompiledPlugin)
   .settings(
-    macroparadise.sbt.MacroParadiseIntegration
-      .precompiledEmbeddedProject(embeddedProducer)
+    MacroParadiseIntegration.precompiledEmbeddedProject(embeddedProducer),
+    macroParadiseCompilerProductVersion := mpVersion
   )
 ```
 
-The producer keys are inventoried in `sbt-public-surface.txt`. The primary
-outputs are `macroParadiseEmbeddedMarkerArtifact`,
-`macroParadiseEmbeddedHandlerArtifact`,
-`macroParadiseEmbeddedHandlerClasspath`, and
-`macroParadiseEmbeddedRoleInventory`. Marker and handler facade module names
-default to `<producer>-macro-annotations` and `<producer>-macro-handlers`, both
-with exact full cross-versioning. Static facade projects may use
-`embeddedMarkerPublicationFacade` and `embeddedHandlerPublicationFacade` for
-task-owned resolver tests; project runtime dependencies remain explicit static
-facade dependencies.
+The producer compiles once. The explicit hidden marker edge places only
+`macroParadiseEmbeddedMarkerArtifact` on the consumer compile classpath.
+`precompiledEmbeddedProject` creates static task edges to that marker and to
+`macroParadiseEmbeddedHandlerClasspath`. The handler closure remains tool-only;
+transform changes participate in content identity and Zinc invalidation. The
+same-build path requires no producer `publishLocal`.
 
-For a build that does not enable the producer AutoPlugin, copy the self-contained
-Scala 2.12 build-definition source `EmbeddedProducerRoles.scala`, select the
-exact-full-cross embedded producer compiler plugin explicitly, and call its
-`packageRoles` and `completeHandlerClasspath` functions. The same source is the
-AutoPlugin implementation, so the manual route does not maintain a second
-splitting algorithm. Complete manual consumers continue to use the public
-`ExternalArtifactIdentity.scala` helper and the existing Macro-Paradise compiler
-options.
+The complete executable form is
+[`examples/embedded-producer-starter`](../examples/embedded-producer-starter/README.md).
 
-The exact supported lines are 3.3.8, 3.8.4, and 3.9.0. Same-module embedded
-producer/use remains unsupported.
+## Embedded published or resolver-installed producer
+
+A producer version may expose two role modules:
+
+```text
+<producer>-macro-annotations
+<producer>-macro-handlers
+```
+
+They are distinct modules, not classifiers, because their dependency graphs are
+different. Explicit static facade projects use:
+
+```scala
+lazy val markerFacade = project
+  .in(file("facades/marker"))
+  .settings(
+    MacroParadiseIntegration.embeddedMarkerPublicationFacade(embeddedProducer)
+  )
+
+lazy val handlerFacade = project
+  .in(file("facades/handler"))
+  .settings(
+    MacroParadiseIntegration.embeddedHandlerPublicationFacade(embeddedProducer)
+  )
+```
+
+A consumer that intentionally resolves those modules uses:
+
+```scala
+lazy val core = project
+  .in(file("core"))
+  .enablePlugins(MacroParadisePrecompiledPlugin)
+  .settings(
+    MacroParadiseIntegration.precompiledEmbeddedModules(
+      organization = "com.example",
+      producerBaseModuleName = "my-embedded-producer",
+      producerVersion = "1.0.0"
+    ),
+    macroParadiseCompilerProductVersion := "0.2.0-SNAPSHOT"
+  )
+```
+
+`MacroParadiseIntegration.embeddedModuleIds` returns the same exact-full-cross
+marker/handler pair for builds that need the raw `ModuleID` values. The marker
+is `Provided`; the handler module and complete transitive closure use the hidden
+handler configuration. During current development, stage facade modules only
+to an intentional task-owned or machine-local resolver.
+
+## Producer AutoPlugin keys and tasks
+
+The producer plugin is separate from `MacroParadisePrecompiledPlugin` and uses
+`noTrigger`. Its public settings/tasks are:
+
+- `macroParadiseEmbeddedCompilerProductVersion`;
+- `macroParadiseEmbeddedProducerCompilerPluginModule`;
+- `macroParadiseEmbeddedPluginApiModule`;
+- `macroParadiseEmbeddedMarkerArtifact`;
+- `macroParadiseEmbeddedHandlerArtifact`;
+- `macroParadiseEmbeddedHandlerClasspath`;
+- `macroParadiseEmbeddedMarkerModuleName`;
+- `macroParadiseEmbeddedHandlerModuleName`;
+- `macroParadiseEmbeddedRoleInventory`;
+- `macroParadiseEmbeddedStrictRoleValidation`;
+- `macroParadiseEmbeddedValidate`.
+
+The module names default to `<producer>-macro-annotations` and
+`<producer>-macro-handlers`. Validation rejects unsupported Scala lines,
+incorrect product coordinates, empty producers, role collisions, non-JAR
+outputs, incomplete closure, and overlapping roles.
+
+## Embedded manual alternatives
+
+The complete no-AutoPlugin producer copies the public self-contained
+[`EmbeddedProducerRoles.scala`](src/main/scala/macroparadise/sbt/EmbeddedProducerRoles.scala),
+selects the exact-full-cross embedded producer compiler plugin explicitly,
+compiles once, and calls `packageRoles` plus `completeHandlerClasspath`.
+
+The complete manual consumer copies
+[`ExternalArtifactIdentity.scala`](../examples/external-handler-starter/project/ExternalArtifactIdentity.scala)
+and configures the ordinary consumer compiler plugin, marker compile artifact,
+complete handler closure, `-Xplugin-require:macroparadise`,
+`handlerClasspath`, and combined `externalArtifactIdentity` directly. These are
+supported transparent paths, not fallback semantics.
+
+See [Embedded producer authoring](../docs/EMBEDDED_PRODUCER_AUTHORING.md) for
+the complete same-build and resolver-installed manual recipes.
+
+## Exact-full-cross embedded policy
+
+The exact supported lines are 3.3.8, 3.8.4, and 3.9.0. The producer generator,
+plugin API, marker role, handler role, facade modules, and consumers all use
+`CrossVersion.full`.
+
+`MARKER_CROSS_POLICY=EXACT_FULL_CROSS_SAFE_DEFAULT`
+
+The marker contains exact-line TASTy. Current documentation makes no ordinary
+`_3` binary-cross promise. Same-module embedded producer/use remains
+unsupported; the bounded Model A below is a separate external-handler feature.
 
 ## Experimental same-module different-file Model A
 

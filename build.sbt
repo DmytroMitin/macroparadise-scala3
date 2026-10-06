@@ -251,8 +251,11 @@ verifyPublicProductBoundary := Def
     verifyIndependentPrecompiledHandlerPackagedConsumer,
     verifyExternalHandlerAuthoringStarter,
     verifyIndependentExternalSbtConsumerFromLocalRepository,
-    verifySbtPrecompiledIntegrationModule,
-    verifyEmbeddedProducerSbtIntegrationMatrix,
+    Def.sequential(
+      verifySbtPrecompiledIntegrationModule,
+      verifyPublicEmbeddedProducerStarter,
+      verifyEmbeddedProducerSbtIntegrationMatrix
+    ),
     Def.sequential(
       verifySbtPrecompiledIntegrationExternalMatrix,
       verifyUserOnboardingThreeModeSetup
@@ -327,6 +330,10 @@ lazy val verifyUserOnboardingThreeModeSetup =
 
 lazy val verifySbtPrecompiledIntegrationModule =
   taskKey[Unit]("Verify the source-built sbt integration module in its sbt 1.x / Scala 2.12 universe")
+
+
+lazy val verifyPublicEmbeddedProducerStarter =
+  taskKey[Unit]("Verify the public embedded producer starter on the selected exact Scala line")
 
 
 lazy val verifyEmbeddedProducerSbtIntegrationMatrix =
@@ -1733,6 +1740,23 @@ verifySbtPrecompiledIntegrationModule := {
   val exit = scala.sys.process.Process(command, module).!
   require(exit == 0, s"sbt integration module verification failed with exit $exit")
   streams.value.log.info("sbt integration module verified: sbt1.x/scala2.12 unit+scripted+source+doc artifacts")
+}
+
+
+verifyPublicEmbeddedProducerStarter := {
+  PublicEmbeddedProducerStarterSpec.run()
+  (pluginApi / publishLocal).value
+  (embeddedProducerPlugin / publishLocal).value
+  (plugin / publishLocal).value
+  val result = PublicEmbeddedProducerStarter.verify(
+    baseDirectory.value,
+    target.value / "public-embedded-producer-starter" / scalaVersion.value,
+    scalaVersion.value,
+    sbtVersion.value
+  )
+  streams.value.log.info(
+    s"public embedded producer starter verified: ${result.render} focusedCases=${PublicEmbeddedProducerStarterSpec.CaseCount}/${PublicEmbeddedProducerStarterSpec.CaseCount}"
+  )
 }
 
 

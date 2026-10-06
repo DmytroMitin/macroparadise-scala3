@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 33
+  val CaseCount = 47
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -12,6 +12,8 @@ object PublicDocumentationPolicySpec {
   def run(): Unit = {
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/QUASIQUOTE_ARCHITECTURE.md"))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EXPANSION_MODEL_AND_COMPOSITION.md"))
+    assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EMBEDDED_PRODUCER_AUTHORING.md"))
+    assert(PublicDocumentationPolicy.RequiredPaths.contains("examples/embedded-producer-starter/README.md"))
     val clean = fixture()
     try {
       val result = PublicDocumentationPolicy.verify(clean, IncludedPaths)
@@ -100,6 +102,76 @@ object PublicDocumentationPolicySpec {
       CanonicalIntegration.replace("## Published marker and handler modules", "## Resolved producers"),
       "FOUR_SETUP_QUADRANTS_UNDISCOVERABLE"
     )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("source-built/local-development only", "available remotely"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("precompiled producer", "producer"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("generated adapter name is not a public contract", "generated adapter"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("same-module embedded declaration and use is unsupported", "same-module setup"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("no producer `publishLocal`", "publish the producer locally"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("External handler authoring remains supported", "Embedded only"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("3.3.8, 3.8.4, and 3.9.0", "3.x"),
+      "EMBEDDED_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      "examples/embedded-producer-starter/README.md",
+      CanonicalEmbeddedStarterReadme.replace("marker and handler roles", "generated artifact"),
+      "EMBEDDED_STARTER_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("MacroParadiseIntegration.precompiledEmbeddedProject", "local wiring"),
+      "EMBEDDED_FOUR_QUADRANT_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("embeddedMarkerPublicationFacade", "marker facade"),
+      "EMBEDDED_FOUR_QUADRANT_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("EmbeddedProducerRoles.packageRoles", "manual packaging"),
+      "EMBEDDED_FOUR_QUADRANT_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/EMBEDDED_PRODUCER_AUTHORING.md",
+      CanonicalEmbeddedGuide.replace("MacroParadiseIntegration.embeddedModuleIds", "resolved modules"),
+      "EMBEDDED_FOUR_QUADRANT_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/GETTING_STARTED.md",
+      CanonicalGetting.replace("## Embedded-producer setup matrix", "## Embedded setup"),
+      "EMBEDDED_NAVIGATION_MISSING"
+    )
+    assertFinding(
+      "docs/EXTERNAL_HANDLER_AUTHORING.md",
+      CanonicalAuthoring.replace("Embedded producer authoring", "Embedded authoring"),
+      "EMBEDDED_NAVIGATION_MISSING"
+    )
 
     assertFinding(
       "README.md",
@@ -176,6 +248,8 @@ object PublicDocumentationPolicySpec {
       CanonicalReadme
     )
     write(root, "docs/GETTING_STARTED.md", CanonicalGetting)
+    write(root, "docs/EMBEDDED_PRODUCER_AUTHORING.md", CanonicalEmbeddedGuide)
+    write(root, "examples/embedded-producer-starter/README.md", CanonicalEmbeddedStarterReadme)
     write(root, "sbt-integration/README.md", CanonicalIntegration)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
     write(root, "docs/EXPANSION_MODEL_AND_COMPOSITION.md", CanonicalExpansionModel)
@@ -255,6 +329,9 @@ object PublicDocumentationPolicySpec {
       |"org.scala-lang" %% "scala3-compiler"
       |"com.github.dmytromitin" % "macroparadise-scala3-plugin-api" % "0.2.0-SNAPSHOT"
       |
+      |## Embedded producer authoring
+      |See [embedded producer guide](EMBEDDED_PRODUCER_AUTHORING.md); the external form remains first-class.
+      |
       |## Manual same-build local projects
       |.dependsOn(macroAnnotations % "provided->compile")
       |compilerPlugin(mpPlugin)
@@ -311,8 +388,47 @@ object PublicDocumentationPolicySpec {
       |Published marker/handler modules are distinct from publication of MacroParadise itself.
       |Exact Scala lines require `CrossVersion.full`.
       |
+      |## Embedded-producer setup matrix
+      |See [embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md) and the [embedded starter](../examples/embedded-producer-starter/README.md).
+      |
       |Continue with the [README example](../README.md#a-small-user-authored-example):
       |GenerateGreetingHandler produces generatedGreeting.
+      |""".stripMargin
+
+  private val CanonicalEmbeddedGuide =
+    """# Embedded producer authoring
+      |
+      |Current `0.2.0-SNAPSHOT` is source-built/local-development only.
+      |Use a precompiled producer on exact Scala 3.3.8, 3.8.4, and 3.9.0.
+      |The generated adapter name is not a public contract.
+      |The producer derives separate marker and handler roles.
+      |The preferred same-build path requires no producer `publishLocal`.
+      |The complete manual producer copies `EmbeddedProducerRoles.scala`.
+      |The complete manual consumer copies `ExternalArtifactIdentity.scala`.
+      |The same-module embedded declaration and use is unsupported.
+      |External handler authoring remains supported.
+      |Annotation constructor arguments are pre-typer syntax.
+      |MARKER_CROSS_POLICY=EXACT_FULL_CROSS_SAFE_DEFAULT
+      |## Preferred same-build sbt integration
+      |MacroParadiseIntegration.precompiledEmbeddedProject
+      |## Published or resolver-installed role modules
+      |embeddedMarkerPublicationFacade
+      |embeddedHandlerPublicationFacade
+      |precompiledEmbeddedModules
+      |## Complete manual producer and consumer
+      |EmbeddedProducerRoles.packageRoles
+      |EmbeddedProducerRoles.completeHandlerClasspath
+      |## Manual resolved consumer
+      |MacroParadiseIntegration.embeddedModuleIds
+      |""".stripMargin
+
+  private val CanonicalEmbeddedStarterReadme =
+    """# Embedded producer starter
+      |
+      |This source-built `0.2.0-SNAPSHOT` starter uses a precompiled producer,
+      |separate marker and handler roles, and no producer `publishLocal`.
+      |The generated adapter name is not a public contract and same-module use is unsupported.
+      |External handler authoring remains supported.
       |""".stripMargin
 
   private val CanonicalIntegration =

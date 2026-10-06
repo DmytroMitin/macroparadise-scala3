@@ -131,15 +131,17 @@ ThisBuild / scalaVersion := "3.3.8" // or exact 3.8.4 / 3.9.0
 addCompilerPlugin(("com.github.dmytromitin" % "macroparadise-scala3-plugin" % "0.1.1").cross(CrossVersion.full))
 ```
 
-From a clone, publish the two current-snapshot compiler-facing user artifacts
-for one selected exact line to the machine-local sbt/Ivy repository. The
-separate sbt integration module uses its own local/test packaging and is not
-part of these commands:
+From a clone, publish the three current-snapshot compiler-facing user
+artifacts for one selected exact line to the machine-local sbt/Ivy repository.
+The producer compiler plugin is needed only for embedded annotation producers;
+external marker/handler authors still use the plugin API and consumer plugin.
+The separate sbt integration module uses its own local/test packaging and is
+not part of these commands:
 
 ```sh
-sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
-sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "plugin/publishLocal"
-sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
 ```
 
 In a fresh external development project, use the same exact line and snapshot:
@@ -160,6 +162,78 @@ links against; the plugin POM does not pull in a conflicting API runtime copy.
 An ordinary `plugin-api` library dependency is needed only for compiling a
 user-owned marker or handler, and ordinary source dependencies do not become a
 parent of the compiler plugin classloader.
+
+## Choose an authoring style
+
+Current source-built `0.2.0-SNAPSHOT` supports two first-class precompiled
+styles:
+
+- **Embedded producer frontend:** put `@embeddedExpander` on an annotation class
+  and implement the same-file companion `transform`. This is the concise
+  source-colocated option.
+- **External marker plus handler:** keep the marker metadata and
+  `ExpansionHandler` implementation in explicitly separate projects. This
+  remains the modular and advanced-packaging option.
+
+Both use the same consumer plugin, `ExpansionInput`/`ExpansionOutcome` protocol,
+loader, scheduler, and exact-line constraints. Released `0.1.1` supports the
+external style; it does not contain the embedded frontend.
+
+## Minimal embedded producer
+
+Start with the behavior-free declaration:
+
+```scala
+import paradise3.api.*
+import paradise3.api.embeddedExpander
+import dotty.tools.dotc.core.Contexts.Context
+import scala.annotation.StaticAnnotation
+
+@embeddedExpander
+final class identityEmbedded extends StaticAnnotation
+
+object identityEmbedded:
+  def transform(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionEdit.finish(ExpansionEdit.start(input))
+```
+
+Then decode a parameterized annotation from pre-typer syntax:
+
+```scala
+@embeddedExpander
+final class addGreeting(prefix: String) extends StaticAnnotation
+
+object addGreeting:
+  def transform(input: ExpansionInput)(using Context): ExpansionOutcome =
+    AnnotationApplication.fromInput(input) match
+      case Left(problem) => ExpansionOutcome.Rejected(List(problem))
+      case Right(application) =>
+        application.requireSingleStringLiteralArgument("prefix") match
+          case Left(problem) => ExpansionOutcome.Rejected(List(problem))
+          case Right(prefix) => // place generated output through ExpansionEdit
+            ...
+```
+
+Defaults are not materialized, implicits are not synthesized, arbitrary
+expressions are not evaluated, and the annotation class is not instantiated.
+The complete, executable form is the
+[embedded producer starter](../examples/embedded-producer-starter/README.md).
+
+## Embedded-producer setup matrix
+
+| Producer topology | `sbt-macroparadise` consumer | Manual consumer |
+|---|---|---|
+| same-build local derived roles | [preferred same-build recipe](EMBEDDED_PRODUCER_AUTHORING.md#preferred-same-build-sbt-integration) | [manual producer and consumer](EMBEDDED_PRODUCER_AUTHORING.md#complete-manual-producer-and-consumer) |
+| published / resolver-installed roles | [paired-module recipe](EMBEDDED_PRODUCER_AUTHORING.md#published-or-resolver-installed-role-modules) | [manual resolved consumer](EMBEDDED_PRODUCER_AUTHORING.md#manual-resolved-consumer) |
+
+These are build topologies and wiring choices, not semantic modes. Same-build
+embedded producers require no producer `publishLocal`. Resolver mode uses two
+intentional exact-full-cross role modules. The generated handler adapter is
+hidden, and same-module embedded declaration/use remains unsupported.
+
+Read [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md) for the
+declaration restrictions, all four complete recipes, producer tasks, manual
+helpers, exact-full-cross policy, and source-only installation commands.
 
 ## Choose the external-handler setup
 
@@ -376,6 +450,7 @@ handler, classpath, output, and diagnostic contracts.
 - [Architecture](ARCHITECTURE.md)
 - [Quasiquote and pre-typer AST architecture](QUASIQUOTE_ARCHITECTURE.md)
 - [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md)
+- [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md)
 - [Diagnostics and troubleshooting](DIAGNOSTICS.md)
 - [Compatibility](COMPATIBILITY.md)
 - [Versioning and stability](VERSIONING_AND_STABILITY.md)

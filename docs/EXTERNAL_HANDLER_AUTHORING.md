@@ -8,6 +8,21 @@ matching plugin and API from source into local Ivy first. Released `0.1.1` is a
 separate immutable artifact with its earlier handler surface; use the released
 Giter8 template or versioned release documentation for that API.
 
+## Embedded producer authoring
+
+The external form remains first-class for modular packaging, independently
+owned marker and handler artifacts, and advanced handler layouts. Current
+source-built `0.2.0-SNAPSHOT` also offers an embedded producer frontend for
+authors who prefer to colocate an `@embeddedExpander` marker class and its
+same-file companion transform.
+
+The embedded frontend lowers to this same `ExpansionHandler` protocol and
+consumer wiring. It does not deprecate this guide, widen runtime semantics, or
+change the manual identity contract. See
+[Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md) and its
+[executable starter](../examples/embedded-producer-starter/README.md) when the
+source-colocated producer style is a better fit.
+
 ## Minimal `@identity` first use
 
 Start with a behavior-free identity annotation. Successful compilation proves

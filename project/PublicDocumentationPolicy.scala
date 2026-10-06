@@ -24,10 +24,12 @@ object PublicDocumentationPolicy {
     "docs/QUASIQUOTE_ARCHITECTURE.md",
     "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md",
     "docs/EXTERNAL_HANDLER_AUTHORING.md",
+    "docs/EMBEDDED_PRODUCER_AUTHORING.md",
     "docs/EXPANSION_MODEL_AND_COMPOSITION.md",
     "docs/DIAGNOSTICS.md",
     "docs/COMPATIBILITY.md",
     "docs/VERSIONING_AND_STABILITY.md",
+    "examples/embedded-producer-starter/README.md",
     "sbt-integration/README.md"
   )
 
@@ -179,6 +181,74 @@ object PublicDocumentationPolicy {
           path,
           "current ExpansionHandler tutorial and both manual recipes must select 0.2.0-SNAPSHOT explicitly"
         )
+    }
+
+    if (path == "docs/EMBEDDED_PRODUCER_AUTHORING.md") {
+      requireAll(
+        "EMBEDDED_GUIDE_INCOMPLETE",
+        "embedded guide must preserve the complete source-only, precompiled, exact-line, four-quadrant, manual, role, and non-contract boundary",
+        "source-built/local-development only",
+        "precompiled producer",
+        "3.3.8, 3.8.4, and 3.9.0",
+        "generated adapter name is not a public contract",
+        "separate marker and handler roles",
+        "no producer `publishLocal`",
+        "EmbeddedProducerRoles.scala",
+        "ExternalArtifactIdentity.scala",
+        "same-module embedded declaration and use is unsupported",
+        "External handler authoring remains supported",
+        "Annotation constructor arguments are pre-typer syntax",
+        "MARKER_CROSS_POLICY=EXACT_FULL_CROSS_SAFE_DEFAULT"
+      )
+      requireAll(
+        "EMBEDDED_FOUR_QUADRANT_RECIPE_INCOMPLETE",
+        "embedded guide must map every public quadrant to the exact executable integration surface",
+        "## Preferred same-build sbt integration",
+        "MacroParadiseIntegration.precompiledEmbeddedProject",
+        "## Published or resolver-installed role modules",
+        "embeddedMarkerPublicationFacade",
+        "embeddedHandlerPublicationFacade",
+        "precompiledEmbeddedModules",
+        "## Complete manual producer and consumer",
+        "EmbeddedProducerRoles.packageRoles",
+        "EmbeddedProducerRoles.completeHandlerClasspath",
+        "## Manual resolved consumer",
+        "MacroParadiseIntegration.embeddedModuleIds"
+      )
+    }
+
+    if (path == "examples/embedded-producer-starter/README.md") {
+      requireAll(
+        "EMBEDDED_STARTER_INCOMPLETE",
+        "embedded starter must state its source-only, precompiled, role-separated, no-publishLocal, non-contract, and no-same-module boundary",
+        "source-built `0.2.0-SNAPSHOT`",
+        "precompiled producer",
+        "marker and handler roles",
+        "no producer `publishLocal`",
+        "generated adapter name is not a public contract",
+        "same-module use is unsupported",
+        "External handler authoring remains supported"
+      )
+    }
+
+    if (path == "docs/GETTING_STARTED.md") {
+      requireAll(
+        "EMBEDDED_NAVIGATION_MISSING",
+        "Getting Started must expose the embedded setup matrix and canonical guide/starter navigation",
+        "## Embedded-producer setup matrix",
+        "EMBEDDED_PRODUCER_AUTHORING.md",
+        "../examples/embedded-producer-starter/README.md"
+      )
+    }
+
+    if (path == "docs/EXTERNAL_HANDLER_AUTHORING.md") {
+      requireAll(
+        "EMBEDDED_NAVIGATION_MISSING",
+        "external-handler guide must retain first-class status while linking to embedded producer authoring",
+        "## Embedded producer authoring",
+        "EMBEDDED_PRODUCER_AUTHORING.md",
+        "external form remains first-class"
+      )
     }
 
     if (path == "README.md") {

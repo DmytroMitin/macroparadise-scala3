@@ -39,6 +39,29 @@ about termination.
 
 Every compilation unit is transactional. Any later rejection, validation error, handler exception, ambiguous topology, or budget exhaustion rolls back the whole unit.
 
+## Embedded producer frontend
+
+Current source-built `0.2.0-SNAPSHOT` supports precompiled embedded producers on
+exact Scala 3.3.8, 3.8.4, and 3.9.0. A supported declaration is a public
+top-level final `StaticAnnotation` class with an empty body and one same-file,
+same-package companion containing the exact public concrete `transform` method.
+The producer integration derives disjoint marker and handler roles and retains
+the current Class/Trait/Object handler-side target grammar.
+
+Annotation constructor arguments remain pre-typer syntax. Defaults are not
+materialized, implicits are not synthesized, arbitrary expressions are not
+evaluated, and semantic typing is unavailable. The generated no-argument
+handler adapter and its binary name are implementation details rather than user
+API.
+
+Same-module embedded declaration/use, same-source producer/consumer, nested or
+local embedded annotations, typed `MacroAnnotation` equivalence, binary-cross
+marker guarantees, broader target shapes, and a remote `0.2.0` release are not
+supported. The safe marker policy is exact `CrossVersion.full`. The separate
+bounded different-file same-module Model A remains an external-handler track.
+
+See [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md).
+
 ## External handlers
 
 External handlers must implement `ExpansionHandler`, be precompiled for the exact compiler line, and be discoverable either through `@expander` metadata or explicit plugin configuration. The handler classpath must include the handler and its dependencies. The plugin/API artifact boundary and parent-first contract identity checks remain enforced.

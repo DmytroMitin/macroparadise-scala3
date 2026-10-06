@@ -5,12 +5,14 @@ by Scala 2 Macro Paradise. It explores pre-typer annotation expansion so that
 generated class members, companions, and sibling definitions are available to
 ordinary Scala typing in the same compilation run.
 
-The core mechanism and a precompiled external-handler path are executable and
-well tested. The project is still compiler-sensitive research: its API,
-configuration, supported shapes, and compatibility policy may change. The
-immutable `0.1.1` release supports exact Scala `3.3.8`, `3.8.4`, and stable
-`3.9.0` and is available from Maven Central. Current `main` continues on the
-experimental `0.2.0-SNAPSHOT` development line.
+The core mechanism and two precompiled authoring styles are executable and well
+tested: explicit external marker plus handler projects, and the embedded
+producer frontend on current source-built main. The project is still
+compiler-sensitive research: its API, configuration, supported shapes, and
+compatibility policy may change. The immutable `0.1.1` release supports exact
+Scala `3.3.8`, `3.8.4`, and stable `3.9.0` and is available from Maven Central.
+Current `main` continues on the experimental `0.2.0-SNAPSHOT` development line;
+the embedded frontend is not in `0.1.1` and has no remote snapshot release.
 
 ## Quick start with the released template
 
@@ -36,6 +38,38 @@ immutable Macro-Paradise 0.1.1 release. Its `macro-annotations`,
 `macro-handlers`, and `core` projects demonstrate a user-owned marker,
 precompiled external handler, and ordinary consumer. Macro-Paradise remains
 experimental and exact-compiler-specific.
+
+## Embedded producer frontend on current main
+
+For current source-built `0.2.0-SNAPSHOT`, annotation producers can colocate
+the marker declaration and transform:
+
+```scala
+import paradise3.api.embeddedExpander
+import scala.annotation.StaticAnnotation
+
+@embeddedExpander
+final class addGreeting(prefix: String) extends StaticAnnotation
+
+object addGreeting:
+  def transform(
+      input: paradise3.api.ExpansionInput
+  )(using dotty.tools.dotc.core.Contexts.Context): paradise3.api.ExpansionOutcome =
+    // use the same ExpansionHandler input and outcome protocol
+    ...
+```
+
+This source belongs to a precompiled producer. The producer integration derives
+separate marker and handler roles and hides the generated no-argument handler
+adapter; its class name is not a public contract. A same-build consumer uses a
+marker-only project edge plus
+`MacroParadiseIntegration.precompiledEmbeddedProject(producer)`, with no
+producer `publishLocal`.
+
+The embedded frontend is producer ergonomics over the existing runtime handler
+protocol. External handler authoring remains first-class and is not deprecated.
+See [Embedded producer authoring](docs/EMBEDDED_PRODUCER_AUTHORING.md) and the
+[executable starter](examples/embedded-producer-starter/README.md).
 
 ## A small user-authored example
 
@@ -220,9 +254,9 @@ To install current `0.2.0-SNAPSHOT` from this checkout for one exact line,
 select that line explicitly and publish only to the machine-local repository:
 
 ```sh
-sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "plugin/publishLocal"
-sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "plugin/publishLocal"
-sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.3.8 -batch "++3.3.8!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch "++3.8.4!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
+sbt -Dmacroparadise.exactScalaVersion=3.9.0 -batch "++3.9.0!" "pluginApi/publishLocal" "embeddedProducerPlugin/publishLocal" "plugin/publishLocal"
 ```
 
 Then a local development consumer uses the matching exact line and snapshot:
@@ -422,6 +456,7 @@ presented to the London Scala User Group on 9 September 2026.
 - [Quasiquote and pre-typer AST architecture](docs/QUASIQUOTE_ARCHITECTURE.md)
 - [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)
 - [External handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md)
+- [Embedded producer authoring](docs/EMBEDDED_PRODUCER_AUTHORING.md)
 - [Diagnostics and troubleshooting](docs/DIAGNOSTICS.md)
 - [Compatibility](docs/COMPATIBILITY.md)
 - [Versioning and stability](docs/VERSIONING_AND_STABILITY.md)

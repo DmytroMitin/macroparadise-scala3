@@ -91,6 +91,29 @@ provide application-specific conveniences; compiler/plugin behavior remains in
 the product API rather than in sbt.
 
 
+## Embedded producer frontend
+
+The current source-built `0.2.0-SNAPSHOT` embedded frontend is accepted as a
+documented precompiled authoring style. Public documentation and the
+product-owned starter cover the complete four-quadrant setup: same-build and
+resolver-installed producer roles, each with sbt integration and complete
+manual consumer wiring.
+
+Maintain these boundaries:
+
+- keep the declaration grammar and existing handler protocol unchanged;
+- retain separate marker and handler roles with complete handler-closure
+  identity;
+- keep the marker policy at exact `CrossVersion.full`;
+- keep external marker-plus-handler authoring first-class;
+- keep same-module embedded declaration/use unsupported;
+- do not describe the frontend as remotely released until a separately
+  authorized release exists.
+
+A future released template may adopt the embedded style only through separate
+release work. The immutable `0.1.1` template remains an external-handler
+example.
+
 ## Next public-contract work
 
 Current `0.2.0-SNAPSHOT` has one orthogonal handler contract for class, trait,

@@ -85,6 +85,8 @@ object PublicProductBoundary {
     "project/PluginApiSourceProjectSplitPolicy.scala",
     "project/PublicDocumentationPolicy.scala",
     "project/PublicDocumentationPolicySpec.scala",
+    "project/PublicEmbeddedProducerStarter.scala",
+    "project/PublicEmbeddedProducerStarterSpec.scala",
     "project/PublicProductBoundary.scala",
     "project/PublicProductBoundarySpec.scala",
     "project/SbtPrecompiledIntegrationExternalMatrix.scala",
