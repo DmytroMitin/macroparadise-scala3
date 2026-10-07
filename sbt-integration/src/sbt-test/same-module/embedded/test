@@ -1,0 +1,20 @@
+> clean
+> verifyInitial
+> compile
+> runMain consumer.Main
+> compile
+> editProducerV2
+> verifyChanged
+> compile
+> runMain consumer.Main
+> compile
+> restoreProducerV1
+> verifyRestored
+> compile
+> runMain consumer.Main
+> compile
+> breakProducer
+-> compile
+> repairProducer
+> compile
+> runMain consumer.Main

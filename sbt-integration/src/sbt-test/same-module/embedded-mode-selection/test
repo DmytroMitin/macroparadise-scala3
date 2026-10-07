@@ -1,0 +1,6 @@
+-> compile
+> set macroParadiseSameModuleBinding := Some(macroParadiseSameModuleHandler("demo.marker", "demo.Handler", macroParadiseLabelledSource("marker-source", "demo/Marker.scala"), macroParadiseLabelledSource("handler-source", "demo/Handler.scala")))
+> set macroParadiseSameModuleEmbeddedBinding := Some(macroParadiseSameModuleEmbedded("demo.embeddedMarker", macroParadiseLabelledSource("embedded-producer-source", "demo/Embedded.scala")))
+-> compile
+> set scalaVersion := "3.8.3"
+-> show macroParadiseSameModuleConfiguration

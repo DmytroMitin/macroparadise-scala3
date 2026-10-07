@@ -234,6 +234,7 @@ verifyPublicProductBoundary := Def
     verifyBuildDependencyCoordinatePolicy,
     verifyPublicProductTestsNonzero,
     plugin / Test / test,
+    embeddedProducerPlugin / Test / test,
     pluginTests / Test / test,
     verifyExperimentalStructuredMetadataDistributionContract,
     verifyLegacyMetadataCompatibilityMatrix,
@@ -561,7 +562,10 @@ lazy val embeddedProducerPlugin =
       Compile / packageBin / mappings ++=
         (pluginApi / Compile / packageBin / mappings).value.filter {
           case (_, path) => path.startsWith("paradise3/api/")
-        }
+        },
+      Test / test := (Test / runMain)
+        .toTask(" macroparadise.embedded.EmbeddedSameModuleConfigurationSpec")
+        .value
     )
 
 lazy val embeddedProducerFixture =

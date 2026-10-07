@@ -14,18 +14,37 @@ import paradise3.api.ExpansionTargetView
 import paradise3.api.ExpansionTargetView.{DefinitionKind, Variance}
 
 /** Producer-only source phase for the frozen embedded declaration frontend. */
-final class EmbeddedProducerPhase extends PluginPhase:
+final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
+  private val sameModuleConfiguration = EmbeddedSameModuleConfiguration.parse(options)
+  private val sameModuleMode = sameModuleConfiguration.toOption.flatten.nonEmpty
+
   override val phaseName = "macroparadiseEmbeddedProducer"
   override val description =
     "generates ordinary Macro Paradise ExpansionHandler adapters for opted-in annotation declarations"
   override def runsAfter = Set("parser")
-  override def runsBefore = Set("typer")
+  override def runsBefore =
+    if sameModuleMode then Set("paradiseGen", "typer") else Set("typer")
+
+  private[embedded] def splitMarkerUnitsEnabledForTesting: Boolean = !sameModuleMode
 
   private var compilationTopLevelNames = Map.empty[String, Set[String]]
   private var compilationMarkerNames = Map.empty[String, Set[String]]
   private var compilationTransformNames = Map.empty[String, Map[String, String]]
+  private var sameModuleDeclarationCount = 0
+  private var sameModuleConfiguredSourcePresent = false
+  private var sameModuleValidationFailed = false
 
   override def runOn(units: List[CompilationUnit])(using Context): List[CompilationUnit] =
+    sameModuleConfiguration match
+      case Left(message) =>
+        report.error(s"EMBEDDED_SAME_MODULE_OPTION: $message")
+        return units
+      case Right(_) => ()
+    sameModuleDeclarationCount = 0
+    sameModuleValidationFailed = false
+    sameModuleConfiguredSourcePresent =
+      sameModuleConfiguration.toOption.flatten.exists: configured =>
+        units.exists(unit => sourceMatches(unit.source.file.path, configured.producerSource))
     claimedCanonicalIdentities.clear()
     compilationTopLevelNames = units.foldLeft(Map.empty[String, Set[String]]):
       case (acc, unit) =>
@@ -43,12 +62,26 @@ final class EmbeddedProducerPhase extends PluginPhase:
     compilationTransformNames = Map.empty
     try
       val rewritten = super.runOn(units)
-      splitMarkerUnits(rewriteCompilationReferences(rewritten))
+      if
+        sameModuleMode &&
+          sameModuleConfiguredSourcePresent &&
+          sameModuleDeclarationCount != 1 &&
+          !sameModuleValidationFailed
+      then
+        report.error(
+          s"EMBEDDED_SAME_MODULE_DECLARATION_COUNT: configured producer source must contain exactly one matching embedded declaration; found $sameModuleDeclarationCount"
+        )
+      val withRewrittenReferences = rewriteCompilationReferences(rewritten)
+      if sameModuleMode then withRewrittenReferences
+      else splitMarkerUnits(withRewrittenReferences)
     finally
       compilationTopLevelNames = Map.empty
       compilationMarkerNames = Map.empty
       compilationTransformNames = Map.empty
       claimedCanonicalIdentities.clear()
+      sameModuleDeclarationCount = 0
+      sameModuleConfiguredSourcePresent = false
+      sameModuleValidationFailed = false
 
   override def run(using context: Context): Unit =
     val unit = context.compilationUnit
@@ -93,6 +126,13 @@ final class EmbeddedProducerPhase extends PluginPhase:
       case importTree: Import =>
         imports = addImport(imports, importTree)
         importTree
+      case marker: TypeDef if containsConfiguredSameModuleUse(marker, imports) =>
+        fail(
+          "EMBEDDED_SAME_MODULE_SAME_SOURCE",
+          "configured embedded producer source cannot also contain a consumer of that annotation",
+          marker
+        )
+        marker
       case marker: TypeDef =>
         optInAnnotations(marker, imports, topLevelNames) match
           case Nil =>
@@ -134,7 +174,9 @@ final class EmbeddedProducerPhase extends PluginPhase:
                   stripped
                 case Right(_) =>
                   val canonicalIdentity = s"$packageName.$markerName"
-                  if !claimedCanonicalIdentities.add(canonicalIdentity) then
+                  if !validateSameModuleDeclaration(canonicalIdentity, marker) then
+                    stripped
+                  else if !claimedCanonicalIdentities.add(canonicalIdentity) then
                     fail(
                       "EMBEDDED_DUPLICATE_CANONICAL_IDENTITY",
                       s"embedded annotation identity `$canonicalIdentity` is declared more than once in this producer compilation",
@@ -157,6 +199,13 @@ final class EmbeddedProducerPhase extends PluginPhase:
                       parseGenerated(packageName, markerName, transformName, adapterName, adapterFqcn)
                     generated += parsed.adapter
                     withMetadata(stripped, parsed.metadata)
+      case module: ModuleDef if containsConfiguredSameModuleUse(module, imports) =>
+        fail(
+          "EMBEDDED_SAME_MODULE_SAME_SOURCE",
+          "configured embedded producer source cannot also contain a consumer of that annotation",
+          module
+        )
+        module
       case module: ModuleDef =>
         if containsPotentialOptIn(module, imports) then
           fail(
@@ -857,6 +906,51 @@ final class EmbeddedProducerPhase extends PluginPhase:
           )
       else None
 
+  private def validateSameModuleDeclaration(
+      canonicalIdentity: String,
+      marker: TypeDef
+  )(using context: Context): Boolean =
+    sameModuleConfiguration.toOption.flatten match
+      case None => true
+      case Some(configured) =>
+        val currentSource = context.compilationUnit.source.file.path
+        if !sourceMatches(currentSource, configured.producerSource) then
+          sameModuleValidationFailed = true
+          fail(
+            "EMBEDDED_SAME_MODULE_SOURCE_MISMATCH",
+            s"embedded declaration `$canonicalIdentity` is not in configured producer source `${configured.producerSource}`",
+            marker
+          )
+          false
+        else if canonicalIdentity != configured.annotationName then
+          sameModuleValidationFailed = true
+          fail(
+            "EMBEDDED_SAME_MODULE_BINDING_MISMATCH",
+            s"configured annotation `${configured.annotationName}` does not match producer declaration `$canonicalIdentity`",
+            marker
+          )
+          false
+        else if sameModuleDeclarationCount != 0 then
+          sameModuleValidationFailed = true
+          fail(
+            "EMBEDDED_SAME_MODULE_DECLARATION_COUNT",
+            "same-module embedded mode accepts exactly one configured declaration",
+            marker
+          )
+          false
+        else
+          sameModuleDeclarationCount += 1
+          true
+
+  private def sourceMatches(rawPath: String, configuredPath: String): Boolean =
+    val normalized =
+      rawPath.replace('\\', '/').split('/').foldLeft(Vector.empty[String]):
+        case (segments, "" | ".") => segments
+        case (segments, "..") if segments.nonEmpty && segments.last != ".." => segments.dropRight(1)
+        case (segments, segment) => segments :+ segment
+      .mkString("/")
+    normalized == configuredPath || normalized.endsWith(s"/$configuredPath")
+
   private def stripPotentialOptIns(
       marker: TypeDef,
       imports: ImportEvidence
@@ -920,6 +1014,19 @@ final class EmbeddedProducerPhase extends PluginPhase:
     treeIdentity(tree).exists: raw =>
       raw == canonical ||
       raw == simple && imports.explicit.getOrElse(simple, Set.empty) == Set(canonical)
+
+  private def containsConfiguredSameModuleUse(
+      definition: MemberDef,
+      imports: ImportEvidence
+  )(using context: Context): Boolean =
+    sameModuleConfiguration.toOption.flatten.exists: configured =>
+      sourceMatches(context.compilationUnit.source.file.path, configured.producerSource) &&
+        {
+          val simple = configured.annotationName.split("\\.").last
+          Trees.mods(definition).annotations.exists(annotation =>
+            referenceMatches(annotation, configured.annotationName, simple, imports)
+          )
+        }
 
   private def typeReferenceMatches(
       tree: Tree,

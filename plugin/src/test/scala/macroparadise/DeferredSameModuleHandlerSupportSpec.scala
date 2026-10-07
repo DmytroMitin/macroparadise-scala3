@@ -166,3 +166,43 @@ class DeferredSameModuleHandlerSupportSpec extends munit.FunSuite:
     assert(parseConfiguration(List(relationship, "sameModuleSourceIdentity=sha256:bad")).isLeft)
     assertEquals(parseConfiguration(Nil), Right(None))
   }
+
+  test("embedded same-module configuration derives the private adapter from one canonical producer binding") {
+    val digest = "sha256:" + "b" * 64
+    val embedded = "sameModuleEmbedded=demo.sameModuleGreeting:demo/EmbeddedAnnotations.scala"
+
+    val parsed = parseConfiguration(
+      List(embedded, "sameModuleSourceIdentity=" + digest)
+    ).map(_.map(configuration => (
+      configuration.annotationName,
+      configuration.handlerClassName,
+      configuration.markerSourceIdentity.value,
+      configuration.handlerSourceIdentity.value,
+      configuration.sourceDigest.value
+    )))
+
+    assertEquals(
+      parsed,
+      Right(
+        Some((
+          "demo.sameModuleGreeting",
+          "demo.sameModuleGreeting__MacroParadiseEmbeddedExpansionHandler",
+          "demo/EmbeddedAnnotations.scala",
+          "demo/EmbeddedAnnotations.scala",
+          digest
+        ))
+      )
+    )
+  }
+
+  test("embedded and external options are mutually exclusive and embedded input is singular and canonical") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "c" * 64
+    val external =
+      "sameModuleHandler=demo.marker:demo.Handler:demo/Marker.scala:demo/Handler.scala"
+    val embedded = "sameModuleEmbedded=demo.marker:demo/Embedded.scala"
+
+    assert(parseConfiguration(List(external, embedded, digest)).isLeft)
+    assert(parseConfiguration(List(embedded, embedded, digest)).isLeft)
+    assert(parseConfiguration(List("sameModuleEmbedded=marker:demo/Embedded.scala", digest)).isLeft)
+    assert(parseConfiguration(List("sameModuleEmbedded=demo.marker:Embedded.scala", digest)).isLeft)
+  }

@@ -2,7 +2,7 @@ import java.nio.charset.StandardCharsets
 
 enablePlugins(macroparadise.sbt.MacroParadiseSameModulePlugin)
 
-scalaVersion := "3.8.4"
+scalaVersion := sys.props.getOrElse("test.scala.version", "3.8.4")
 
 macroParadiseSameModuleBinding := Some(
   macroParadiseSameModuleHandler(

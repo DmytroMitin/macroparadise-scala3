@@ -130,6 +130,43 @@ final class SourceIdentitySpec extends FunSuite {
     }
   }
 
+  test("nonregular configured source fails closed") {
+    withSources { root =>
+      Files.createDirectories(root.resolve("demo/Directory.scala"))
+      interceptMessage[IllegalArgumentException](
+        "configured same-module source is not a regular file"
+      ) {
+        SourceIdentity.derive(
+          root.toFile,
+          Seq(LabelledSource("embedded-producer-source", "demo/Directory.scala"))
+        )
+      }
+    }
+  }
+
+  test("every exact producer-byte edit category changes the one-source identity") {
+    withSources { root =>
+      val relative = "demo/EmbeddedAnnotations.scala"
+      val original =
+        "final class marker(value: String); object marker { def transform = helper }; def helper = 1"
+      val producer = source(root, relative, original)
+      val configured = Seq(LabelledSource("embedded-producer-source", relative))
+      val baseline = SourceIdentity.derive(root.toFile, configured).identity
+      val edits = Seq(
+        "final class marker(value: String); object marker { def transform = helper + 1 }; def helper = 1",
+        "final class marker(value: Int); object marker { def transform = helper }; def helper = 1",
+        "final class marker[A](value: String); object marker { def transform = helper }; def helper = 1",
+        "final class marker(value: String); object marker { def transform = helper }; def helper = 2"
+      )
+      edits.foreach { bytes =>
+        Files.write(producer, bytes.getBytes(StandardCharsets.UTF_8))
+        assertNotEquals(SourceIdentity.derive(root.toFile, configured).identity, baseline)
+      }
+      Files.write(producer, original.getBytes(StandardCharsets.UTF_8))
+      assertEquals(SourceIdentity.derive(root.toFile, configured).identity, baseline)
+    }
+  }
+
   test("empty or manifest-breaking labels fail closed") {
     withSources { root =>
       source(root, "demo/Handler.scala", "handler")

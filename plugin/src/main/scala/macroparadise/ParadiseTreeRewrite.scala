@@ -55,11 +55,22 @@ private[macroparadise] object ParadiseTreeRewrite:
       )
 
   def containsTopLevelClassAnnotation(tree: Tree, annotationName: String)(using Context): Boolean =
+    val canonical = annotationName.contains('.')
+    val resolver =
+      if canonical then Some(ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree))
+      else None
+    def matches(annotation: Tree): Boolean =
+      resolver match
+        case Some(value) =>
+          value.identityOf(annotation).toOption.exists(_.value == annotationName)
+        case None =>
+          annotationSyntax(annotation).contains(annotationName)
+
     tree match
       case pkg: PackageDef =>
         pkg.stats.exists:
-          case value: TypeDef => annotations(value).exists(annotationSyntax(_).contains(annotationName))
-          case value: ModuleDef => annotations(value).exists(annotationSyntax(_).contains(annotationName))
+          case value: TypeDef => annotations(value).exists(matches)
+          case value: ModuleDef => annotations(value).exists(matches)
           case _ => false
       case _ => false
 

@@ -36,56 +36,104 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
       sourceDigest: SourceDigest
   )
 
+  private val EmbeddedAdapterSuffix = "__MacroParadiseEmbeddedExpansionHandler"
+
   def parseConfiguration(
       options: List[String]
   ): Either[String, Option[SameModuleConfiguration]] =
-    val relationships =
+    val externalRelationships =
       options.collect:
         case option if option.startsWith("sameModuleHandler=") =>
           option.stripPrefix("sameModuleHandler=")
+    val embeddedRelationships =
+      options.collect:
+        case option if option.startsWith("sameModuleEmbedded=") =>
+          option.stripPrefix("sameModuleEmbedded=")
     val identities =
       options.collect:
         case option if option.startsWith("sameModuleSourceIdentity=") =>
           option.stripPrefix("sameModuleSourceIdentity=")
 
-    (relationships, identities) match
-      case (Nil, Nil) => Right(None)
-      case (_ :: _ :: _, _) =>
+    (externalRelationships, embeddedRelationships, identities) match
+      case (Nil, Nil, Nil) => Right(None)
+      case (_ :: _ :: _, _, _) =>
         Left("the `sameModuleHandler=` option accepts exactly one explicit relationship")
-      case (_, _ :: _ :: _) =>
+      case (_, _ :: _ :: _, _) =>
+        Left("the `sameModuleEmbedded=` option accepts exactly one explicit relationship")
+      case (_, _, _ :: _ :: _) =>
         Left("the `sameModuleSourceIdentity=` option accepts exactly one source digest")
-      case (Nil, _ :: Nil) =>
-        Left("`sameModuleSourceIdentity=` requires one explicit `sameModuleHandler=` relationship")
-      case (_ :: Nil, Nil) =>
+      case (_ :: Nil, _ :: Nil, _) =>
+        Left("`sameModuleHandler=` and `sameModuleEmbedded=` are mutually exclusive")
+      case (Nil, Nil, _ :: Nil) =>
+        Left("`sameModuleSourceIdentity=` requires one explicit same-module relationship")
+      case (_ :: Nil, Nil, Nil) =>
         Left("`sameModuleHandler=` requires one distinct `sameModuleSourceIdentity=` compiler input")
-      case (relationship :: Nil, identity :: Nil) =>
-        relationship.split(":", -1).toList.map(_.trim) match
-          case annotationName :: handlerClassName :: markerSource :: handlerSource :: Nil
-              if annotationName.nonEmpty && handlerClassName.nonEmpty =>
-            for
-              markerIdentity <- SourceIdentity
-                .parse(markerSource)
-                .left.map(message => s"invalid marker source in `sameModuleHandler=`: $message")
-              handlerIdentity <- SourceIdentity
-                .parse(handlerSource)
-                .left.map(message => s"invalid handler source in `sameModuleHandler=`: $message")
-              _ <-
-                if markerIdentity != handlerIdentity then Right(())
-                else Left("same-module marker and handler sources must be different files")
-              digest <- SourceDigest.parse(identity)
-            yield Some(
-              SameModuleConfiguration(
-                annotationName,
-                handlerClassName,
-                markerIdentity,
-                handlerIdentity,
-                digest
-              )
-            )
-          case _ =>
-            Left(
-              "invalid `sameModuleHandler=` option; expected `<annotationName>:<handlerClassName>:<markerSource>:<handlerSource>`"
-            )
+      case (Nil, _ :: Nil, Nil) =>
+        Left("`sameModuleEmbedded=` requires one distinct `sameModuleSourceIdentity=` compiler input")
+      case (relationship :: Nil, Nil, identity :: Nil) =>
+        parseExternalConfiguration(relationship, identity).map(Some(_))
+      case (Nil, relationship :: Nil, identity :: Nil) =>
+        parseEmbeddedConfiguration(relationship, identity).map(Some(_))
+
+  private def parseExternalConfiguration(
+      relationship: String,
+      identity: String
+  ): Either[String, SameModuleConfiguration] =
+    relationship.split(":", -1).toList.map(_.trim) match
+      case annotationName :: handlerClassName :: markerSource :: handlerSource :: Nil
+          if annotationName.nonEmpty && handlerClassName.nonEmpty =>
+        for
+          markerIdentity <- SourceIdentity
+            .parse(markerSource)
+            .left.map(message => s"invalid marker source in `sameModuleHandler=`: $message")
+          handlerIdentity <- SourceIdentity
+            .parse(handlerSource)
+            .left.map(message => s"invalid handler source in `sameModuleHandler=`: $message")
+          _ <-
+            if markerIdentity != handlerIdentity then Right(())
+            else Left("same-module marker and handler sources must be different files")
+          digest <- SourceDigest.parse(identity)
+        yield SameModuleConfiguration(
+          annotationName,
+          handlerClassName,
+          markerIdentity,
+          handlerIdentity,
+          digest
+        )
+      case _ =>
+        Left(
+          "invalid `sameModuleHandler=` option; expected `<annotationName>:<handlerClassName>:<markerSource>:<handlerSource>`"
+        )
+
+  private def parseEmbeddedConfiguration(
+      relationship: String,
+      identity: String
+  ): Either[String, SameModuleConfiguration] =
+    relationship.split(":", -1).toList.map(_.trim) match
+      case annotationName :: producerSource :: Nil =>
+        for
+          canonical <- SyntacticAnnotationIdentity
+            .fromDeclaredName(annotationName)
+            .left.map(message => s"invalid annotation name in `sameModuleEmbedded=`: $message")
+          _ <-
+            if canonical.isQualified then Right(())
+            else Left("invalid annotation name in `sameModuleEmbedded=`: expected a qualified canonical annotation class name")
+          producerIdentity <- SourceIdentity
+            .parse(producerSource)
+            .left.map(message => s"invalid producer source in `sameModuleEmbedded=`: $message")
+          digest <- SourceDigest.parse(identity)
+        yield SameModuleConfiguration(
+          canonical.value,
+          canonical.value + EmbeddedAdapterSuffix,
+          producerIdentity,
+          producerIdentity,
+          digest
+        )
+      case _ =>
+        Left(
+          "invalid `sameModuleEmbedded=` option; expected `<canonicalAnnotationName>:<producerSource>`"
+        )
+
 
   enum DependencyResolution:
     case Missing

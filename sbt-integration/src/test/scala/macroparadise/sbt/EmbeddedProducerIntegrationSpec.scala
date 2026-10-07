@@ -51,7 +51,11 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
         "MacroParadiseIntegration.embeddedHandlerPublicationFacade",
         "EmbeddedProducerRoles.RoleInventory",
         "EmbeddedProducerRoles.packageRoles",
-        "EmbeddedProducerRoles.completeHandlerClasspath"
+        "EmbeddedProducerRoles.completeHandlerClasspath",
+        "SameModuleEmbeddedBinding",
+        "macroParadiseSameModuleEmbeddedBinding",
+        "macroParadiseSameModuleEmbedded",
+        "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule"
       )
     )
   }
@@ -71,5 +75,29 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
 
     assert(MacroParadiseIntegration.precompiledEmbeddedProject(LocalProject("producer")).nonEmpty)
     assert(MacroParadiseIntegration.precompiledEmbeddedModules("com.example", "sample", "1.0.0").nonEmpty)
+  }
+
+  test("same-module embedded surface exposes only the frozen binding, setting, helper, and producer module") {
+    import MacroParadiseSameModulePlugin.autoImport._
+
+    val producer = LabelledSource("embedded-producer-source", "demo/EmbeddedAnnotations.scala")
+    val binding = macroParadiseSameModuleEmbedded("demo.sameModuleGreeting", producer)
+
+    assertEquals(binding, SameModuleEmbeddedBinding("demo.sameModuleGreeting", producer))
+    assertEquals(macroParadiseSameModuleEmbeddedBinding.key.label, "macroParadiseSameModuleEmbeddedBinding")
+    assertEquals(
+      macroParadiseSameModuleEmbeddedProducerCompilerPluginModule.key.label,
+      "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule"
+    )
+    val baseline = Files.readAllLines(new File("sbt-public-surface.txt").toPath).asScala.filter(_.nonEmpty).toVector
+    assertEquals(
+      baseline.takeRight(4),
+      Vector(
+        "SameModuleEmbeddedBinding",
+        "macroParadiseSameModuleEmbeddedBinding",
+        "macroParadiseSameModuleEmbedded",
+        "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule"
+      )
+    )
   }
 }

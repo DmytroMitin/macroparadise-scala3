@@ -275,6 +275,35 @@ class ExplicitImportAnnotationIdentityResolverSpec extends munit.FunSuite:
     assertEquals(diagnostic.pos.span, nestedAnnotation.sourcePos.span)
   }
 
+  test("same-module suspension matching accepts qualified or source-preceding explicit imported canonical identities only") {
+    def matches(code: String): Boolean = {
+      val (tree, _, context) = parsedAnnotations(code)
+      ParadiseTreeRewrite.containsTopLevelClassAnnotation(
+        tree,
+        "demo.sameModuleGreeting"
+      )(using context)
+    }
+
+    assert(matches("""package consumer
+      |@demo.sameModuleGreeting class Qualified
+      |""".stripMargin))
+    assert(matches("""package consumer
+      |import demo.sameModuleGreeting
+      |@sameModuleGreeting class Imported
+      |""".stripMargin))
+    assert(!matches("""package consumer
+      |@sameModuleGreeting class Unresolved
+      |""".stripMargin))
+    assert(!matches("""package consumer
+      |@sameModuleGreeting class Before
+      |import demo.sameModuleGreeting
+      |""".stripMargin))
+    assert(!matches("""package consumer
+      |import demo.{sameModuleGreeting as greeting}
+      |@greeting class Renamed
+      |""".stripMargin))
+  }
+
   private def parsedAnnotations(code: String): (Tree, List[Tree], Context) =
     val unit = CompilationUnit("ExplicitImportAnnotationIdentityResolverSpec.scala", code)
     val context = ContextBase().initialCtx.fresh.setCompilationUnit(unit)

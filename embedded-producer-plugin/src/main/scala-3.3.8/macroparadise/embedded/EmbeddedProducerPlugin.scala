@@ -7,4 +7,4 @@ final class EmbeddedProducerPlugin extends StandardPlugin:
   val description =
     "Macro Paradise producer-only embedded declaration generator"
   def init(options: List[String]): List[PluginPhase] =
-    List(new EmbeddedProducerPhase)
+    List(new EmbeddedProducerPhase(options))
