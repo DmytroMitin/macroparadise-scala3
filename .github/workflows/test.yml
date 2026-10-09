@@ -39,10 +39,20 @@ jobs:
         run: |
           sbt -Dmacroparadise.exactScalaVersion=${{ matrix.opposite-scala-version }} -batch '++${{ matrix.opposite-scala-version }}!' plugin/packageBin
 
+      - name: Prepare current exact source-built product artifacts
+        run: |
+          sbt \
+            -Dmacroparadise.exactScalaVersion=${{ matrix.scala-version }} \
+            -batch \
+            '++${{ matrix.scala-version }}!' \
+            'pluginApi/publishLocal' \
+            'embeddedProducerPlugin/publishLocal' \
+            'plugin/publishLocal'
+
       - name: Verify source-built sbt integration
         working-directory: sbt-integration
         run: |
-          sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
+          sbt -Dtest.scala.version=${{ matrix.scala-version }} -batch verifyIntegrationPolicy test scripted packageSrc packageDoc
 
       - name: Verify public-product build boundary (Scala ${{ matrix.scala-version }})
         run: |
