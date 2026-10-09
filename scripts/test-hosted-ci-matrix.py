@@ -143,6 +143,20 @@ class HostedCiMatrixTest(unittest.TestCase):
         build = (ROOT / "build.sbt").read_text(encoding="utf-8")
         self.assertIn('"test-hosted-ci-matrix.py"', build)
 
+    def test_nested_sbt_integration_inherits_the_selected_scala_line(self) -> None:
+        build = (ROOT / "build.sbt").read_text(encoding="utf-8")
+        task = re.search(
+            r"verifySbtPrecompiledIntegrationModule := \{(?P<body>.*?)\n\}",
+            build,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(task)
+        self.assertIn(
+            "s\"-Dtest.scala.version=${scalaVersion.value}\"",
+            task.group("body"),
+        )
+
     def test_commands_in_comments_do_not_satisfy_the_selected_job(self) -> None:
         selected = "${{ matrix.scala-version }}"
         command = (

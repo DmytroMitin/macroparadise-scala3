@@ -1740,7 +1740,7 @@ verifyUserOnboardingThreeModeSetup := {
 
 verifySbtPrecompiledIntegrationModule := {
   val module = baseDirectory.value / "sbt-integration"
-  val command = Seq("sbt", "-batch", "verifyIntegrationPolicy", "test", "scripted", "packageSrc", "packageDoc")
+  val command = Seq("sbt", s"-Dtest.scala.version=${scalaVersion.value}", "-batch", "verifyIntegrationPolicy", "test", "scripted", "packageSrc", "packageDoc")
   val exit = scala.sys.process.Process(command, module).!
   require(exit == 0, s"sbt integration module verification failed with exit $exit")
   streams.value.log.info("sbt integration module verified: sbt1.x/scala2.12 unit+scripted+source+doc artifacts")
