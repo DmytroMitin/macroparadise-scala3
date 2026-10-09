@@ -81,6 +81,14 @@ def test_job_run_commands(workflow: str) -> list[str]:
     return commands
 
 
+def workflow_non_comment_lines(workflow: str) -> list[str]:
+    return [
+        line.strip()
+        for line in workflow.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
 class HostedCiMatrixTest(unittest.TestCase):
     def setUp(self) -> None:
         self.workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -129,7 +137,7 @@ class HostedCiMatrixTest(unittest.TestCase):
             commands,
         )
         self.assertIn(
-            "sbt -batch verifyIntegrationPolicy test scripted packageSrc packageDoc",
+            f"sbt -Dtest.scala.version={selected} -batch verifyIntegrationPolicy test scripted packageSrc packageDoc",
             commands,
         )
         build = (ROOT / "build.sbt").read_text(encoding="utf-8")
@@ -155,10 +163,65 @@ class HostedCiMatrixTest(unittest.TestCase):
         self.assertIn('java-version: "25"', test_job)
         self.assertIn("uses: sbt/setup-sbt@v1", test_job)
 
-    def test_workflow_has_no_publication_or_secret_surface(self) -> None:
+    def test_changed_approved_local_publication_is_rejected(self) -> None:
+        self.workflow = self.workflow.replace(
+            "'plugin/publishLocal'",
+            "'plugin/publishLocal' \\\n"
+            "            'unexpected/publishLocal'",
+        )
+
+        with self.assertRaises(AssertionError):
+            self.test_workflow_has_only_scoped_local_publication_and_no_remote_or_secret_surface()
+
+    def test_inline_unapproved_local_publication_is_rejected(self) -> None:
+        self.workflow = self.workflow.replace(
+            "      - name: Verify source-built sbt integration",
+            "      - name: Unexpected local publication\n"
+            "        run: sbt unexpected/publishLocal\n\n"
+            "      - name: Verify source-built sbt integration",
+        )
+
+        with self.assertRaises(AssertionError):
+            self.test_workflow_has_only_scoped_local_publication_and_no_remote_or_secret_surface()
+
+    def test_unapproved_local_publication_in_another_job_is_rejected(self) -> None:
+        self.workflow += (
+            "\n  unexpected:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - run: sbt unexpected/publishLocal\n"
+        )
+
+        with self.assertRaises(AssertionError):
+            self.test_workflow_has_only_scoped_local_publication_and_no_remote_or_secret_surface()
+
+    def test_plain_remote_publication_is_rejected(self) -> None:
+        self.workflow += (
+            "\n  unexpected:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - run: sbt plugin/publish\n"
+        )
+
+        with self.assertRaises(AssertionError):
+            self.test_workflow_has_only_scoped_local_publication_and_no_remote_or_secret_surface()
+
+    def test_workflow_has_only_scoped_local_publication_and_no_remote_or_secret_surface(self) -> None:
+        active_lines = workflow_non_comment_lines(self.workflow)
+        self.assertEqual(
+            [line for line in active_lines if "publishlocal" in line.lower()],
+            [
+                "'pluginApi/publishLocal' \\",
+                "'embeddedProducerPlugin/publishLocal' \\",
+                "'plugin/publishLocal'",
+            ],
+        )
+
+        plain_remote_publish = re.compile(r"\bpublish\b", re.IGNORECASE)
+        self.assertFalse(any(plain_remote_publish.search(line) for line in active_lines))
+
         lowered = self.workflow.lower()
         for forbidden in (
-            "publishlocal",
             "publishsigned",
             "centralportal",
             "gh release",
