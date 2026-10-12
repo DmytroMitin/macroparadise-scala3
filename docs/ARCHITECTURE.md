@@ -54,6 +54,9 @@ The exact-cross plugin/API pair and sbt integration have an immutable `0.1.1`
 release. Current `0.2.0-SNAPSHOT` development is source-built/local-only.
 Fixture modules remain unpublished.
 
+See [Authoring modes and feature parity](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+for the canonical frontend/topology matrix and the precise limits of shared backend semantics.
+
 ## Unified external handler flow
 
 An external marker carries runtime metadata naming an already compiled handler:

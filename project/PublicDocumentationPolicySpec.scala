@@ -3,16 +3,18 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 53
+  val CaseCount = 59
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
-  private val IncludedPaths = PublicDocumentationPolicy.RequiredPaths + "sbt-integration/README.md"
+  private val ParityGuidePath = "docs/AUTHORING_MODES_AND_FEATURE_PARITY.md"
+  private val IncludedPaths = PublicDocumentationPolicy.RequiredPaths + ParityGuidePath + "sbt-integration/README.md"
 
   def run(): Unit = {
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/QUASIQUOTE_ARCHITECTURE.md"))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EXPANSION_MODEL_AND_COMPOSITION.md"))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EMBEDDED_PRODUCER_AUTHORING.md"))
+    assert(PublicDocumentationPolicy.RequiredPaths.contains(ParityGuidePath))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("examples/embedded-producer-starter/README.md"))
     val clean = fixture()
     try {
@@ -253,6 +255,36 @@ object PublicDocumentationPolicySpec {
       CanonicalSupportedScope + "\nSame-module embedded declaration and use is unsupported.\n",
       "STALE_SAME_MODULE_EMBEDDED_BLANKET_CLAIM"
     )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide.replace("bounded embedded same-module", "unsupported"),
+      "AUTHORING_MODE_GUIDE_INCOMPLETE"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + "\nAll programs are behaviorally equivalent across the four modes.\n",
+      "FULL_BEHAVIORAL_PARITY_OVERCLAIM"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + "\nMultiple same-module bindings are supported.\n",
+      "SAME_MODULE_MULTI_BINDING_OVERCLAIM"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + "\nA same sbt multi-project build is the same Scala compilation module.\n",
+      "COMPILATION_TOPOLOGY_CONFLATED"
+    )
+    assertFinding(
+      "README.md",
+      (CanonicalReadme + CanonicalSameModuleReadme).replace("docs/AUTHORING_MODES_AND_FEATURE_PARITY.md", "docs/GETTING_STARTED.md"),
+      "AUTHORING_MODE_GUIDE_NAVIGATION_MISSING"
+    )
+    assertFinding(
+      "docs/GETTING_STARTED.md",
+      (CanonicalGetting + CanonicalSameModuleGetting).replace("AUTHORING_MODES_AND_FEATURE_PARITY.md", "EMBEDDED_PRODUCER_AUTHORING.md"),
+      "AUTHORING_MODE_GUIDE_NAVIGATION_MISSING"
+    )
 
     val missing = fixture()
     try {
@@ -284,6 +316,7 @@ object PublicDocumentationPolicySpec {
       CanonicalReadme + CanonicalSameModuleReadme
     )
     write(root, "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md", CanonicalSupportedScope)
+    write(root, ParityGuidePath, CanonicalParityGuide)
     write(root, "docs/GETTING_STARTED.md", CanonicalGetting + CanonicalSameModuleGetting)
     write(root, "docs/EMBEDDED_PRODUCER_AUTHORING.md", CanonicalEmbeddedGuide + CanonicalSameModuleGuide)
     write(root, "examples/embedded-producer-starter/README.md", CanonicalEmbeddedStarterReadme)
@@ -322,7 +355,7 @@ object PublicDocumentationPolicySpec {
       |https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/draft/draft_v8.md
       |https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/macroparadise-talk-09-2026-literal-v8.pdf
 
-      |See [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), [external handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md), and [website](https://example.com).
+      |See [roadmap](ROADMAP.md), [getting started](docs/GETTING_STARTED.md), [authoring modes](docs/AUTHORING_MODES_AND_FEATURE_PARITY.md), [external handler authoring](docs/EXTERNAL_HANDLER_AUTHORING.md), and [website](https://example.com).
       |""".stripMargin
 
   private val CanonicalSameModuleReadme =
@@ -361,6 +394,22 @@ object PublicDocumentationPolicySpec {
       |The external and embedded bindings are mutually exclusive.
       |The same physical source file, multiple embedded bindings, automatic discovery, cycles, general same-module support, and native JPS are unsupported.
       |The immutable `0.1.1` release is unchanged and `0.2.0-SNAPSHOT` is not remotely published.
+      |""".stripMargin
+
+  private val CanonicalParityGuide =
+    """# Authoring modes and feature parity
+      |
+      || Authoring frontend | Precompiled in other module | Same Scala module |
+      || --- | --- | --- |
+      || @expander | explicit marker/handler | bounded external Model A |
+      || @embeddedExpander | precompiled generated adapter | bounded embedded same-module |
+      |
+      |Both frontends reach ExpansionHandler.expand(ExpansionInput): ExpansionOutcome and the shared staged scheduler and transaction.
+      |Shared backend parity does not prove all program behavior equivalent.
+      |Authoring declaration parity: no. Topology parity: no. Same-module multi-binding support: no.
+      |The same-module settings are macroParadiseSameModuleBinding and macroParadiseSameModuleEmbeddedBinding; they are mutually exclusive.
+      |Released 0.1.1 contains external-handler Model A; embeddedExpander and the current handler protocol are source-built 0.2.0-SNAPSHOT only.
+      |Native JPS and direct Java gutter Run are not qualified; IntelliJ evidence uses sbt import, sbt-delegated Build, and sbt shell run.
       |""".stripMargin
 
 
@@ -432,6 +481,8 @@ object PublicDocumentationPolicySpec {
 
   private val CanonicalGetting =
     """# Getting started
+      |
+      |See [authoring modes](AUTHORING_MODES_AND_FEATURE_PARITY.md).
       |
       |## External-handler setup matrix
       |

@@ -8,6 +8,9 @@ matching plugin and API from source into local Ivy first. Released `0.1.1` is a
 separate immutable artifact with its earlier handler surface; use the released
 Giter8 template or versioned release documentation for that API.
 
+Use [Authoring modes and feature parity](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+to compare this frontend with embedded and bounded same-module modes.
+
 ## Embedded producer authoring
 
 The external form remains first-class for modular packaging, independently

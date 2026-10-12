@@ -105,4 +105,6 @@ every negative lane proves consumer compilation and expansion stayed stopped.
 
 See
 [`docs/EXTERNAL_HANDLER_AUTHORING.md`](../../docs/EXTERNAL_HANDLER_AUTHORING.md)
-for the contract, precheck categories, limitations, and evidence model.
+for the contract, precheck categories, limitations, and evidence model. The
+[authoring-mode and feature-parity guide](../../docs/AUTHORING_MODES_AND_FEATURE_PARITY.md)
+places this starter in the explicit precompiled cell.

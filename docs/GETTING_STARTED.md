@@ -165,6 +165,10 @@ parent of the compiler plugin classloader.
 
 ## Choose an authoring style
 
+Start with the [authoritative four-cell mode and parity guide](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+to separate authoring frontend, compilation topology, build wiring, and release
+availability before selecting a tutorial.
+
 Current source-built `0.2.0-SNAPSHOT` supports two first-class precompiled
 styles:
 

@@ -15,6 +15,9 @@ matrix.
   them without enabling the sbt integration plugin. It exercises the complete
   manual identity and compiler-option wiring.
 
+The canonical [authoring-mode and feature-parity guide](../../docs/AUTHORING_MODES_AND_FEATURE_PARITY.md)
+places these external precompiled variants separately from same-module modes.
+
 The template is copied to a disposable directory by
 `verifyUserOnboardingThreeModeSetup`; it is not intended to resolve the
 unreleased snapshot coordinates directly from a remote repository.

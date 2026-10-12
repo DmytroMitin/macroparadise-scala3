@@ -59,7 +59,7 @@ object addGreeting:
     ...
 ```
 
-This source belongs to a precompiled producer. The producer integration derives
+In this precompiled layout, the source belongs to a producer compiled before its consumers. The integration derives
 separate marker and handler roles and hides the generated no-argument handler
 adapter; its class name is not a public contract. A same-build consumer uses a
 marker-only project edge plus
@@ -68,6 +68,8 @@ producer `publishLocal`.
 
 The embedded frontend is producer ergonomics over the existing runtime handler
 protocol. External handler authoring remains first-class and is not deprecated.
+For the full choice across explicit/embedded authoring and precompiled/same-module
+topologies, see [Authoring modes and feature parity](docs/AUTHORING_MODES_AND_FEATURE_PARITY.md).
 See [Embedded producer authoring](docs/EMBEDDED_PRODUCER_AUTHORING.md) and the
 [executable starter](examples/embedded-producer-starter/README.md).
 
@@ -473,6 +475,7 @@ presented to the London Scala User Group on 9 September 2026.
 ## Documentation
 
 - [Getting started](docs/GETTING_STARTED.md)
+- [Authoring modes and feature parity](docs/AUTHORING_MODES_AND_FEATURE_PARITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Quasiquote and pre-typer AST architecture](docs/QUASIQUOTE_ARCHITECTURE.md)
 - [Supported scope and limitations](docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md)

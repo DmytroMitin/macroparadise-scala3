@@ -14,7 +14,9 @@ choice and does not change the default precompiled path.
 Current source-built `0.2.0-SNAPSHOT` extends that no-trigger plugin with a
 second, mutually exclusive bounded binding for one embedded producer source and
 different-file consumers. It is not present in the immutable `0.1.1` release;
-the complete source-built recipe appears below.
+the complete source-built recipe appears below. The canonical
+[authoring-mode and feature-parity guide](../docs/AUTHORING_MODES_AND_FEATURE_PARITY.md)
+explains how this mode differs from the three other frontend/topology cells.
 It selects exact-full-cross compiler plugin and authoring API coordinates,
 keeps published handlers in a hidden configuration, and derives Zinc
 compiler-option identity from every explicit marker artifact plus the complete

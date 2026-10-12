@@ -78,3 +78,5 @@ External handler authoring remains supported as a first-class modular alternativ
 
 For the complete same-build, resolver-installed, AutoPlugin, and manual
 recipes, see [Embedded producer authoring](../../docs/EMBEDDED_PRODUCER_AUTHORING.md).
+Use [Authoring modes and feature parity](../../docs/AUTHORING_MODES_AND_FEATURE_PARITY.md)
+for the canonical comparison with explicit and same-module modes.

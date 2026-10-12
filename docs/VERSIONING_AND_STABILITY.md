@@ -4,6 +4,9 @@ Macro-Paradise for Scala 3 has an experimental `0.1.1` release on Maven Central
 for exact Scala `3.3.8`, `3.8.4`, and stable `3.9.0`. Current `main` uses
 `0.2.0-SNAPSHOT` for the next experimental development line.
 
+The [authoring-mode and feature-parity guide](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+distinguishes immutable released capabilities from current source-built modes.
+
 The POM uses sbt's `early-semver` tooling hint so dependency tools treat the
 pre-1.0 line conservatively. It does not upgrade the experimental API into a
 stable compatibility promise.

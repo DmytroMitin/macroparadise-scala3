@@ -9,7 +9,8 @@
 
 The build uses compiler-internal APIs and a pre-typer research phase. JDK 25 is
 enforced at sbt load, and each Scala lane is pinned exactly. Binary-crossed or
-nearby compiler versions are not substitutes.
+nearby compiler versions are not substitutes. The [mode and parity guide](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+records the evidence envelope separately for each authoring/topology cell.
 
 ## IntelliJ and build import
 

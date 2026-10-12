@@ -20,6 +20,7 @@ object PublicDocumentationPolicy {
     "SECURITY.md",
     "SUPPORT.md",
     "docs/GETTING_STARTED.md",
+    "docs/AUTHORING_MODES_AND_FEATURE_PARITY.md",
     "docs/ARCHITECTURE.md",
     "docs/QUASIQUOTE_ARCHITECTURE.md",
     "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md",
@@ -196,6 +197,55 @@ object PublicDocumentationPolicy {
         )
     }
 
+    if (path == "docs/AUTHORING_MODES_AND_FEATURE_PARITY.md") {
+      requireAll(
+        "AUTHORING_MODE_GUIDE_INCOMPLETE",
+        "authoritative guide must retain all four source-grounded authoring/topology cells and their principal parity limits",
+        "| Authoring frontend | Precompiled in other module | Same Scala module |",
+        "@expander | explicit marker/handler",
+        "bounded external Model A",
+        "@embeddedExpander | precompiled generated adapter",
+        "bounded embedded same-module",
+        "ExpansionHandler.expand(ExpansionInput): ExpansionOutcome",
+        "shared staged scheduler and transaction",
+        "does not prove all program behavior equivalent",
+        "Authoring declaration parity: no",
+        "Topology parity: no",
+        "Same-module multi-binding support: no",
+        "macroParadiseSameModuleBinding",
+        "macroParadiseSameModuleEmbeddedBinding",
+        "mutually exclusive",
+        "Released 0.1.1",
+        "source-built 0.2.0-SNAPSHOT only",
+        "Native JPS",
+        "direct Java gutter Run"
+      )
+      if (
+        lower.contains("all programs are behaviorally equivalent") ||
+          lower.contains("all authoring modes are behaviorally equivalent")
+      ) findings += Finding(
+        "FULL_BEHAVIORAL_PARITY_OVERCLAIM",
+        path,
+        "shared backend behavior must not be presented as universal program equivalence"
+      )
+      if (
+        lower.contains("multiple same-module bindings are supported") ||
+          lower.contains("same-module multi-binding support: yes")
+      ) findings += Finding(
+        "SAME_MODULE_MULTI_BINDING_OVERCLAIM",
+        path,
+        "current same-module configuration supports one mutually exclusive binding, not multiple bindings"
+      )
+      if (
+        lower.contains("same sbt multi-project build is the same scala compilation module") ||
+          lower.contains("same scala compilation module is the same physical source file")
+      ) findings += Finding(
+        "COMPILATION_TOPOLOGY_CONFLATED",
+        path,
+        "sbt build, Scala compilation module, physical source file, and generated artifact are distinct topology axes"
+      )
+    }
+
     if (path == "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md") {
       requireAll(
         "SAME_MODULE_EMBEDDED_SUPPORT_CONTRACT_MISSING",
@@ -364,6 +414,18 @@ object PublicDocumentationPolicy {
         "no remote `0.2.0-SNAPSHOT`",
         "sbt-integration/README.md#bounded-same-module-embedded-recipe"
       )
+    }
+
+    if (path == "README.md" || path == "docs/GETTING_STARTED.md") {
+      val expectedGuideLink =
+        if (path == "README.md") "docs/AUTHORING_MODES_AND_FEATURE_PARITY.md"
+        else "AUTHORING_MODES_AND_FEATURE_PARITY.md"
+      if (!text.contains(expectedGuideLink))
+        findings += Finding(
+          "AUTHORING_MODE_GUIDE_NAVIGATION_MISSING",
+          path,
+          "root README and Getting Started must link the authoritative authoring-mode guide"
+        )
     }
 
     if (path == "ROADMAP.md") {

@@ -2,6 +2,9 @@
 
 MacroParadise 0.2.0-SNAPSHOT is an experimental pre-Typer compiler plugin with a source-breaking handler API. It is qualified only on JDK 25, sbt 1.12.15, and the exact Scala lines 3.3.8, 3.8.4, and 3.9.0.
 
+The [authoritative mode and parity guide](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+separates shared backend semantics from authoring, topology, wiring, and release limits.
+
 ## Supported targets
 
 The current public target kinds are Class, Trait, and Object. The kind is

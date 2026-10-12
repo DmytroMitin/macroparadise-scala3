@@ -17,7 +17,9 @@ Macro-Paradise has two first-class precompiled authoring styles:
 The embedded frontend changes producer ergonomics only. Under the hood it
 still uses the same `ExpansionHandler` protocol, metadata, loader, scheduler,
 precheck, and Class/Trait/Object target grammar. It does not replace the
-[external handler guide](EXTERNAL_HANDLER_AUTHORING.md).
+[external handler guide](EXTERNAL_HANDLER_AUTHORING.md). The canonical
+[authoring-mode and feature-parity guide](AUTHORING_MODES_AND_FEATURE_PARITY.md)
+compares both frontends across precompiled and same-module topologies.
 
 ## Choose precompiled or bounded same-module embedded
 
@@ -74,11 +76,13 @@ The restrictions are intentional:
 - empty annotation class body;
 - public, top-level, same-named companion in the same source file and package;
 - one exact public concrete `transform` with the signature above;
-- a precompiled producer, compiled before its consumers;
+- in the precompiled layout described in this section, a producer compiled
+  before its consumers;
 - only ordinary invariant unbounded annotation type parameters;
 - no nested or local declaration;
 - no same-source producer and consumer;
-- no same-module consumer claim.
+- no same-module claim from this precompiled layout; the separate bounded
+  same-module layout is documented below.
 
 Multiple complete annotation/companion pairs may share a source file. Broader
 parents, advanced type parameters, overloads, private transforms, and
