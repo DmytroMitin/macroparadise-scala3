@@ -71,6 +71,18 @@ protocol. External handler authoring remains first-class and is not deprecated.
 See [Embedded producer authoring](docs/EMBEDDED_PRODUCER_AUTHORING.md) and the
 [executable starter](examples/embedded-producer-starter/README.md).
 
+## Bounded same-module embedded on source-built main
+
+Current unreleased source-built `0.2.0-SNAPSHOT` also supports one bounded experimental topology:
+one explicit embedded binding, one physical producer source, and consumers in
+different physical source files in the same Scala
+module. This is opt-in experimental support, not general same-module support.
+
+The immutable `0.1.1` release is unchanged, and no remote `0.2.0-SNAPSHOT` is
+published. Use JDK 25, sbt 1.12.15, and one exact Scala line. The complete
+copy/paste setup is the
+[same-module embedded recipe](sbt-integration/README.md#bounded-same-module-embedded-recipe).
+
 ## A small user-authored example
 
 A user can define an annotation marker, its precompiled handler, and an
@@ -400,6 +412,15 @@ to the combinations in the test suite.
   and native IntelliJ/JPS compilation remain rejected, unimplemented, or
   unqualified, so general same-module support remains false. Precompiled
   handlers remain the broad/default supported experimental path.
+- Unreleased source-built `0.2.0-SNAPSHOT` separately supports one bounded
+  same-module embedded binding: one `@embeddedExpander` producer source with a
+  same-file companion transform and consumers in different physical files.
+  CLI/Zinc and IntelliJ sbt-shell Build/Run are qualified on exact Scala 3.3.8,
+  3.8.4, and 3.9.0 with JDK 25 and sbt 1.12.15; persistent sbt BSP evidence is
+  accepted on 3.8.4. This is not in immutable release `0.1.1`. Same-file use,
+  multiple bindings, cycles, automatic discovery, native JPS, and direct Java
+  gutter Run remain unsupported or unqualified.
+
 - The project does not provide arbitrary target shapes, arbitrary definition
   construction, arbitrary composition, typed tree construction, semantic
   member analysis, or a stable public API. The bounded body and type-structure

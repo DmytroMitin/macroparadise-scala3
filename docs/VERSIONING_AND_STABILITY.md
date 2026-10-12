@@ -18,10 +18,15 @@ stable compatibility promise.
   compiler internals.
 - Helper views and structured output reduce boilerplate but remain
   compiler-sensitive.
-- General same-module handling remains unsupported. Current `main` has one
-  bounded opt-in different-file Model A that is experimentally supported only
-  in its enumerated exact-line CLI/Zinc, persistent sbt BSP, and sbt-delegated
-  IntelliJ workflows.
+- General same-module handling remains unsupported. The immutable `0.1.1`
+  release contains one bounded opt-in external-handler Model A with its
+  enumerated exact-line evidence.
+- Unreleased source-built `0.2.0-SNAPSHOT` additionally has one bounded
+  same-module embedded mode: one explicit binding and producer source, with
+  consumers in different physical files. It is experimentally qualified on
+  exact Scala 3.3.8, 3.8.4, and 3.9.0 for CLI/Zinc and IntelliJ's sbt-shell-
+  delegated Build/Run, plus accepted persistent sbt BSP 3.8.4. It is not in
+  Maven Central, and does not qualify native JPS or direct Java gutter Run.
 - The released coordinate does not imply a release cadence or maintained
   compatibility line.
 

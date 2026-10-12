@@ -19,6 +19,21 @@ still uses the same `ExpansionHandler` protocol, metadata, loader, scheduler,
 precheck, and Class/Trait/Object target grammar. It does not replace the
 [external handler guide](EXTERNAL_HANDLER_AUTHORING.md).
 
+## Choose precompiled or bounded same-module embedded
+
+There are two separate embedded producer modes:
+
+- the established precompiled source-built producer compiles before consumers,
+  derives separate marker and handler roles, and retains all four setup quadrants
+  and manual wiring below; and
+- the bounded same-module mode uses one explicit producer source and consumers
+  in different files within one Scala module, without role packaging.
+
+Choose precompiled mode for modular or publishable producer graphs. Choose the
+bounded same-module mode only for its narrow opt-in development topology. The
+same-module mode is documented separately below and does not replace any
+precompiled recipe.
+
 ## Start with the executable example
 
 The [embedded producer starter](../examples/embedded-producer-starter/README.md)
@@ -136,6 +151,44 @@ addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
 
 These commands install only to the machine-local repositories. They do not
 remotely publish `0.2.0-SNAPSHOT`.
+
+## Bounded same-module embedded producer
+
+On unreleased source-built `0.2.0-SNAPSHOT`, the bounded mode uses no separate marker or handler role JARs.
+Enable `MacroParadiseSameModulePlugin`, configure
+exactly one `macroParadiseSameModuleEmbeddedBinding`, and construct it with
+`macroParadiseSameModuleEmbedded`.
+
+The binding names one canonical annotation and one physical producer source.
+Its path is relative to `macroParadiseSameModuleSourceRoot`, whose default is
+`Compile / scalaSource`. The producer contains the `@embeddedExpander` class,
+same-file companion, exact `transform`, and any same-file helpers. Consumers
+must be in different physical source files.
+
+The external `macroParadiseSameModuleBinding` is mutually exclusive with the
+embedded binding. Exactly one mode must be configured. The generated adapter remains private;
+users do not supply or rely on its name.
+
+Consumers may use either:
+
+- the fully qualified annotation, such as `@demo.sameModuleGreeting`; or
+- a source-preceding package-level explicit unaliased import followed by the
+  short annotation name.
+
+Wildcard, renamed, local, ambiguous, source-following, and inferred same-package
+short forms are not qualified. Annotation constructor arguments remain
+pre-typer syntax, not evaluated or typed Scala expressions.
+
+Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, and 3.9.0. The complete
+runnable build and source files are in the
+[sbt integration recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe).
+
+For IntelliJ, import through sbt, ensure the sbt JVM is JDK 25, delegate import
+and builds to sbt, and submit `run` in the IntelliJ `sbt shell`. Counted Build
+and Run qualification used that shell on all three exact lines. A direct Java gutter Run is not qualified;
+neither native JPS nor an arbitrary gutter run is
+part of this support statement. A fixture project SDK observed as Corretto 21
+did not qualify compiler execution on JDK 21—the sbt JVM remained JDK 25.
 
 ## Embedded-producer setup matrix
 
@@ -427,13 +480,17 @@ Current source-built `0.2.0-SNAPSHOT` supports:
 - same-file companion transforms;
 - precompiled producers;
 - derived marker and handler roles;
+- the separately documented one-source, different-file-consumer same-module
+  mode;
 - exact Scala 3.3.8, 3.8.4, and 3.9.0;
 - the same current Class/Trait/Object target grammar used by external handlers.
 
 The following remain unsupported:
 
-- same-module embedded declaration and use is unsupported;
-- same-source producer plus consumer;
+- producer and consumer in the same physical source file;
+- multiple embedded bindings, producer sources, or annotation identities;
+- automatic discovery, helper-source graph solving, or cycles;
+- wildcard, renamed, local, ambiguous, or inferred short imports;
 - nested or local embedded annotations;
 - semantic evaluation of constructor arguments;
 - typed `MacroAnnotation` equivalence;
@@ -441,8 +498,9 @@ The following remain unsupported:
 - a remote `0.2.0` release;
 - broader target shapes.
 
-The bounded different-file same-module Model A is a separate external-handler
-track. It does not make embedded declaration/use same-module.
+The bounded different-file same-module Model A remains a separate
+external-handler track with its own binding and source topology. Neither mode
+establishes general same-module or native JPS support.
 
 ## Verification
 

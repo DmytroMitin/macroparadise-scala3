@@ -69,8 +69,10 @@ Macro-Paradise generates an ordinary no-argument `ExpansionHandler` adapter and
 existing `@expander` metadata. Users never name that adapter.
 The generated adapter name is not a public contract, and the generated class is not a user API.
 
-The same-module use is unsupported: the embedded declaration belongs to a
-precompiled producer and the annotated consumer compiles afterward.
+This precompiled starter does not demonstrate the same-module mode: its
+embedded declaration belongs to a producer compiled before the consumer. For
+the separate bounded different-file mode, use the
+[same-module embedded recipe](../../sbt-integration/README.md#bounded-same-module-embedded-recipe).
 
 External handler authoring remains supported as a first-class modular alternative.
 

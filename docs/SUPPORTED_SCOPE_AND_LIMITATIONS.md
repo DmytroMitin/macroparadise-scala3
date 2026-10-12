@@ -41,24 +41,52 @@ Every compilation unit is transactional. Any later rejection, validation error, 
 
 ## Embedded producer frontend
 
-Current source-built `0.2.0-SNAPSHOT` supports precompiled embedded producers on
-exact Scala 3.3.8, 3.8.4, and 3.9.0. A supported declaration is a public
-top-level final `StaticAnnotation` class with an empty body and one same-file,
-same-package companion containing the exact public concrete `transform` method.
-The producer integration derives disjoint marker and handler roles and retains
-the current Class/Trait/Object handler-side target grammar.
+Current main has two distinct embedded-producer modes. The established
+precompiled mode compiles a producer before its consumers and derives separate
+marker and handler roles. On unreleased source-built `0.2.0-SNAPSHOT`, a
+second bounded same-module mode is now experimentally supported with exactly:
 
-Annotation constructor arguments remain pre-typer syntax. Defaults are not
-materialized, implicits are not synthesized, arbitrary expressions are not
-evaluated, and semantic typing is unavailable. The generated no-argument
-handler adapter and its binary name are implementation details rather than user
-API.
+- one explicit `SameModuleEmbeddedBinding`;
+- `MacroParadiseSameModulePlugin` enabled with
+  `macroParadiseSameModuleEmbeddedBinding` configured through
+  `macroParadiseSameModuleEmbedded`;
+- one physical producer source containing one canonical
+  `@embeddedExpander` annotation class and its same-file companion
+  `transform`; and
+- one or more consumers in different physical source files in the same Scala
+  module.
 
-Same-module embedded declaration/use, same-source producer/consumer, nested or
-local embedded annotations, typed `MacroAnnotation` equivalence, binary-cross
-marker guarantees, broader target shapes, and a remote `0.2.0` release are not
-supported. The safe marker policy is exact `CrossVersion.full`. The separate
-bounded different-file same-module Model A remains an external-handler track.
+The binding's producer path is relative to
+`macroParadiseSameModuleSourceRoot`, whose default is
+`Compile / scalaSource`. The external `macroParadiseSameModuleBinding` and
+the embedded binding are mutually exclusive. The generated adapter remains private:
+users neither configure nor reference its name.
+
+Both embedded modes retain the current Class/Trait/Object handler-side target
+grammar. Annotation constructor arguments remain pre-typer syntax. Defaults
+are not materialized, implicits are not synthesized, arbitrary expressions
+are not evaluated, and semantic typing is unavailable.
+
+The bounded same-module mode is qualified on JDK 25, sbt 1.12.15, and exact
+Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc and the accepted sbt-imported,
+sbt-shell-delegated IntelliJ workflow. This is not native JPS support or
+general same-module support.
+
+The same physical source file layout and multiple embedded bindings remain
+unsupported, as do multiple producer sources or
+annotation identities; automatic discovery; helper-source graph solving;
+consumer-owned implementation dependencies or cycles; nested or local
+embedded declarations; wildcard, renamed, local, ambiguous, or inferred
+same-package short imports; broader target grammar; binary-cross marker
+guarantees; and typed `MacroAnnotation` equivalence.
+
+The separate bounded different-file same-module Model A remains an
+external-handler track. The four precompiled embedded setup quadrants and
+manual wiring remain first-class and unchanged.
+
+This acceptance does not alter the immutable `0.1.1` release. The
+`0.2.0-SNAPSHOT` development artifacts are source-built/local-only and are
+not remotely published; no stable API or release commitment follows.
 
 See [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md).
 

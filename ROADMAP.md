@@ -47,18 +47,25 @@ release cadence, or compatibility duration.
 
 ## Same-module handler status
 
-A bounded different-file implementation established a working lifecycle for
-explicit handler-source mapping, content-derived incremental identity,
-compiler-unit suspension, and resumed expansion across clean and incremental
-CLI/Zinc/BSP builds. Exact 3.3.8 and 3.8.4 also have sbt-delegated IntelliJ
-qualification. General production support remains deferred outside this
-enumerated Model A.
+A bounded different-file external-handler implementation established a working
+lifecycle for explicit handler-source mapping, content-derived incremental
+identity, compiler-unit suspension, and resumed expansion across clean and
+incremental CLI/Zinc/BSP builds. Exact 3.3.8 and 3.8.4 also have sbt-delegated
+IntelliJ qualification. General production support remains deferred outside
+this enumerated Model A.
+
+Current unreleased source-built `0.2.0-SNAPSHOT` additionally has a separate
+bounded same-module embedded mode: one explicit binding and physical producer
+source containing the annotation and companion transform, with consumers in
+different files. Exact 3.3.8, 3.8.4, and 3.9.0 pass CLI/Zinc and IntelliJ sbt-
+shell Build/Run qualification on JDK 25 and sbt 1.12.15; persistent sbt BSP
+evidence is accepted on exact 3.8.4. This is not part of release `0.1.1`.
 
 Consumer invalidation after handler implementation changes is retained in the
-bounded qualification. Same-file handlers, dependency cycles, automatic
-discovery, multiple relationships, and native IntelliJ/JPS compilation remain
-outside the established design; precompiled handlers remain the broad/default
-experimental baseline.
+bounded qualifications. Same-file producer/consumer use, dependency cycles,
+automatic discovery, multiple relationships or embedded bindings, and native
+IntelliJ/JPS compilation remain outside the established design; precompiled
+handlers remain the broad/default experimental baseline.
 
 ## Generic sbt integration
 
@@ -101,12 +108,18 @@ manual consumer wiring.
 
 Maintain these boundaries:
 
+
+The separate bounded same-module embedded mode is also experimentally accepted
+on current source-built main. It uses one producer source and no separate marker
+or handler role JARs; it does not replace or weaken those four quadrants.
 - keep the declaration grammar and existing handler protocol unchanged;
 - retain separate marker and handler roles with complete handler-closure
-  identity;
+  identity in the precompiled mode;
 - keep the marker policy at exact `CrossVersion.full`;
 - keep external marker-plus-handler authoring first-class;
-- keep same-module embedded declaration/use unsupported;
+- keep the same-module embedded claim restricted to one explicit binding,
+  different-file consumers, the exact supported toolchain, and the accepted
+  CLI/Zinc, BSP 3.8.4, and IntelliJ sbt-shell workflows;
 - do not describe the frontend as remotely released until a separately
   authorized release exists.
 

@@ -116,7 +116,7 @@ object PublicEmbeddedProducerStarter {
         "marker and handler roles",
         "no producer `publishLocal`",
         "generated adapter name is not a public contract",
-        "same-module use is unsupported",
+        "does not demonstrate the same-module mode",
         "External handler authoring remains supported"
       ),
       errors

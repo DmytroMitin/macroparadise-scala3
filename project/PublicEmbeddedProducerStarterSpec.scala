@@ -2,7 +2,7 @@ import java.io.File
 import java.nio.file.Files
 
 object PublicEmbeddedProducerStarterSpec {
-  val CaseCount = 8
+  val CaseCount = 9
 
   def run(): Unit = {
     val clean = fixture()
@@ -48,6 +48,13 @@ object PublicEmbeddedProducerStarterSpec {
       "producer publication",
       "STARTER_NO_PUBLISHLOCAL"
     )
+    assertReplacement(
+      "README.md",
+      "does not demonstrate the same-module mode",
+      "same-module use is unsupported",
+      "STARTER_NO_PUBLISHLOCAL"
+    )
+
   }
 
   private def assertMissing(relative: String, code: String): Unit = {
@@ -142,7 +149,7 @@ object PublicEmbeddedProducerStarterSpec {
         |The preferred same-build route requires no producer `publishLocal`.
         |The integration derives marker and handler roles.
         |The generated adapter name is not a public contract.
-        |The same-module use is unsupported.
+        |This precompiled starter does not demonstrate the same-module mode.
         |External handler authoring remains supported.
         |""".stripMargin
     )

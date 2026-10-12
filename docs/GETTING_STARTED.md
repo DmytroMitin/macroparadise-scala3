@@ -229,11 +229,23 @@ The complete, executable form is the
 These are build topologies and wiring choices, not semantic modes. Same-build
 embedded producers require no producer `publishLocal`. Resolver mode uses two
 intentional exact-full-cross role modules. The generated handler adapter is
-hidden, and same-module embedded declaration/use remains unsupported.
+hidden. Those four precompiled producer quadrants remain unchanged.
 
 Read [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md) for the
 declaration restrictions, all four complete recipes, producer tasks, manual
 helpers, exact-full-cross policy, and source-only installation commands.
+
+## Bounded same-module embedded onboarding
+
+For unreleased source-built `0.2.0-SNAPSHOT`, one explicit embedded annotation
+binding may instead keep its producer and consumers in one Scala module, in
+different physical source files. This is not a remote snapshot and is not part
+of the immutable `0.1.1` release.
+
+Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. Follow the
+[bounded same-module embedded recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe)
+for local installation, the exact binding, declaration and consumer files,
+and compile/run witness.
 
 ## Choose the external-handler setup
 

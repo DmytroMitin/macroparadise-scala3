@@ -108,6 +108,19 @@ object PublicDocumentationPolicy {
   private def scanDocumentationAcceptance(path: String, text: String): Vector[Finding] = {
     val findings = Vector.newBuilder[Finding]
     val lower = text.toLowerCase(java.util.Locale.ROOT)
+    val staleSameModuleClaims = Vector(
+      "same-module embedded declaration and use is unsupported",
+      "same-module embedded producer/use remains unsupported",
+      "same-module embedded producer/use is unsupported",
+      "same-module use is unsupported",
+      "same-module annotations supported"
+    )
+    if (staleSameModuleClaims.exists(lower.contains))
+      findings += Finding(
+        "STALE_SAME_MODULE_EMBEDDED_BLANKET_CLAIM",
+        path,
+        "public docs must distinguish bounded source-built same-module embedded support from general unsupported topologies"
+      )
     def requireAll(code: String, detail: String, required: String*): Unit =
       if (required.exists(token => !text.contains(token)))
         findings += Finding(code, path, detail)
@@ -183,6 +196,34 @@ object PublicDocumentationPolicy {
         )
     }
 
+    if (path == "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md") {
+      requireAll(
+        "SAME_MODULE_EMBEDDED_SUPPORT_CONTRACT_MISSING",
+        "support scope must retain the bounded source-built same-module embedded topology, toolchain, exclusions, and release distinction",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "one explicit `SameModuleEmbeddedBinding`",
+        "`MacroParadiseSameModulePlugin`",
+        "`macroParadiseSameModuleEmbeddedBinding`",
+        "`macroParadiseSameModuleEmbedded`",
+        "one physical producer source",
+        "different physical source files",
+        "3.3.8, 3.8.4, and 3.9.0",
+        "JDK 25",
+        "sbt 1.12.15",
+        "pre-typer syntax",
+        "generated adapter remains private",
+        "mutually exclusive",
+        "same physical source file",
+        "multiple embedded bindings",
+        "automatic discovery",
+        "cycles",
+        "general same-module support",
+        "native JPS",
+        "immutable `0.1.1` release",
+        "not remotely published"
+      )
+    }
+
     if (path == "docs/EMBEDDED_PRODUCER_AUTHORING.md") {
       requireAll(
         "EMBEDDED_GUIDE_INCOMPLETE",
@@ -195,7 +236,7 @@ object PublicDocumentationPolicy {
         "no producer `publishLocal`",
         "EmbeddedProducerRoles.scala",
         "ExternalArtifactIdentity.scala",
-        "same-module embedded declaration and use is unsupported",
+        "same-module mode is documented separately",
         "External handler authoring remains supported",
         "Annotation constructor arguments are pre-typer syntax",
         "MARKER_CROSS_POLICY=EXACT_FULL_CROSS_SAFE_DEFAULT"
@@ -215,6 +256,32 @@ object PublicDocumentationPolicy {
         "## Manual resolved consumer",
         "MacroParadiseIntegration.embeddedModuleIds"
       )
+      requireAll(
+        "SAME_MODULE_EMBEDDED_GUIDE_INCOMPLETE",
+        "embedded guide must distinguish the precompiled and bounded same-module modes and retain the exact support boundary",
+        "## Choose precompiled or bounded same-module embedded",
+        "two separate embedded producer modes",
+        "four setup quadrants",
+        "manual wiring",
+        "## Bounded same-module embedded producer",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "no separate marker or handler role JARs",
+        "one physical producer source",
+        "different physical source files",
+        "`MacroParadiseSameModulePlugin`",
+        "`macroParadiseSameModuleEmbeddedBinding`",
+        "`macroParadiseSameModuleEmbedded`",
+        "`macroParadiseSameModuleSourceRoot`",
+        "`Compile / scalaSource`",
+        "`macroParadiseSameModuleBinding` is mutually exclusive",
+        "generated adapter remains private",
+        "source-preceding package-level explicit unaliased import",
+        "JDK 25, sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, and 3.9.0",
+        "IntelliJ",
+        "`sbt shell`",
+        "direct Java gutter Run is not qualified"
+      )
     }
 
     if (path == "examples/embedded-producer-starter/README.md") {
@@ -226,7 +293,7 @@ object PublicDocumentationPolicy {
         "marker and handler roles",
         "no producer `publishLocal`",
         "generated adapter name is not a public contract",
-        "same-module use is unsupported",
+        "does not demonstrate the same-module mode",
         "External handler authoring remains supported"
       )
     }
@@ -238,6 +305,17 @@ object PublicDocumentationPolicy {
         "## Embedded-producer setup matrix",
         "EMBEDDED_PRODUCER_AUTHORING.md",
         "../examples/embedded-producer-starter/README.md"
+      )
+      requireAll(
+        "SAME_MODULE_EMBEDDED_NAVIGATION_MISSING",
+        "Getting Started must expose bounded same-module source-built onboarding without changing the released quick start",
+        "## Bounded same-module embedded onboarding",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "not a remote snapshot",
+        "JDK 25",
+        "sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, or 3.9.0",
+        "../sbt-integration/README.md#bounded-same-module-embedded-recipe"
       )
     }
 
@@ -275,6 +353,16 @@ object PublicDocumentationPolicy {
         "https://github.com/DmytroMitin/macroparadise-talk-09-2026",
         "https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/draft/draft_v8.md",
         "https://github.com/DmytroMitin/macroparadise-talk-09-2026/blob/main/macroparadise-talk-09-2026-literal-v8.pdf"
+      )
+      requireAll(
+        "SAME_MODULE_EMBEDDED_README_DISCOVERY_MISSING",
+        "README must expose the bounded source-built same-module recipe without blurring the immutable release",
+        "## Bounded same-module embedded on source-built main",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "bounded experimental topology",
+        "immutable `0.1.1` release",
+        "no remote `0.2.0-SNAPSHOT`",
+        "sbt-integration/README.md#bounded-same-module-embedded-recipe"
       )
     }
 
@@ -388,6 +476,33 @@ object PublicDocumentationPolicy {
         "macroParadiseHandlerModules",
         "% Provided",
         "hidden"
+      )
+      requireAll(
+        "SAME_MODULE_EMBEDDED_RECIPE_INCOMPLETE",
+        "sbt integration guide must retain the runnable source-built same-module embedded recipe and keep Model A separate",
+        "## Bounded same-module embedded recipe",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "not Maven Central",
+        "JDK 25, sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, or 3.9.0",
+        "`pluginApi/publishLocal`",
+        "`embeddedProducerPlugin/publishLocal`",
+        "`plugin/publishLocal`",
+        "sbt -batch verifyIntegrationPolicy publishLocal",
+        "sbt.version=1.12.15",
+        "addSbtPlugin(\"com.github.dmytromitin\" % \"sbt-macroparadise\" % \"0.2.0-SNAPSHOT\")",
+        "`MacroParadiseSameModulePlugin`",
+        "`macroParadiseSameModuleEmbeddedBinding`",
+        "`macroParadiseSameModuleEmbedded`",
+        "annotationName = \"demo.sameModuleGreeting\"",
+        "macroParadiseLabelledSource(\"embedded-producer-source\", \"demo/EmbeddedAnnotations.scala\")",
+        "@demo.sameModuleGreeting",
+        "import demo.sameModuleGreeting",
+        "@sameModuleGreeting",
+        "sbt -batch compile run",
+        "SAME_MODULE_EMBEDDED_RUNTIME:same-module-v1",
+        "Exactly one public binding",
+        "External same-module Model A remains separate"
       )
     }
 

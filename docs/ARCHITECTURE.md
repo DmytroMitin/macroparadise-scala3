@@ -107,22 +107,32 @@ precheck.
 
 ## Same-module boundary
 
-Released `0.1.1` and current `main` include one bounded different-file Model A
-behind a separate opt-in sbt plugin. The build names one marker source and one handler
-source beneath an explicit source root, hashes their exact bytes into a
-same-module compiler-input identity, suspends consumers before mutation, and
-resumes them with freshly compiled current output through a fresh child loader.
-Exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc qualification passes. Persistent
-sbt BSP qualification remains bounded to exact 3.3.8 and 3.8.4.
+Two opt-in tracks share the same suspension, current-output, source-identity,
+and fresh-loader lifecycle but retain distinct public bindings and producer
+topologies.
 
-This is bounded experimental support, not general support. Live IntelliJ
-qualification passes on exact 3.3.8 and 3.8.4 only for an sbt-imported project with
-Build and Run delegated to sbt on JDK 25 and sbt 1.12.15, including
-handler-only edits without `clean`. Native JPS, same-file
-marker/handler/consumer topologies, dependency cycles, automatic discovery,
-and multiple configured relationships remain unqualified, rejected, or
-unimplemented. Precompiled handlers remain the broad/default supported
-experimental architecture.
+Released `0.1.1` and current `main` include bounded different-file external-
+handler Model A. Its build names one marker source and one handler source
+beneath an explicit source root and hashes their exact bytes into the compiler-
+input identity. Exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc qualification
+passes. Persistent sbt BSP and sbt-delegated IntelliJ qualification remain
+bounded to exact 3.3.8 and 3.8.4.
+
+Unreleased source-built `0.2.0-SNAPSHOT` additionally accepts one bounded
+embedded producer source: one canonical `@embeddedExpander` annotation and its
+same-file companion `transform`, consumed only from different physical source
+files in the same module. `macroParadiseSameModuleEmbeddedBinding` is mutually
+exclusive with Model A's `macroParadiseSameModuleBinding`. This embedded track
+is qualified on exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc and an sbt-
+imported IntelliJ project whose Build and `run` execute in the sbt shell on JDK
+25 and sbt 1.12.15. Persistent sbt BSP evidence is accepted on exact 3.8.4.
+
+Both tracks are bounded experimental support, not general support. Native JPS,
+direct Java gutter Run, same-file producer/consumer topologies, dependency
+cycles, automatic discovery, multiple configured relationships, and multiple
+embedded bindings remain unqualified, rejected, or unimplemented. Precompiled
+handlers remain the broad/default supported experimental architecture, and the
+four precompiled embedded producer setup quadrants remain unchanged.
 
 See [Supported scope and limitations](SUPPORTED_SCOPE_AND_LIMITATIONS.md) and
 [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md). The separate

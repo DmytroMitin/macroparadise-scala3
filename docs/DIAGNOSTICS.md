@@ -129,6 +129,16 @@ sbt-imported project with Build and Run delegated to sbt on JDK 25 and sbt
 topologies remain outside the claim; precompiled handlers remain the
 broad/default supported experimental path.
 
+
+For the separate source-built same-module embedded mode, inspect
+`macroParadiseSameModuleEmbeddedBinding` and its labelled single producer
+source instead. Producer and consumers must be different physical files, and
+only one binding is supported. Its accepted envelope is exact Scala 3.3.8,
+3.8.4, and 3.9.0 through CLI/Zinc and IntelliJ sbt-shell Build/Run on JDK 25 and
+sbt 1.12.15, plus persistent sbt BSP 3.8.4. A direct Java gutter Run is not the
+qualified IntelliJ path. Multiple bindings, same-file use, automatic discovery,
+cycles, native JPS, and a remotely published `0.2.0-SNAPSHOT` remain outside
+the claim.
 ### Precompiled-handler stale output
 
 If the handler JAR is rebuilt at the same path but generated behavior does not

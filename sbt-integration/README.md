@@ -10,6 +10,11 @@ same-module different-file Model A, experimentally supported only in the
 enumerated exact-line workflows below. Enabling that plugin is an explicit
 choice and does not change the default precompiled path.
 
+
+Current source-built `0.2.0-SNAPSHOT` extends that no-trigger plugin with a
+second, mutually exclusive bounded binding for one embedded producer source and
+different-file consumers. It is not present in the immutable `0.1.1` release;
+the complete source-built recipe appears below.
 It selects exact-full-cross compiler plugin and authoring API coordinates,
 keeps published handlers in a hidden configuration, and derives Zinc
 compiler-option identity from every explicit marker artifact plus the complete
@@ -351,8 +356,167 @@ plugin API, marker role, handler role, facade modules, and consumers all use
 `MARKER_CROSS_POLICY=EXACT_FULL_CROSS_SAFE_DEFAULT`
 
 The marker contains exact-line TASTy. Current documentation makes no ordinary
-`_3` binary-cross promise. Same-module embedded producer/use remains
-unsupported; the bounded Model A below is a separate external-handler feature.
+`_3` binary-cross promise. The precompiled role topology remains distinct from
+the bounded same-module embedded recipe and external-handler Model A below.
+
+## Bounded same-module embedded recipe
+
+This recipe is for unreleased source-built `0.2.0-SNAPSHOT`, not Maven Central.
+Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. It keeps one
+embedded annotation producer and its consumers in the same Scala module, but
+the producer and every consumer remain in different physical source files.
+
+First install the three compiler-facing artifacts for the exact Scala line you
+will use. Repeat with `3.3.8`, `3.8.4`, or `3.9.0` as needed:
+
+```sh
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch \
+  "++3.8.4!" \
+  "pluginApi/publishLocal" \
+  "embeddedProducerPlugin/publishLocal" \
+  "plugin/publishLocal"
+```
+
+That runs `pluginApi/publishLocal`, `embeddedProducerPlugin/publishLocal`, and
+`plugin/publishLocal`. Install the source-built sbt plugin separately:
+
+```sh
+cd sbt-integration
+sbt -batch verifyIntegrationPolicy publishLocal
+```
+
+Create this downstream layout:
+
+```text
+project/build.properties
+project/plugins.sbt
+build.sbt
+src/main/scala/demo/EmbeddedAnnotations.scala
+src/main/scala/consumer/QualifiedUsage.scala
+src/main/scala/consumer/ImportedUsage.scala
+```
+
+Pin sbt and the locally installed integration:
+
+```text
+# project/build.properties
+sbt.version=1.12.15
+```
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
+```
+
+The build enables `MacroParadiseSameModulePlugin` and constructs
+`macroParadiseSameModuleEmbeddedBinding` with `macroParadiseSameModuleEmbedded`.
+Exactly one public binding is configured; users do not name the generated private adapter. The labelled
+producer path is relative to `macroParadiseSameModuleSourceRoot`, which defaults
+to `Compile / scalaSource`.
+
+```scala
+// build.sbt
+enablePlugins(macroparadise.sbt.MacroParadiseSameModulePlugin)
+
+scalaVersion := "3.8.4" // or exact 3.3.8 / 3.9.0
+
+macroParadiseSameModuleEmbeddedBinding := Some(
+  macroParadiseSameModuleEmbedded(
+    annotationName = "demo.sameModuleGreeting",
+    producerSource =
+      macroParadiseLabelledSource("embedded-producer-source", "demo/EmbeddedAnnotations.scala")
+  )
+)
+```
+
+The producer class and its companion transform share one file. Constructor
+arguments are decoded from pre-typer syntax; defaults are not materialized and
+arbitrary Scala expressions are not evaluated.
+
+```scala
+// src/main/scala/demo/EmbeddedAnnotations.scala
+package demo
+
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Names.{termName, typeName}
+import paradise3.api.*
+import paradise3.api.embeddedExpander
+import paradise3.api.helpers.ExpansionTransforms
+import scala.annotation.StaticAnnotation
+
+@embeddedExpander
+final class sameModuleGreeting(prefix: String) extends StaticAnnotation
+
+object sameModuleGreeting:
+  private def greetingMethod(value: String)(using Context): untpd.DefDef =
+    untpd.DefDef(
+      termName("generatedGreeting"),
+      Nil,
+      untpd.Ident(typeName("String")),
+      untpd.Literal(Constant(value + ":same-module-v1"))
+    )
+
+  def transform(input: ExpansionInput)(using Context): ExpansionOutcome =
+    val decoded =
+      for
+        application <- AnnotationApplication.fromInput(input)
+        prefix <- application.requireSingleStringLiteralArgument("prefix")
+      yield prefix
+    decoded match
+      case Left(problem) => ExpansionOutcome.Rejected(List(problem))
+      case Right(prefix) =>
+        ExpansionEdit.finish:
+          ExpansionEdit.start(input).flatMap(
+            ExpansionTransforms.placeMemberInPrimary(greetingMethod(prefix))
+          )
+```
+
+Both accepted consumer spellings are shown in separate source files:
+
+```scala
+// src/main/scala/consumer/QualifiedUsage.scala
+package consumer
+
+@demo.sameModuleGreeting("Hello")
+final class QualifiedGreeter
+
+object Main:
+  def main(args: Array[String]): Unit =
+    val qualified = new QualifiedGreeter().generatedGreeting
+    val imported = new ImportedGreeter().generatedGreeting
+    assert(qualified == "Hello:same-module-v1")
+    assert(imported == "Welcome:same-module-v1")
+    println("SAME_MODULE_EMBEDDED_RUNTIME:" + qualified.stripPrefix("Hello:"))
+```
+
+```scala
+// src/main/scala/consumer/ImportedUsage.scala
+package consumer
+
+import demo.sameModuleGreeting
+
+@sameModuleGreeting(prefix = "Welcome")
+final class ImportedGreeter
+```
+
+Compile and run the downstream build:
+
+```sh
+sbt -batch compile run
+```
+
+The runtime witness is `SAME_MODULE_EMBEDDED_RUNTIME:same-module-v1`. You may
+then edit only `same-module-v1` to `same-module-v2` in the producer transform
+and run `compile run` again without `clean`; both consumers must print the new
+value. A failed producer recompilation rejects stale generated output rather
+than silently running the previous transform.
+
+External same-module Model A remains separate. Its
+`macroParadiseSameModuleBinding` and the embedded
+`macroParadiseSameModuleEmbeddedBinding` are mutually exclusive. This recipe
+also does not alter the four precompiled producer topology/wiring quadrants.
 
 ## Experimental same-module different-file Model A
 
