@@ -75,6 +75,87 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
       case (Nil, relationship :: Nil, identity :: Nil) =>
         parseEmbeddedConfiguration(relationship, identity).map(Some(_))
 
+  def parseConfigurations(
+      options: List[String]
+  ): Either[String, Vector[SameModuleConfiguration]] =
+    val externalRelationships =
+      options.collect:
+        case option if option.startsWith("sameModuleHandler=") =>
+          option.stripPrefix("sameModuleHandler=")
+    val embeddedRelationships = options.count(_.startsWith("sameModuleEmbedded="))
+    if externalRelationships.size <= 1 then
+      parseConfiguration(options).map(_.toVector)
+    else if embeddedRelationships != 0 then
+      Left("`sameModuleHandler=` and `sameModuleEmbedded=` are mutually exclusive")
+    else if externalRelationships.size > 2 then
+      Left("the `sameModuleHandler=` option accepts at most two explicit relationships")
+    else if externalRelationships.size == 2 then
+      val identities =
+        options.collect:
+          case option if option.startsWith("sameModuleSourceIdentity=") =>
+            option.stripPrefix("sameModuleSourceIdentity=")
+      if identities.isEmpty then
+        Left("`sameModuleHandler=` requires one distinct `sameModuleSourceIdentity=` compiler input")
+      else if identities.size > 1 then
+        Left("the `sameModuleSourceIdentity=` option accepts exactly one source digest")
+      else
+        externalRelationships
+          .sorted
+          .foldLeft[Either[String, Vector[SameModuleConfiguration]]](Right(Vector.empty)):
+            case (acc, relationship) =>
+              for
+                configurations <- acc
+                configuration <- parseBoundedExternalConfiguration(relationship, identities.head)
+              yield configurations :+ configuration
+          .map(_.sortBy(configuration => (configuration.annotationName, configuration.handlerClassName)))
+          .flatMap(validateBoundedConfigurations)
+    else Right(Vector.empty)
+
+  private def parseBoundedExternalConfiguration(
+      relationship: String,
+      identity: String
+  ): Either[String, SameModuleConfiguration] =
+    val tokens = relationship.split(":", -1).toList
+    if tokens.exists(token => token != token.trim) then
+      Left("invalid `sameModuleHandler=` option; relationship tokens must not contain surrounding whitespace")
+    else
+      parseExternalConfiguration(relationship, identity).flatMap: configuration =>
+        SyntacticAnnotationIdentity.fromDeclaredName(configuration.annotationName) match
+          case Right(canonical) if canonical.isQualified =>
+            SyntacticAnnotationIdentity.fromDeclaredName(configuration.handlerClassName) match
+              case Right(handler) if handler.isQualified => Right(configuration)
+              case _ =>
+                Left(
+                  s"invalid handler class name in bounded `sameModuleHandler=` set: expected a qualified canonical class name: ${configuration.handlerClassName}"
+                )
+          case _ =>
+            Left(
+              s"invalid annotation name in bounded `sameModuleHandler=` set: expected a qualified canonical annotation class name: ${configuration.annotationName}"
+            )
+
+  private def validateBoundedConfigurations(
+      configurations: Vector[SameModuleConfiguration]
+  ): Either[String, Vector[SameModuleConfiguration]] =
+    val duplicateAnnotations = duplicates(configurations.map(_.annotationName))
+    val duplicateHandlers = duplicates(configurations.map(_.handlerClassName))
+    val duplicateSources = duplicates(
+      configurations.flatMap(configuration =>
+        Vector(configuration.markerSourceIdentity.value, configuration.handlerSourceIdentity.value)
+      )
+    )
+    if duplicateAnnotations.nonEmpty then
+      Left(s"duplicate same-module annotation names: ${duplicateAnnotations.mkString(", ")}")
+    else if duplicateHandlers.nonEmpty then
+      Left(s"duplicate same-module handler class names: ${duplicateHandlers.mkString(", ")}")
+    else if duplicateSources.nonEmpty then
+      Left(s"duplicate same-module producer source identities: ${duplicateSources.mkString(", ")}")
+    else Right(configurations)
+
+  private def duplicates(values: Seq[String]): Vector[String] =
+    values.groupBy(identity).collect:
+      case (value, entries) if entries.size > 1 => value
+    .toVector.sorted
+
   private def parseExternalConfiguration(
       relationship: String,
       identity: String
@@ -216,7 +297,7 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
       )
     else decide(runKind, normalizedConsumerPath, handlerResolution)
 
-  private def pathMatchesIdentity(
+  private[macroparadise] def pathMatchesIdentity(
       normalizedSourcePath: String,
       identity: SourceIdentity
   ): Boolean =

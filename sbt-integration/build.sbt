@@ -39,7 +39,9 @@ lazy val sbtIntegration = project
     Compile / packageDoc / mappings += baseDirectory.value.getParentFile / "LICENSE" -> "META-INF/LICENSE",
     scriptedBufferLog := false,
     scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value) ++
-      sys.props.get("test.scala.version").toSeq.map("-Dtest.scala.version=" + _),
+      Seq("test.scala.version", "p229.ivy", "sbt.ivy.home", "sbt.coursier.home").flatMap { property =>
+        sys.props.get(property).map("-D" + property + "=" + _)
+      },
     libraryDependencies += "org.scalameta" %% "munit" % "1.2.4" % Test,
     verifyIntegrationPolicy := {
       require(scalaVersion.value.startsWith("2.12."), "sbt integration must stay in the sbt 1.x / Scala 2.12 universe")

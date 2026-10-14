@@ -52,6 +52,7 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
         "EmbeddedProducerRoles.RoleInventory",
         "EmbeddedProducerRoles.packageRoles",
         "EmbeddedProducerRoles.completeHandlerClasspath",
+        "macroParadiseSameModuleBindings",
         "SameModuleEmbeddedBinding",
         "macroParadiseSameModuleEmbeddedBinding",
         "macroParadiseSameModuleEmbedded",
@@ -99,5 +100,13 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
         "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule"
       )
     )
+  }
+
+  test("same-module exact-two surface adds only the bounded bindings key") {
+    import MacroParadiseSameModulePlugin.autoImport._
+
+    assertEquals(macroParadiseSameModuleBindings.key.label, "macroParadiseSameModuleBindings")
+    val baseline = Files.readAllLines(new File("sbt-public-surface.txt").toPath).asScala.filter(_.nonEmpty).toVector
+    assertEquals(baseline.count(_ == "macroParadiseSameModuleBindings"), 1)
   }
 }

@@ -1,0 +1,23 @@
+> clean
+> verifyInitial
+> compile
+> runMain demo.G0Check A-v1 B-v1
+> compile
+> editHandlerA
+> verifyChanged
+> compile
+> runMain demo.G0Check A-v2 B-v1
+> compile
+> restoreHandlerA
+> verifyRestored
+> compile
+> runMain demo.G0Check A-v1 B-v1
+> compile
+> editHandlerA
+> compile
+> breakHandlerA
+-> compile
+> repairHandlerA
+> compile
+> runMain demo.G0Check A-v2 B-v1
+> compile

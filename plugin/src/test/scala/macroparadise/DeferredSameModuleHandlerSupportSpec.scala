@@ -167,6 +167,120 @@ class DeferredSameModuleHandlerSupportSpec extends munit.FunSuite:
     assertEquals(parseConfiguration(Nil), Right(None))
   }
 
+  test("exactly two external relationships parse into canonical order with one digest") {
+    val digest = "sha256:" + "d" * 64
+    val relationshipA =
+      "sameModuleHandler=demo.markerA:demo.HandlerA:demo/MarkerA.scala:demo/HandlerA.scala"
+    val relationshipB =
+      "sameModuleHandler=demo.markerB:demo.HandlerB:demo/MarkerB.scala:demo/HandlerB.scala"
+
+    val parsed = parseConfigurations(
+      List(relationshipB, "sameModuleSourceIdentity=" + digest, relationshipA)
+    ).map(_.map(configuration => (
+      configuration.annotationName,
+      configuration.handlerClassName,
+      configuration.markerSourceIdentity.value,
+      configuration.handlerSourceIdentity.value,
+      configuration.sourceDigest.value
+    )))
+
+    assertEquals(
+      parsed,
+      Right(
+        Vector(
+          ("demo.markerA", "demo.HandlerA", "demo/MarkerA.scala", "demo/HandlerA.scala", digest),
+          ("demo.markerB", "demo.HandlerB", "demo/MarkerB.scala", "demo/HandlerB.scala", digest)
+        )
+      )
+    )
+  }
+
+  test("bounded external parsing rejects mixed mode and capacity before payload errors") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "e" * 64
+    val malformed = "sameModuleHandler=bad"
+    val embedded = "sameModuleEmbedded=demo.marker:demo/Embedded.scala"
+
+    assertEquals(
+      parseConfigurations(List(malformed, malformed, embedded, digest)),
+      Left("`sameModuleHandler=` and `sameModuleEmbedded=` are mutually exclusive")
+    )
+    assertEquals(
+      parseConfigurations(List(malformed, malformed, malformed, digest)),
+      Left("the `sameModuleHandler=` option accepts at most two explicit relationships")
+    )
+  }
+
+  test("bounded parsing preserves singleton legacy diagnostic precedence byte-for-byte") {
+    val options = List(
+      "sameModuleHandler=demo.marker:demo.Handler:demo/Marker.scala:demo/Handler.scala",
+      "sameModuleEmbedded=demo.marker:demo/Marker.scala",
+      "sameModuleSourceIdentity=not-a-digest",
+      "sameModuleSourceIdentity=also-not-a-digest"
+    )
+
+    assertEquals(parseConfigurations(options), parseConfiguration(options).map(_.toVector))
+  }
+
+  test("bounded external parsing requires exactly one digest") {
+    val relationshipA =
+      "sameModuleHandler=demo.markerA:demo.HandlerA:demo/MarkerA.scala:demo/HandlerA.scala"
+    val relationshipB =
+      "sameModuleHandler=demo.markerB:demo.HandlerB:demo/MarkerB.scala:demo/HandlerB.scala"
+    val digest = "sameModuleSourceIdentity=sha256:" + "f" * 64
+
+    assertEquals(
+      parseConfigurations(List(relationshipA, relationshipB)),
+      Left("`sameModuleHandler=` requires one distinct `sameModuleSourceIdentity=` compiler input")
+    )
+    assertEquals(
+      parseConfigurations(List(relationshipA, relationshipB, digest, digest)),
+      Left("the `sameModuleSourceIdentity=` option accepts exactly one source digest")
+    )
+  }
+
+  test("bounded external parsing rejects noncanonical and duplicate identities deterministically") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "a" * 64
+    val validA =
+      "sameModuleHandler=demo.markerA:demo.HandlerA:demo/MarkerA.scala:demo/HandlerA.scala"
+    val unqualifiedB =
+      "sameModuleHandler=markerB:demo.HandlerB:demo/MarkerB.scala:demo/HandlerB.scala"
+    val duplicateAnnotation =
+      "sameModuleHandler=demo.markerA:demo.HandlerB:demo/MarkerB.scala:demo/HandlerB.scala"
+    val duplicateHandler =
+      "sameModuleHandler=demo.markerB:demo.HandlerA:demo/MarkerB.scala:demo/HandlerB.scala"
+    val duplicatePath =
+      "sameModuleHandler=demo.markerB:demo.HandlerB:demo/MarkerA.scala:demo/HandlerB.scala"
+
+    assertEquals(
+      parseConfigurations(List(validA, unqualifiedB, digest)),
+      Left("invalid annotation name in bounded `sameModuleHandler=` set: expected a qualified canonical annotation class name: markerB")
+    )
+    assertEquals(
+      parseConfigurations(List(validA, duplicateAnnotation, digest)),
+      Left("duplicate same-module annotation names: demo.markerA")
+    )
+    assertEquals(
+      parseConfigurations(List(duplicateHandler, validA, digest)),
+      Left("duplicate same-module handler class names: demo.HandlerA")
+    )
+    val expectedPath = Left("duplicate same-module producer source identities: demo/MarkerA.scala")
+    assertEquals(parseConfigurations(List(validA, duplicatePath, digest)), expectedPath)
+    assertEquals(parseConfigurations(List(duplicatePath, digest, validA)), expectedPath)
+  }
+
+  test("bounded external parsing rejects whitespace-padded relationship tokens") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "b" * 64
+    val padded =
+      "sameModuleHandler=demo.markerA: demo.HandlerA:demo/MarkerA.scala:demo/HandlerA.scala"
+    val valid =
+      "sameModuleHandler=demo.markerB:demo.HandlerB:demo/MarkerB.scala:demo/HandlerB.scala"
+
+    assertEquals(
+      parseConfigurations(List(valid, padded, digest)),
+      Left("invalid `sameModuleHandler=` option; relationship tokens must not contain surrounding whitespace")
+    )
+  }
+
   test("embedded same-module configuration derives the private adapter from one canonical producer binding") {
     val digest = "sha256:" + "b" * 64
     val embedded = "sameModuleEmbedded=demo.sameModuleGreeting:demo/EmbeddedAnnotations.scala"

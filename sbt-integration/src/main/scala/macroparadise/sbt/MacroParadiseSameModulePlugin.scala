@@ -24,6 +24,8 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
       settingKey[File]("Explicit source root containing every configured same-module source")
     val macroParadiseSameModuleBinding =
       settingKey[Option[SameModuleHandlerBinding]]("One explicit experimental different-file marker/handler binding")
+    val macroParadiseSameModuleBindings =
+      settingKey[Seq[SameModuleHandlerBinding]]("Exactly two independent experimental different-file marker/handler bindings")
     val macroParadiseSameModuleEmbeddedBinding =
       settingKey[Option[SameModuleEmbeddedBinding]]("One explicit bounded embedded producer-source binding")
     val macroParadiseSameModuleConfiguration =
@@ -68,6 +70,7 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
         .cross(CrossVersion.full),
     macroParadiseSameModuleSourceRoot := (Compile / scalaSource).value,
     macroParadiseSameModuleBinding := None,
+    macroParadiseSameModuleBindings := Seq.empty,
     macroParadiseSameModuleEmbeddedBinding := None,
     libraryDependencies += compilerPlugin(macroParadiseSameModuleCompilerPluginModule.value),
     libraryDependencies += macroParadiseSameModulePluginApiModule.value,
@@ -84,6 +87,7 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
         macroParadiseSameModuleSourceRoot.value,
         (Compile / classDirectory).value,
         macroParadiseSameModuleBinding.value,
+        macroParadiseSameModuleBindings.value,
         macroParadiseSameModuleEmbeddedBinding.value
       ) match {
         case Right(configuration) => configuration

@@ -1,0 +1,34 @@
+> clean
+> selectG3
+-> compile
+$ exec grep -F UNSUPPORTED_SAME_MODULE_PRODUCER_EDGE target/streams/compile/compile/_global/streams/out
+$ exec grep -F producerBinding=demo.markerA/demo.HandlerA target/streams/compile/compile/_global/streams/out
+> selectG4
+-> compile
+$ exec grep -F producerBinding=demo.markerA/demo.HandlerA target/streams/compile/compile/_global/streams/out
+$ exec grep -F producerBinding=demo.markerB/demo.HandlerB target/streams/compile/compile/_global/streams/out
+> selectAmbiguous
+-> compile
+$ exec grep -F multiple target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerA, target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerB target/streams/compile/compile/_global/streams/out
+> selectDynamic
+-> compile
+$ exec grep -F cross-binding target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerB target/streams/compile/compile/_global/streams/out
+> selectShorthand
+-> compile
+$ exec grep -F direct-qualified target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerA target/streams/compile/compile/_global/streams/out
+> selectWildcard
+-> compile
+$ exec grep -F direct-qualified target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerA target/streams/compile/compile/_global/streams/out
+> selectAlias
+-> compile
+$ exec grep -F direct-qualified target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerA target/streams/compile/compile/_global/streams/out
+> selectMixedSpelling
+-> compile
+$ exec grep -F direct-qualified target/streams/compile/compile/_global/streams/out
+$ exec grep -F demo.markerB target/streams/compile/compile/_global/streams/out
