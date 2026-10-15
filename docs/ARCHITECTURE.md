@@ -115,11 +115,21 @@ and fresh-loader lifecycle but retain distinct public bindings and producer
 topologies.
 
 Released `0.1.1` and current `main` include bounded different-file external-
-handler Model A. Its build names one marker source and one handler source
+handler singleton Model A. Its build names one marker source and one handler source
 beneath an explicit source root and hashes their exact bytes into the compiler-
 input identity. Exact Scala 3.3.8, 3.8.4, and 3.9.0 CLI/Zinc qualification
 passes. Persistent sbt BSP and sbt-delegated IntelliJ qualification remain
 bounded to exact 3.3.8 and 3.8.4.
+
+Current unreleased source-built `0.2.0-SNAPSHOT` also accepts exactly two
+independent external relationships. Four globally distinct producer files feed
+two separate consumer files; each physical consumer unit selects at most one
+direct-qualified binding. The pair uses sorted repeated relationship options,
+one aggregate exact-source-byte identity, and the existing selected-unit
+suspension/fresh-loader transaction. Producer edges, same-unit A+B selection,
+dynamically introduced cross-binding annotations, and stale output fail closed.
+The pair is qualified through CLI/Zinc on all three exact lines and persistent
+sbt BSP 3.8.4; no pair-specific IntelliJ claim is made.
 
 Unreleased source-built `0.2.0-SNAPSHOT` additionally accepts one bounded
 embedded producer source: one canonical `@embeddedExpander` annotation and its
@@ -130,9 +140,9 @@ is qualified on exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc and an sbt-
 imported IntelliJ project whose Build and `run` execute in the sbt shell on JDK
 25 and sbt 1.12.15. Persistent sbt BSP evidence is accepted on exact 3.8.4.
 
-Both tracks are bounded experimental support, not general support. Native JPS,
+These tracks are bounded experimental support, not general support. Native JPS,
 direct Java gutter Run, same-file producer/consumer topologies, dependency
-cycles, automatic discovery, multiple configured relationships, and multiple
+cycles, automatic discovery, arbitrary external multiplicity, and multiple
 embedded bindings remain unqualified, rejected, or unimplemented. Precompiled
 handlers remain the broad/default supported experimental architecture, and the
 four precompiled embedded producer setup quadrants remain unchanged.

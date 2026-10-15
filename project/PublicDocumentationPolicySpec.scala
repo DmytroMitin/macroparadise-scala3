@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 59
+  val CaseCount = 67
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -272,6 +272,52 @@ object PublicDocumentationPolicySpec {
     )
     assertFinding(
       ParityGuidePath,
+      CanonicalParityGuide + CanonicalExternalPairParity.replace("macroParadiseSameModuleBindings", "sameModuleBindings"),
+      "EXACT_TWO_EXTERNAL_PARITY_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md",
+      CanonicalSupportedScope + CanonicalExternalPairScope.replace("exactly two independent", "multiple"),
+      "EXACT_TWO_EXTERNAL_SUPPORT_CONTRACT_MISSING"
+    )
+    assertFinding(
+      "sbt-integration/README.md",
+      CanonicalIntegration + CanonicalSameModuleIntegration +
+        CanonicalExternalPairRecipe.replace("macroParadiseSameModuleHandler", "sameModuleHandler"),
+      "EXACT_TWO_EXTERNAL_RECIPE_INCOMPLETE"
+    )
+    assertFinding(
+      "docs/GETTING_STARTED.md",
+      CanonicalGetting + CanonicalSameModuleGetting +
+        CanonicalExternalPairGetting.replace("#bounded-two-independent-external-same-module-recipe", "#external-pair"),
+      "EXACT_TWO_EXTERNAL_NAVIGATION_MISSING"
+    )
+    assertFinding(
+      "README.md",
+      CanonicalReadme + CanonicalSameModuleReadme +
+        CanonicalExternalPairReadme.replace("exact pair", "future capability"),
+      "EXACT_TWO_EXTERNAL_README_DISCOVERY_MISSING"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + CanonicalExternalPairParity +
+        "\nAll same-module use allows one binding.\n",
+      "STALE_EXACT_TWO_EXTERNAL_BLANKET_CLAIM"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + CanonicalExternalPairParity +
+        "\nAll multi-binding same-module use is unsupported.\n",
+      "STALE_EXACT_TWO_EXTERNAL_BLANKET_CLAIM"
+    )
+    assertFinding(
+      ParityGuidePath,
+      CanonicalParityGuide + CanonicalExternalPairParity +
+        "\nArbitrary multiple same-module bindings are supported.\n",
+      "SAME_MODULE_MULTI_BINDING_OVERCLAIM"
+    )
+    assertFinding(
+      ParityGuidePath,
       CanonicalParityGuide + "\nA same sbt multi-project build is the same Scala compilation module.\n",
       "COMPILATION_TOPOLOGY_CONFLATED"
     )
@@ -313,14 +359,14 @@ object PublicDocumentationPolicySpec {
     write(
       root,
       "README.md",
-      CanonicalReadme + CanonicalSameModuleReadme
+      CanonicalReadme + CanonicalSameModuleReadme + CanonicalExternalPairReadme
     )
-    write(root, "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md", CanonicalSupportedScope)
-    write(root, ParityGuidePath, CanonicalParityGuide)
-    write(root, "docs/GETTING_STARTED.md", CanonicalGetting + CanonicalSameModuleGetting)
+    write(root, "docs/SUPPORTED_SCOPE_AND_LIMITATIONS.md", CanonicalSupportedScope + CanonicalExternalPairScope)
+    write(root, ParityGuidePath, CanonicalParityGuide + CanonicalExternalPairParity)
+    write(root, "docs/GETTING_STARTED.md", CanonicalGetting + CanonicalSameModuleGetting + CanonicalExternalPairGetting)
     write(root, "docs/EMBEDDED_PRODUCER_AUTHORING.md", CanonicalEmbeddedGuide + CanonicalSameModuleGuide)
     write(root, "examples/embedded-producer-starter/README.md", CanonicalEmbeddedStarterReadme)
-    write(root, "sbt-integration/README.md", CanonicalIntegration + CanonicalSameModuleIntegration)
+    write(root, "sbt-integration/README.md", CanonicalIntegration + CanonicalSameModuleIntegration + CanonicalExternalPairRecipe)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
     write(root, "docs/EXPANSION_MODEL_AND_COMPOSITION.md", CanonicalExpansionModel)
     write(root, "ROADMAP.md", CanonicalRoadmap)
@@ -401,13 +447,13 @@ object PublicDocumentationPolicySpec {
       |
       || Authoring frontend | Precompiled in other module | Same Scala module |
       || --- | --- | --- |
-      || @expander | explicit marker/handler | bounded external Model A |
+      || @expander | explicit marker/handler | singleton Model A |
       || @embeddedExpander | precompiled generated adapter | bounded embedded same-module |
       |
       |Both frontends reach ExpansionHandler.expand(ExpansionInput): ExpansionOutcome and the shared staged scheduler and transaction.
       |Shared backend parity does not prove all program behavior equivalent.
-      |Authoring declaration parity: no. Topology parity: no. Same-module multi-binding support: no.
-      |The same-module settings are macroParadiseSameModuleBinding and macroParadiseSameModuleEmbeddedBinding; they are mutually exclusive.
+      |Authoring declaration parity: no. Topology parity: no. General same-module multi-binding support: no.
+      |The same-module settings are macroParadiseSameModuleBinding, macroParadiseSameModuleBindings, and macroParadiseSameModuleEmbeddedBinding; they are mutually exclusive.
       |Released 0.1.1 contains external-handler Model A; embeddedExpander and the current handler protocol are source-built 0.2.0-SNAPSHOT only.
       |Native JPS and direct Java gutter Run are not qualified; IntelliJ evidence uses sbt import, sbt-delegated Build, and sbt shell run.
       |""".stripMargin
@@ -593,6 +639,64 @@ object PublicDocumentationPolicySpec {
       |Run `sbt -batch compile run` and expect `SAME_MODULE_EMBEDDED_RUNTIME:same-module-v1`.
       |Exactly one public binding is configured; users do not name the generated adapter.
       |External same-module Model A remains separate.
+      |""".stripMargin
+
+  private val CanonicalExternalPairReadme =
+    """
+      |## Exactly two independent external same-module bindings
+      |Unreleased source-built `0.2.0-SNAPSHOT` experimentally supports one exact pair through CLI/Zinc and persistent sbt BSP 3.8.4.
+      |Released `0.1.1` has no pair support and no remote `0.2.0-SNAPSHOT` exists.
+      |See the [bounded pair recipe](sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
+      |""".stripMargin
+
+  private val CanonicalExternalPairGetting =
+    """
+      |## Exactly two independent external same-module bindings
+      |Use source-built `0.2.0-SNAPSHOT`, JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0.
+      |Follow the [complete bounded pair recipe](../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
+      |The pair is qualified through CLI/Zinc and persistent sbt BSP 3.8.4, not live IntelliJ, native JPS, or direct Java gutter Run.
+      |""".stripMargin
+
+  private val CanonicalExternalPairParity =
+    """
+      |The external same-module cell includes singleton Model A and exactly two independent external bindings on unreleased source-built 0.2.0-SNAPSHOT.
+      |The pair uses macroParadiseSameModuleBindings := Seq(...) with exactly two macroParadiseSameModuleHandler records.
+      |macroParadiseSameModuleBinding, macroParadiseSameModuleBindings, and macroParadiseSameModuleEmbeddedBinding are mutually exclusive.
+      |Four producer files and two separate consumer files form six distinct core files; each consumer unit selects one binding.
+      |Pair consumers use direct-qualified consumer spelling only. Deterministically sorted repeated sameModuleHandler options share one aggregate source-byte digest.
+      |A no-clean A-v1 to A-v2 edit retains B-v1. Producer edges, one-unit A+B ambiguity, and dynamically introduced cross-binding annotations fail closed.
+      |CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0; persistent sbt BSP is qualified on 3.8.4; pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified.
+      |Released 0.1.1 has no exact-two pair; 0.2.0-SNAPSHOT is source-built only.
+      |General same-module multi-binding support: no. Multiple embedded bindings remain unsupported.
+      |""".stripMargin
+
+  private val CanonicalExternalPairScope =
+    """
+      |## Exactly two independent external same-module bindings
+      |On unreleased source-built `0.2.0-SNAPSHOT`, exactly two independent external relationships are experimentally supported with `MacroParadiseSameModulePlugin`, `macroParadiseSameModuleBindings`, `macroParadiseSameModuleHandler`, and `Seq`.
+      |The old `macroParadiseSameModuleBinding` singleton and `macroParadiseSameModuleEmbeddedBinding` singleton remain mutually exclusive alternatives.
+      |One Scala module contains four globally distinct producer files and two distinct consumer files; each physical consumer unit selects one direct-qualified configured annotation.
+      |Exact Scala 3.3.8, 3.8.4, and 3.9.0 use JDK 25 and sbt 1.12.15 through CLI/Zinc; persistent sbt BSP 3.8.4 is qualified, while pair IntelliJ, native JPS, and direct Java gutter Run are not qualified.
+      |Sorted repeated W1 relationship options use one aggregate exact-source-byte identity; A-v1 to A-v2 without clean retains B-v1.
+      |Producer edges, same-unit ambiguity, and dynamically introduced cross-binding annotations fail closed.
+      |Released `0.1.1` has no pair support and `0.2.0-SNAPSHOT` is not remotely published.
+      |""".stripMargin
+
+  private val CanonicalExternalPairRecipe =
+    """
+      |## Bounded two independent external same-module recipe
+      |This complete recipe uses source-built `0.2.0-SNAPSHOT`, JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0; it is not Maven Central.
+      |Install `pluginApi/publishLocal` and `plugin/publishLocal`, then run `sbt -batch verifyIntegrationPolicy publishLocal` in `sbt-integration`.
+      |Use `sbt.version=1.12.15`, `addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")`, and `MacroParadiseSameModulePlugin`.
+      |Configure `macroParadiseSameModuleBindings := Seq(...)` with exactly two `macroParadiseSameModuleHandler` records and four globally distinct producer files.
+      |Use `@demo.markerA` and `@demo.markerB` in two distinct consumer files, one selected binding per consumer unit.
+      |The handlers implement `ExpansionHandler`, return `ExpansionOutcome`, and generate observable A-v1 and B-v1 members.
+      |Inspect two sorted `sameModuleHandler` options, one `sameModuleSourceIdentity=sha256:` option, and the actual machine-local exact plugin path.
+      |Edit A-v1 to A-v2 without `clean`, retain B-v1, and run a second no-op witness.
+      |The key accepts exactly two members; use `macroParadiseSameModuleBinding` for one and do not infer a manual same-module wiring contract.
+      |Producer edges, same-unit ambiguity, dynamic cross-binding, mixed embedded/external settings, three or more bindings, and non-direct spellings fail closed.
+      |Pair CLI/Zinc is qualified on all three exact lines and persistent sbt BSP on 3.8.4; live IntelliJ, native JPS, and direct Java gutter Run are not qualified.
+      |Released `0.1.1` has no exact-two pair and no remote `0.2.0-SNAPSHOT` exists.
       |""".stripMargin
 
   private def write(root: File, relative: String, content: String): Unit = {

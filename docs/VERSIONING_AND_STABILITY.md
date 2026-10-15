@@ -24,6 +24,11 @@ stable compatibility promise.
 - General same-module handling remains unsupported. The immutable `0.1.1`
   release contains one bounded opt-in external-handler Model A with its
   enumerated exact-line evidence.
+- Unreleased source-built `0.2.0-SNAPSHOT` additionally qualifies exactly two
+  independent external same-module relationships through CLI/Zinc on exact
+  Scala 3.3.8, 3.8.4, and 3.9.0 and persistent sbt BSP 3.8.4. It does not
+  qualify three or more relationships, embedded multiplicity, mixed modes,
+  producer graphs, live IntelliJ, native JPS, or direct Java gutter Run.
 - Unreleased source-built `0.2.0-SNAPSHOT` additionally has one bounded
   same-module embedded mode: one explicit binding and producer source, with
   consumers in different physical files. It is experimentally qualified on

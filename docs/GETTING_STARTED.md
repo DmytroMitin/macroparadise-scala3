@@ -251,6 +251,17 @@ Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. Follow the
 for local installation, the exact binding, declaration and consumer files,
 and compile/run witness.
 
+## Exactly two independent external same-module bindings
+
+For source-built `0.2.0-SNAPSHOT`, one Scala module may instead configure
+exactly two independent external marker/handler relationships. Use JDK 25, sbt
+1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. Released `0.1.1` does not
+contain this pair mode, and the snapshot is not remotely published.
+
+Follow the [complete bounded pair recipe](../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
+The pair is qualified through CLI/Zinc on all three exact lines and persistent
+sbt BSP 3.8.4, not live IntelliJ, native JPS, or direct Java gutter Run.
+
 ## Choose the external-handler setup
 
 ### External-handler setup matrix

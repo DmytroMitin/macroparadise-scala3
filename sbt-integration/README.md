@@ -361,6 +361,272 @@ The marker contains exact-line TASTy. Current documentation makes no ordinary
 `_3` binary-cross promise. The precompiled role topology remains distinct from
 the bounded same-module embedded recipe and external-handler Model A below.
 
+## Bounded two independent external same-module recipe
+
+This complete recipe is for unreleased source-built `0.2.0-SNAPSHOT`, not Maven
+Central. Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. The
+example selects 3.8.4; use one exact line consistently for the source build and
+downstream build.
+
+First, from the Macro-Paradise source root, install the exact-full-cross plugin
+API and compiler plugin into machine-local Ivy:
+
+```sh
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch \
+  "++3.8.4!" \
+  "pluginApi/publishLocal" \
+  "plugin/publishLocal"
+```
+
+Then install the source-built sbt integration separately:
+
+```sh
+cd sbt-integration
+sbt -batch verifyIntegrationPolicy publishLocal
+```
+
+These commands do not publish remotely. Create a fresh downstream directory
+with exactly this six-file core source layout:
+
+```text
+project/build.properties
+project/plugins.sbt
+build.sbt
+src/main/scala/demo/MarkerA.scala
+src/main/scala/demo/HandlerA.scala
+src/main/scala/demo/ConsumerA.scala
+src/main/scala/demo/MarkerB.scala
+src/main/scala/demo/HandlerB.scala
+src/main/scala/demo/ConsumerB.scala
+```
+
+The four globally distinct producer files are separate from the two distinct consumer files. The consumers are
+distinct from every producer and from each other, with one selected binding per
+consumer unit.
+
+Pin sbt and the locally installed integration:
+
+```text
+# project/build.properties
+sbt.version=1.12.15
+```
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
+```
+
+Configure exactly two `macroParadiseSameModuleHandler` records. Reversing the
+input order below is intentional: the derived repeated W1 options are sorted
+deterministically.
+
+```scala
+// build.sbt
+enablePlugins(macroparadise.sbt.MacroParadiseSameModulePlugin)
+
+scalaVersion := "3.8.4" // or exact 3.3.8 / 3.9.0
+
+macroParadiseSameModuleBindings := Seq(
+  macroParadiseSameModuleHandler(
+    annotationName = "demo.markerB",
+    handlerClassName = "demo.HandlerB",
+    markerSource = macroParadiseLabelledSource("b-marker-source", "demo/MarkerB.scala"),
+    handlerSource = macroParadiseLabelledSource("b-handler-source", "demo/HandlerB.scala")
+  ),
+  macroParadiseSameModuleHandler(
+    annotationName = "demo.markerA",
+    handlerClassName = "demo.HandlerA",
+    markerSource = macroParadiseLabelledSource("a-marker-source", "demo/MarkerA.scala"),
+    handlerSource = macroParadiseLabelledSource("a-handler-source", "demo/HandlerA.scala")
+  )
+)
+
+lazy val verifyPairConfiguration = taskKey[Unit]("Inspect the bounded pair inputs")
+
+verifyPairConfiguration := {
+  val derived = macroParadiseSameModuleConfiguration.value
+  val relationships =
+    derived.compilerOptions.filter(_.startsWith("-P:macroparadise:sameModuleHandler="))
+  assert(relationships.size == 2)
+  assert(relationships == relationships.sorted)
+  assert(derived.compilerOptions.count(
+    _.startsWith("-P:macroparadise:sameModuleSourceIdentity=sha256:")
+  ) == 1)
+  assert(derived.sourceIdentity.sources.map(_.label) == Vector(
+    "a-handler-source",
+    "a-marker-source",
+    "b-handler-source",
+    "b-marker-source"
+  ))
+
+  val pluginName = s"macroparadise-scala3-plugin_${scalaVersion.value}.jar"
+  val pluginJars = (Compile / scalacOptions).value
+    .filter(_.startsWith("-Xplugin:"))
+    .flatMap(_.stripPrefix("-Xplugin:").split(java.io.File.pathSeparator).map(file))
+    .filter(_.getName == pluginName)
+  assert(pluginJars.size == 1, s"expected one exact plugin JAR, got $pluginJars")
+  println("PAIR_RELATIONSHIPS=" + relationships.mkString("|"))
+  println("PAIR_SOURCE_IDENTITY=sha256:" + derived.sourceIdentity.identity)
+  println("PAIR_PLUGIN_PATH=" + pluginJars.head.getCanonicalPath)
+}
+```
+
+The two marker declarations are ordinary user-owned `@expander` annotations:
+
+```scala
+// src/main/scala/demo/MarkerA.scala
+package demo
+
+import paradise3.api.expander
+import scala.annotation.StaticAnnotation
+
+@expander("demo.HandlerA")
+final class markerA extends StaticAnnotation
+```
+
+```scala
+// src/main/scala/demo/MarkerB.scala
+package demo
+
+import paradise3.api.expander
+import scala.annotation.StaticAnnotation
+
+@expander("demo.HandlerB")
+final class markerB extends StaticAnnotation
+```
+
+Each handler implements the current `ExpansionHandler` protocol and returns an
+`ExpansionOutcome`. The generated runtime tokens are deliberately independent:
+
+```scala
+// src/main/scala/demo/HandlerA.scala
+package demo
+
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Names.{termName, typeName}
+import paradise3.api.*
+import paradise3.api.helpers.ExpansionHelpers
+
+final class HandlerA extends ExpansionHandler:
+  val annotationName: String = "demo.markerA"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionEdit.finish:
+      ExpansionEdit.start(input).flatMap: edit =>
+        ExpansionHelpers.placeMemberInPrimary(
+          edit,
+          untpd.DefDef(
+            termName("generatedA"),
+            Nil,
+            untpd.Ident(typeName("String")),
+            untpd.Literal(Constant("A-v1"))
+          )
+        )
+```
+
+```scala
+// src/main/scala/demo/HandlerB.scala
+package demo
+
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Names.{termName, typeName}
+import paradise3.api.*
+import paradise3.api.helpers.ExpansionHelpers
+
+final class HandlerB extends ExpansionHandler:
+  val annotationName: String = "demo.markerB"
+
+  def expand(input: ExpansionInput)(using Context): ExpansionOutcome =
+    ExpansionEdit.finish:
+      ExpansionEdit.start(input).flatMap: edit =>
+        ExpansionHelpers.placeMemberInPrimary(
+          edit,
+          untpd.DefDef(
+            termName("generatedB"),
+            Nil,
+            untpd.Ident(typeName("String")),
+            untpd.Literal(Constant("B-v1"))
+          )
+        )
+```
+
+Each consumer is in its own physical file and selects one binding with a
+direct-qualified annotation. Pair mode does not accept imported short, wildcard,
+alias, or inferred same-package short spellings.
+
+```scala
+// src/main/scala/demo/ConsumerA.scala
+package demo
+
+@demo.markerA
+final class ConsumerA
+
+object Main:
+  def main(args: Array[String]): Unit =
+    val a = new ConsumerA().generatedA
+    val b = new ConsumerB().generatedB
+    assert(a == args(0), s"expected A=${args(0)}, got $a")
+    assert(b == args(1), s"expected B=${args(1)}, got $b")
+    println(s"PAIR_RUNTIME:A=$a,B=$b")
+```
+
+```scala
+// src/main/scala/demo/ConsumerB.scala
+package demo
+
+@demo.markerB
+final class ConsumerB
+```
+
+Compile from a blank target, inspect the resolved exact plugin artifact and
+derived options, and run both consumers:
+
+```sh
+sbt -batch clean verifyPairConfiguration compile "runMain demo.Main A-v1 B-v1"
+```
+
+The expected runtime line is `PAIR_RUNTIME:A=A-v1,B=B-v1`. The inspection must
+print two sorted `sameModuleHandler` options, one
+`sameModuleSourceIdentity=sha256:` option, and the actual machine-local exact
+plugin path. The plugin/API artifacts are exact-full-cross JVM tools; the
+handler, plugin, and consumer must all use the selected Scala line and JDK 25.
+
+For the incremental witness, edit only `"A-v1"` to `"A-v2"` in
+`HandlerA.scala`, then run without `clean`:
+
+```sh
+sbt -batch verifyPairConfiguration compile "runMain demo.Main A-v2 B-v1"
+sbt -batch compile "runMain demo.Main A-v2 B-v1"
+```
+
+The first command must report A-v2 while retaining B-v1. The second command is
+the second no-op witness. The setting accepts exactly two members; use
+`macroParadiseSameModuleBinding` for one relationship. The singleton key, pair
+key, and `macroParadiseSameModuleEmbeddedBinding` are mutually exclusive. No
+separate manual same-module wiring contract is qualified. Do not infer a manual
+same-module wiring contract from the precompiled recipes.
+
+The pair remains deliberately fail closed: producer edges, same-unit ambiguity,
+dynamic cross-binding, mixed embedded/external settings, three or more bindings,
+same-source producer/consumer use, and non-direct spellings fail. One aggregate
+identity covers the exact bytes of all four producers, so an A-only edit may
+conservatively recompile B's consumer; no selective-invalidation claim is made.
+
+As an optional qualification check, after one successful A-v2/B-v1 run, make
+`HandlerA.scala` syntactically invalid and confirm `compile` fails instead of
+using old output. Restore the exact valid A-v2 bytes without `clean`, rerun, and
+confirm A-v2/B-v1. Exact source restore can likewise reproduce the original
+aggregate digest. These recovery steps are qualification, not ordinary setup.
+
+Pair CLI/Zinc is qualified on all three exact lines and persistent sbt BSP on
+3.8.4. Live IntelliJ, native JPS, and direct Java gutter Run are not qualified
+for the pair. Released `0.1.1` has no exact-two pair and no remote
+`0.2.0-SNAPSHOT` exists.
+
 ## Bounded same-module embedded recipe
 
 This recipe is for unreleased source-built `0.2.0-SNAPSHOT`, not Maven Central.

@@ -113,20 +113,25 @@ generated tree shape, names in scope, and exact target assumptions.
 
 General incremental same-module support remains false. Released `0.1.1` and
 current `main` have an opt-in implementation of one explicit different-file
-Model A, qualified on
+singleton Model A, qualified on
 exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc. Persistent sbt BSP
-qualification remains bounded to exact 3.3.8 and 3.8.4. Confirm that
-`scalacOptions` contains one `sameModuleHandler` relationship and one
-`sameModuleSourceIdentity=sha256:...` input, and that the marker and handler
-paths are distinct normalized relative paths beneath the configured source
-root. Empty, missing, duplicate, absolute, or escaping paths fail closed.
+qualification remains bounded to exact 3.3.8 and 3.8.4. For singleton Model A,
+confirm that `scalacOptions` contains one `sameModuleHandler` relationship and
+one `sameModuleSourceIdentity=sha256:...` input. For the source-built exact-two
+external pair, confirm two sorted relationship options and one aggregate
+identity. Configured producer paths must be distinct normalized relative paths
+beneath the source root. Empty, missing, duplicate, absolute, or escaping paths
+fail closed.
 
-The marker, handler, and consumer must be separate source files. Same-file
-topologies and cycles produce focused unsupported-model diagnostics. The
-bounded topology is qualified in IntelliJ only for an
+Singleton marker, handler, and consumer must be separate source files. Pair
+mode requires four distinct producers and distinct one-binding consumer files;
+producer edges, same-unit selection, dynamic cross-binding, non-direct spelling,
+same-file topologies, and cycles fail closed. Singleton Model A is qualified in IntelliJ only for an
 sbt-imported project with Build and Run delegated to sbt on JDK 25 and sbt
 1.12.15, across exact Scala 3.3.8 and 3.8.4. Native JPS and broader same-module
-topologies remain outside the claim; precompiled handlers remain the
+topologies remain outside the claim. The pair has CLI/Zinc evidence on all
+three exact lines and persistent BSP 3.8.4, but no live IntelliJ qualification;
+precompiled handlers remain the
 broad/default supported experimental path.
 
 

@@ -93,6 +93,36 @@ not remotely published; no stable API or release commitment follows.
 
 See [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md).
 
+## Exactly two independent external same-module bindings
+
+On unreleased source-built `0.2.0-SNAPSHOT`, exactly two independent external
+relationships are experimentally supported with `MacroParadiseSameModulePlugin`,
+`macroParadiseSameModuleBindings`, `macroParadiseSameModuleHandler`, and `Seq`.
+The old `macroParadiseSameModuleBinding` singleton and
+`macroParadiseSameModuleEmbeddedBinding` singleton remain mutually exclusive
+alternatives; the three setting families are never merged.
+
+One Scala module contains four globally distinct producer files and two distinct
+consumer files. Each physical consumer unit selects one direct-qualified
+configured annotation. Imported short, wildcard, alias, and inferred
+same-package short spellings are outside the pair grammar.
+
+Exact Scala 3.3.8, 3.8.4, and 3.9.0 use JDK 25 and sbt 1.12.15 through
+CLI/Zinc; persistent sbt BSP 3.8.4 is qualified, while pair IntelliJ, native
+JPS, and direct Java gutter Run are not qualified. Existing singleton and
+embedded IntelliJ evidence does not transfer to this pair.
+
+Sorted repeated W1 relationship options use one aggregate exact-source-byte
+identity; A-v1 to A-v2 without clean retains B-v1. Producer edges, same-unit
+ambiguity, and dynamically introduced cross-binding annotations fail closed.
+Stale producer output is rejected and repair proceeds without `clean`.
+
+Three or more external bindings, multiple pair sets, multiple embedded
+bindings, mixed embedded/external settings, producer DAGs, same-source
+producer/consumer layouts, and cross-binding composition remain unsupported.
+Released `0.1.1` has no pair support and `0.2.0-SNAPSHOT` is not remotely
+published. See the [complete executable recipe](../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
+
 ## External handlers
 
 External handlers must implement `ExpansionHandler`, be precompiled for the exact compiler line, and be discoverable either through `@expander` metadata or explicit plugin configuration. The handler classpath must include the handler and its dependencies. The plugin/API artifact boundary and parent-first contract identity checks remain enforced.

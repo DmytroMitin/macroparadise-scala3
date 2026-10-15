@@ -43,6 +43,12 @@ exact Scala 3.8.4. Its all-line support statement otherwise relies on CLI/Zinc
 and the accepted IntelliJ sbt-shell evidence. No BSP statement here extends to
 native JPS or broader same-module topologies.
 
+The exact-two independent external same-module pair on source-built
+`0.2.0-SNAPSHOT` is separately qualified through CLI/Zinc on exact Scala 3.3.8,
+3.8.4, and 3.9.0 plus persistent sbt BSP 3.8.4. Singleton Model A IntelliJ
+evidence does not transfer to the pair: live pair IntelliJ, native JPS, and
+direct Java gutter Run remain unqualified. Released `0.1.1` has no pair mode.
+
 ## Plugin and handler compatibility
 
 The sbt integration itself runs in the sbt 1.x / Scala 2.12

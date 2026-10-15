@@ -3,7 +3,7 @@
 This guide is the canonical map for choosing a Macro-Paradise authoring frontend, compilation topology, and build wiring. These are orthogonal choices:
 
 - **Authoring frontend:** explicit `@expander` metadata plus a user-authored `ExpansionHandler`, or `@embeddedExpander` plus a companion `transform`.
-- **Compilation topology:** producer code compiled before the consumer in another Scala compilation module, or one bounded producer relationship in the same Scala compilation module with consumers in different physical files.
+- **Compilation topology:** producer code compiled before the consumer in another Scala compilation module, or a bounded selected relationship in the same Scala compilation module with consumers in different physical files.
 - **Build wiring:** source-built sbt AutoPlugins/integration helpers, or the documented complete manual precompiled wiring.
 - **Distribution:** same-build local producer projects, resolver-installed producer role modules, immutable released `0.1.1`, or unreleased source-built `0.2.0-SNAPSHOT`.
 
@@ -37,7 +37,7 @@ The generated adapter class name and relocated transform name are private implem
 
 | Authoring frontend | Precompiled in other module | Same Scala module |
 | --- | --- | --- |
-| @expander | explicit marker/handler | bounded external Model A |
+| @expander | explicit marker/handler | singleton Model A, plus exactly two independent external bindings on unreleased source-built main |
 | @embeddedExpander | precompiled generated adapter | bounded embedded same-module |
 
 ### Explicit `@expander`, precompiled producer
@@ -62,21 +62,26 @@ See [External handler authoring](EXTERNAL_HANDLER_AUTHORING.md).
 
 See [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md).
 
-### Explicit `@expander`, bounded same-module external Model A
+### Explicit `@expander`, bounded same-module external modes
 
 ```text
-src/main/scala/demo/Marker.scala
-src/main/scala/demo/Handler.scala
-src/main/scala/demo/Usage.scala
+singleton: Marker.scala -> Handler.scala -> Usage.scala
+pair A: MarkerA.scala -> HandlerA.scala -> ConsumerA.scala
+pair B: MarkerB.scala -> HandlerB.scala -> ConsumerB.scala
 ```
 
-- **Source rule:** marker, handler, and every consumer are separate physical files in one Scala compilation module.
+- **Source rule:** singleton marker, handler, and every consumer are separate physical files. The pair has four globally distinct producer files and two distinct consumer files, for six distinct core files in one Scala module; each consumer unit selects one binding.
 - **Ownership:** the author owns marker and no-arg handler. The binding explicitly supplies marker source, handler source, annotation identity, and handler class.
-- **sbt:** enable no-trigger `MacroParadiseSameModulePlugin`; configure `macroParadiseSameModuleBinding` with `macroParadiseSameModuleHandler`.
+- **sbt:** enable no-trigger `MacroParadiseSameModulePlugin`. Configure singleton Model A with `macroParadiseSameModuleBinding`, or configure the pair with `macroParadiseSameModuleBindings := Seq(...)` containing exactly two `macroParadiseSameModuleHandler` records.
 - **Manual wiring:** no separate complete manual same-module recipe is qualified. Use the AutoPlugin so source identity and compiler options stay coherent.
-- **Name resolution:** the bounded trigger requires direct-qualified consumer spelling matching the configured canonical identity.
-- **Multiplicity:** exactly one relationship, mutually exclusive with `macroParadiseSameModuleEmbeddedBinding` in the same enabled sbt project.
-- **Availability:** Model A exists in released `0.1.1`; current main uses the source-built `0.2.0-SNAPSHOT` handler protocol. The APIs are distinct.
+- **Name resolution:** both external same-module modes require direct-qualified consumer spelling matching the configured canonical identity. Pair mode excludes imported short, wildcard, alias, and inferred same-package short spellings.
+- **Multiplicity:** singleton Model A selects one relationship. Pair mode configures exactly two independent relationships, while each physical consumer selects at most one. `macroParadiseSameModuleBinding`, `macroParadiseSameModuleBindings`, and `macroParadiseSameModuleEmbeddedBinding` are mutually exclusive.
+- **Availability:** singleton Model A exists in released `0.1.1`; the exact-two pair exists only on unreleased source-built `0.2.0-SNAPSHOT`. Current main uses a handler protocol distinct from the released API.
+
+The pair emits deterministically sorted repeated `sameModuleHandler` options and
+one aggregate source-byte digest. An A-v1 to A-v2 producer edit without `clean`
+retains B-v1. Producer edges, one-unit A+B ambiguity, and dynamically introduced
+cross-binding annotations fail closed. See the [complete bounded pair recipe](../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
 
 ### Embedded frontend, bounded same-module
 
@@ -105,7 +110,8 @@ See the [runnable same-module embedded recipe](../sbt-integration/README.md#boun
 - **Authoring declaration parity: no.** Embedded requires an opted-in top-level final `StaticAnnotation` class, same-file companion, and exact `transform`; explicit authors implement the handler protocol.
 - **Topology parity: no.** Embedded declaration and companion share one physical source. External same-module Model A uses separate marker and handler files. Consumers are separate files in both bounded cells.
 - **Import resolution parity: no.** External Model A is direct-qualified. Embedded same-module also qualifies one bounded explicit-import form.
-- **Same-module multi-binding support: no.** `macroParadiseSameModuleBinding` and `macroParadiseSameModuleEmbeddedBinding` are mutually exclusive and each accepts one binding.
+- **General same-module multi-binding support: no.** The only exception is the exact-two independent external pair on source-built main. Three or more external bindings, multiple embedded bindings, mixed external/embedded settings, producer graphs, and cross-binding composition remain unsupported.
+- **Release and embedded limits:** Released 0.1.1 has no exact-two pair. Multiple embedded bindings remain unsupported.
 - **Precompiled multi-producer support:** qualified for explicit producers through sequence-based local/module integration.
 - **Precompiled multiple embedded declarations:** qualified within the declaration contract; it does not imply same-module multiplicity.
 - **Full release parity: no.** Released 0.1.1 contains external-handler Model A and its earlier API. Embedded authoring and the current handler protocol are source-built 0.2.0-SNAPSHOT only. No remote 0.2.0 artifact exists.
@@ -114,14 +120,14 @@ Semantic parity means a shared underlying expansion mechanism and expressive out
 
 ## Shared same-module lifecycle
 
-1. One explicit sbt binding determines the producer source dependency.
-2. A source-byte digest participates in Zinc incremental identity.
-3. The consumer is suspended before mutation or handler loading while current producer output compiles.
-4. A fresh current-output classloader resumes ordinary expansion.
-5. Stale output, missing output, and dependency cycles fail closed.
+1. A singleton configures one relationship; the external pair configures two independent relationships, with one selected relationship per consumer unit.
+2. One aggregate source-byte digest participates in Zinc incremental identity.
+3. The selected consumer is suspended before mutation or handler loading while current producer output compiles.
+4. A fresh current-output classloader resumes ordinary expansion for that unit; one processor instance does not execute both independent deferred handlers in one unit.
+5. Stale output, missing output, producer edges, cross-binding composition, and dependency cycles fail closed.
 6. Tested producer-body edits invalidate unchanged consumers without `clean`.
 
-Not implemented or qualified: producer and consumer in the same physical source, multiple same-module bindings, dependency-graph solving, cycles, automatic discovery, native IntelliJ JPS, or direct Java gutter Run.
+Not implemented or qualified: producer and consumer in the same physical source, arbitrary external multiplicity, multiple embedded bindings, mixed external/embedded mode, dependency-graph solving, cycles, automatic discovery, native IntelliJ JPS, or direct Java gutter Run.
 
 ## Compiler, BSP, and IDE evidence
 
@@ -129,7 +135,8 @@ Not implemented or qualified: producer and consumer in the same physical source,
 | --- | --- | --- |
 | Explicit precompiled | Public boundaries pass 3.3.8, 3.8.4, 3.9.0 | No new all-line per-cell IDE claim is made here |
 | Embedded precompiled | Four setup quadrants remain in all three public boundaries | No dedicated precompiled embedded IDE/BSP claim is added |
-| External same-module Model A | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP and sbt-delegated IntelliJ evidence is bounded to 3.3.8 and 3.8.4 |
+| External same-module singleton Model A | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP and sbt-delegated IntelliJ evidence is bounded to 3.3.8 and 3.8.4 |
+| Exactly two independent external bindings | CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0 | persistent sbt BSP is qualified on 3.8.4; pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified |
 | Embedded same-module | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP: 3.8.4; IntelliJ sbt-shell Build/run: all three lines |
 
 The qualified environment is JDK 25 and sbt 1.12.15. IntelliJ evidence uses sbt import, sbt-delegated Build, and `run` in the sbt shell. Native JPS and direct Java gutter Run are not qualified.

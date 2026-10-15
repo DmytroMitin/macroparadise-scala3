@@ -85,6 +85,20 @@ published. Use JDK 25, sbt 1.12.15, and one exact Scala line. The complete
 copy/paste setup is the
 [same-module embedded recipe](sbt-integration/README.md#bounded-same-module-embedded-recipe).
 
+## Exactly two independent external same-module bindings
+
+Unreleased source-built `0.2.0-SNAPSHOT` experimentally supports one exact pair
+of independent external `@expander` marker/handler relationships in a single
+Scala module. The pair uses four globally distinct producer files and two
+separate consumer files. Each consumer selects only one binding through the
+direct-qualified annotation spelling.
+
+The exact pair is qualified through CLI/Zinc on Scala 3.3.8, 3.8.4, and 3.9.0,
+plus persistent sbt BSP 3.8.4, with JDK 25 and sbt 1.12.15. Live IntelliJ use of
+the pair, native JPS, and direct Java gutter Run are not qualified. Released
+`0.1.1` has no pair support, and no remote `0.2.0-SNAPSHOT` exists. Follow the
+[complete bounded pair recipe](sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).
+
 ## A small user-authored example
 
 A user can define an annotation marker, its precompiled handler, and an
@@ -410,9 +424,12 @@ to the combinations in the test suite.
   exact Scala 3.3.8 and 3.8.4 when the sbt-imported project delegates Build and Run to sbt on JDK 25
   and sbt 1.12.15, including handler-only edits without `clean` and a fresh
   session after close/reopen. Same-file marker/handler/consumer topologies,
-  dependency cycles, automatic discovery, multiple configured relationships,
+  dependency cycles, automatic discovery, arbitrary configured relationships,
   and native IntelliJ/JPS compilation remain rejected, unimplemented, or
-  unqualified, so general same-module support remains false. Precompiled
+  unqualified. Current source-built main separately qualifies exactly two
+  independent external relationships with one selected binding per consumer
+  unit through CLI/Zinc and persistent sbt BSP 3.8.4; this does not make general
+  same-module support true. Precompiled
   handlers remain the broad/default supported experimental path.
 - Unreleased source-built `0.2.0-SNAPSHOT` separately supports one bounded
   same-module embedded binding: one `@embeddedExpander` producer source with a

@@ -122,9 +122,31 @@ object PublicDocumentationPolicy {
         path,
         "public docs must distinguish bounded source-built same-module embedded support from general unsupported topologies"
       )
-    def requireAll(code: String, detail: String, required: String*): Unit =
-      if (required.exists(token => !text.contains(token)))
-        findings += Finding(code, path, detail)
+    val staleExternalPairClaims = Vector(
+      "all same-module use allows one binding",
+      "all multi-binding same-module use is unsupported"
+    )
+    val staleUnqualifiedPairLine =
+      "(?im)^\\s*same-module multi-binding support: no\\.?\\s*$".r.findFirstIn(text).nonEmpty
+    if (staleExternalPairClaims.exists(lower.contains) || staleUnqualifiedPairLine)
+      findings += Finding(
+        "STALE_EXACT_TWO_EXTERNAL_BLANKET_CLAIM",
+        path,
+        "public docs must distinguish the bounded exact-two external pair from unsupported general and embedded multiplicity"
+      )
+    def requireAll(code: String, detail: String, required: String*): Unit = {
+      val missing = required.filter(token => !text.contains(token))
+      if (missing.nonEmpty)
+        findings += Finding(code, path, detail + s"; missing: ${missing.mkString(" | ")}")
+    }
+    def semantic(value: String): String =
+      value.replace("`", "").replaceAll("\\s+", " ").trim.toLowerCase(java.util.Locale.ROOT)
+    def requireAllSemantic(code: String, detail: String, required: String*): Unit = {
+      val normalized = semantic(text)
+      val missing = required.filter(token => !normalized.contains(semantic(token)))
+      if (missing.nonEmpty)
+        findings += Finding(code, path, detail + s"; missing: ${missing.mkString(" | ")}")
+    }
 
     if (path == "docs/EXTERNAL_HANDLER_AUTHORING.md") {
       requireAll(
@@ -203,7 +225,7 @@ object PublicDocumentationPolicy {
         "authoritative guide must retain all four source-grounded authoring/topology cells and their principal parity limits",
         "| Authoring frontend | Precompiled in other module | Same Scala module |",
         "@expander | explicit marker/handler",
-        "bounded external Model A",
+        "singleton Model A",
         "@embeddedExpander | precompiled generated adapter",
         "bounded embedded same-module",
         "ExpansionHandler.expand(ExpansionInput): ExpansionOutcome",
@@ -211,14 +233,39 @@ object PublicDocumentationPolicy {
         "does not prove all program behavior equivalent",
         "Authoring declaration parity: no",
         "Topology parity: no",
-        "Same-module multi-binding support: no",
+        "General same-module multi-binding support: no",
         "macroParadiseSameModuleBinding",
+        "macroParadiseSameModuleBindings",
         "macroParadiseSameModuleEmbeddedBinding",
         "mutually exclusive",
         "Released 0.1.1",
         "source-built 0.2.0-SNAPSHOT only",
         "Native JPS",
         "direct Java gutter Run"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EXTERNAL_PARITY_INCOMPLETE",
+        "authoritative guide must define the exact-two external cell, lifecycle, exclusions, release distinction, and CLI/BSP versus IDE boundary",
+        "exactly two independent external bindings",
+        "source-built 0.2.0-SNAPSHOT",
+        "macroParadiseSameModuleBindings := Seq(...)",
+        "exactly two macroParadiseSameModuleHandler records",
+        "macroParadiseSameModuleBinding, macroParadiseSameModuleBindings, and macroParadiseSameModuleEmbeddedBinding are mutually exclusive",
+        "six distinct core files",
+        "each consumer unit selects one binding",
+        "direct-qualified consumer spelling",
+        "sorted repeated sameModuleHandler options",
+        "one aggregate source-byte digest",
+        "A-v1 to A-v2",
+        "retains B-v1",
+        "Producer edges",
+        "one-unit A+B ambiguity",
+        "dynamically introduced cross-binding annotations fail closed",
+        "CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0",
+        "persistent sbt BSP is qualified on 3.8.4",
+        "pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified",
+        "Released 0.1.1 has no exact-two pair",
+        "Multiple embedded bindings remain unsupported"
       )
       if (
         lower.contains("all programs are behaviorally equivalent") ||
@@ -230,11 +277,12 @@ object PublicDocumentationPolicy {
       )
       if (
         lower.contains("multiple same-module bindings are supported") ||
-          lower.contains("same-module multi-binding support: yes")
+        lower.contains("same-module multi-binding support: yes") ||
+          lower.contains("arbitrary multiple same-module bindings are supported")
       ) findings += Finding(
         "SAME_MODULE_MULTI_BINDING_OVERCLAIM",
         path,
-        "current same-module configuration supports one mutually exclusive binding, not multiple bindings"
+        "only the bounded exact-two external pair is supported; arbitrary, mixed, and embedded multiplicity remain unsupported"
       )
       if (
         lower.contains("same sbt multi-project build is the same scala compilation module") ||
@@ -270,6 +318,35 @@ object PublicDocumentationPolicy {
         "general same-module support",
         "native JPS",
         "immutable `0.1.1` release",
+        "not remotely published"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EXTERNAL_SUPPORT_CONTRACT_MISSING",
+        "support scope must retain the bounded exact-two external topology, deterministic identity, fail-closed exclusions, evidence boundary, and release distinction",
+        "## Exactly two independent external same-module bindings",
+        "unreleased source-built `0.2.0-SNAPSHOT`",
+        "exactly two independent external relationships",
+        "`MacroParadiseSameModulePlugin`",
+        "`macroParadiseSameModuleBindings`",
+        "`macroParadiseSameModuleHandler`",
+        "`Seq`",
+        "`macroParadiseSameModuleBinding`",
+        "`macroParadiseSameModuleEmbeddedBinding`",
+        "mutually exclusive alternatives",
+        "four globally distinct producer files",
+        "two distinct consumer files",
+        "one direct-qualified configured annotation",
+        "3.3.8, 3.8.4, and 3.9.0",
+        "JDK 25",
+        "sbt 1.12.15",
+        "CLI/Zinc",
+        "persistent sbt BSP 3.8.4",
+        "pair IntelliJ, native JPS, and direct Java gutter Run are not qualified",
+        "Sorted repeated W1 relationship options",
+        "one aggregate exact-source-byte identity",
+        "A-v1 to A-v2 without clean retains B-v1",
+        "Producer edges, same-unit ambiguity, and dynamically introduced cross-binding annotations fail closed",
+        "Released `0.1.1` has no pair support",
         "not remotely published"
       )
     }
@@ -356,6 +433,19 @@ object PublicDocumentationPolicy {
         "EMBEDDED_PRODUCER_AUTHORING.md",
         "../examples/embedded-producer-starter/README.md"
       )
+      requireAllSemantic(
+        "EXACT_TWO_EXTERNAL_NAVIGATION_MISSING",
+        "Getting Started must expose the exact-two source-built recipe and distinguish CLI/BSP qualification from unqualified IDE paths",
+        "## Exactly two independent external same-module bindings",
+        "source-built `0.2.0-SNAPSHOT`",
+        "JDK 25",
+        "sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, or 3.9.0",
+        "../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe",
+        "CLI/Zinc",
+        "persistent sbt BSP 3.8.4",
+        "not live IntelliJ, native JPS, or direct Java gutter Run"
+      )
       requireAll(
         "SAME_MODULE_EMBEDDED_NAVIGATION_MISSING",
         "Getting Started must expose bounded same-module source-built onboarding without changing the released quick start",
@@ -413,6 +503,18 @@ object PublicDocumentationPolicy {
         "immutable `0.1.1` release",
         "no remote `0.2.0-SNAPSHOT`",
         "sbt-integration/README.md#bounded-same-module-embedded-recipe"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EXTERNAL_README_DISCOVERY_MISSING",
+        "README must expose the bounded exact-two source-built recipe without implying release or IntelliJ support",
+        "## Exactly two independent external same-module bindings",
+        "source-built `0.2.0-SNAPSHOT`",
+        "exact pair",
+        "CLI/Zinc",
+        "persistent sbt BSP 3.8.4",
+        "Released `0.1.1` has no pair support",
+        "no remote `0.2.0-SNAPSHOT`",
+        "sbt-integration/README.md#bounded-two-independent-external-same-module-recipe"
       )
     }
 
@@ -565,6 +667,53 @@ object PublicDocumentationPolicy {
         "SAME_MODULE_EMBEDDED_RUNTIME:same-module-v1",
         "Exactly one public binding",
         "External same-module Model A remains separate"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EXTERNAL_RECIPE_INCOMPLETE",
+        "sbt integration guide must retain the complete runnable exact-two external source-built recipe and its bounded evidence envelope",
+        "## Bounded two independent external same-module recipe",
+        "source-built `0.2.0-SNAPSHOT`",
+        "not Maven Central",
+        "JDK 25, sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, or 3.9.0",
+        "`pluginApi/publishLocal`",
+        "`plugin/publishLocal`",
+        "sbt -batch verifyIntegrationPolicy publishLocal",
+        "sbt.version=1.12.15",
+        "addSbtPlugin(\"com.github.dmytromitin\" % \"sbt-macroparadise\" % \"0.2.0-SNAPSHOT\")",
+        "`MacroParadiseSameModulePlugin`",
+        "macroParadiseSameModuleBindings := Seq(",
+        "exactly two `macroParadiseSameModuleHandler` records",
+        "four globally distinct producer files",
+        "`@demo.markerA`",
+        "`@demo.markerB`",
+        "two distinct consumer files",
+        "one selected binding per consumer unit",
+        "`ExpansionHandler`",
+        "`ExpansionOutcome`",
+        "A-v1",
+        "B-v1",
+        "two sorted `sameModuleHandler` options",
+        "one `sameModuleSourceIdentity=sha256:` option",
+        "actual machine-local exact plugin path",
+        "A-v2",
+        "without clean",
+        "B-v1",
+        "second no-op witness",
+        "accepts exactly two members",
+        "`macroParadiseSameModuleBinding` for one",
+        "do not infer a manual same-module wiring contract",
+        "Producer edges",
+        "same-unit ambiguity",
+        "dynamic cross-binding",
+        "mixed embedded/external settings",
+        "three or more bindings",
+        "non-direct spellings fail",
+        "CLI/Zinc is qualified on all three exact lines",
+        "persistent sbt BSP on 3.8.4",
+        "live IntelliJ, native JPS, and direct Java gutter Run are not qualified",
+        "Released `0.1.1` has no exact-two pair",
+        "no remote `0.2.0-SNAPSHOT` exists"
       )
     }
 
