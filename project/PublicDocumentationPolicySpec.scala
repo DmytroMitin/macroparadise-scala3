@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 object PublicDocumentationPolicySpec {
-  val CaseCount = 67
+  val CaseCount = 70
   private val Slash = "/"
   private def path(root: String, rest: String): String = root + Slash + rest
   private def controlRepository(root: String): String = root + "-scala3-" + "control"
@@ -16,6 +16,7 @@ object PublicDocumentationPolicySpec {
     assert(PublicDocumentationPolicy.RequiredPaths.contains("docs/EMBEDDED_PRODUCER_AUTHORING.md"))
     assert(PublicDocumentationPolicy.RequiredPaths.contains(ParityGuidePath))
     assert(PublicDocumentationPolicy.RequiredPaths.contains("examples/embedded-producer-starter/README.md"))
+    assert(PublicDocumentationPolicy.RequiredPaths.contains("examples/existing-method-u-u-starter/README.md"))
     val clean = fixture()
     try {
       val result = PublicDocumentationPolicy.verify(clean, IncludedPaths)
@@ -143,6 +144,21 @@ object PublicDocumentationPolicySpec {
       "examples/embedded-producer-starter/README.md",
       CanonicalEmbeddedStarterReadme.replace("marker and handler roles", "generated artifact"),
       "EMBEDDED_STARTER_INCOMPLETE"
+    )
+    assertFinding(
+      "examples/existing-method-u-u-starter/README.md",
+      CanonicalExistingMethodUUStarterReadme.replace("three simultaneous edits", "one edit"),
+      "EXISTING_METHOD_U_U_STARTER_INCOMPLETE"
+    )
+    assertFinding(
+      "examples/existing-method-u-u-starter/README.md",
+      CanonicalExistingMethodUUStarterReadme.replace("is not yet supported", "is supported"),
+      "EXISTING_METHOD_U_U_OPTION_OVERCLAIM"
+    )
+    assertFinding(
+      "examples/existing-method-u-u-starter/README.md",
+      CanonicalExistingMethodUUStarterReadme.replace("no remote snapshot", "available from Maven Central"),
+      "EXISTING_METHOD_U_U_REMOTE_RELEASE_OVERCLAIM"
     )
     assertFinding(
       "docs/EMBEDDED_PRODUCER_AUTHORING.md",
@@ -366,6 +382,7 @@ object PublicDocumentationPolicySpec {
     write(root, "docs/GETTING_STARTED.md", CanonicalGetting + CanonicalSameModuleGetting + CanonicalExternalPairGetting)
     write(root, "docs/EMBEDDED_PRODUCER_AUTHORING.md", CanonicalEmbeddedGuide + CanonicalSameModuleGuide)
     write(root, "examples/embedded-producer-starter/README.md", CanonicalEmbeddedStarterReadme)
+    write(root, "examples/existing-method-u-u-starter/README.md", CanonicalExistingMethodUUStarterReadme)
     write(root, "sbt-integration/README.md", CanonicalIntegration + CanonicalSameModuleIntegration + CanonicalExternalPairRecipe)
     write(root, "docs/EXTERNAL_HANDLER_AUTHORING.md", CanonicalAuthoring)
     write(root, "docs/EXPANSION_MODEL_AND_COMPOSITION.md", CanonicalExpansionModel)
@@ -607,6 +624,20 @@ object PublicDocumentationPolicySpec {
       |separate marker and handler roles, and no producer `publishLocal`.
       |The generated adapter name is not a public contract. This precompiled starter does not demonstrate the same-module mode.
       |External handler authoring remains supported.
+      |""".stripMargin
+
+  private val CanonicalExistingMethodUUStarterReadme =
+    """# Existing-method U-U starter
+      |
+      |This experimental, source-built example uses `0.2.0-SNAPSHOT` and
+      |`0.4.0-SNAPSHOT`, JDK 25, sbt 1.12.15, and Scala 3.3.8, 3.8.4, or 3.9.0.
+      |The foreign `macroconsumer.uu` handler uses public
+      |`ExistingClassUntypedRewrite`. It performs three simultaneous edits in
+      |one immutable plan. Untouched direct members preserve their exact tree identities.
+      |`Option[String]` is not yet supported by the existing-method U040 type editor.
+      |This source-only combination has no remote snapshot and is not in the immutable
+      |Macro-Paradise 0.1.1 or Quasiquotes 0.3.0 releases.
+      |PUBLIC_EXISTING_METHOD_U_U_STARTER_PASS
       |""".stripMargin
 
   private val CanonicalIntegration =

@@ -31,6 +31,7 @@ object PublicDocumentationPolicy {
     "docs/COMPATIBILITY.md",
     "docs/VERSIONING_AND_STABILITY.md",
     "examples/embedded-producer-starter/README.md",
+    "examples/existing-method-u-u-starter/README.md",
     "sbt-integration/README.md"
   )
 
@@ -423,6 +424,41 @@ object PublicDocumentationPolicy {
         "does not demonstrate the same-module mode",
         "External handler authoring remains supported"
       )
+    }
+
+    if (path == "examples/existing-method-u-u-starter/README.md") {
+      requireAll(
+        "EXISTING_METHOD_U_U_STARTER_INCOMPLETE",
+        "existing-method U-U starter must retain its foreign public-facade, atomic-edit, preservation, exact-line, source-only, and bounded type-admission contract",
+        "experimental, source-built example",
+        "`0.2.0-SNAPSHOT`",
+        "`0.4.0-SNAPSHOT`",
+        "JDK 25",
+        "sbt 1.12.15",
+        "Scala 3.3.8, 3.8.4, or 3.9.0",
+        "macroconsumer.uu",
+        "`ExistingClassUntypedRewrite`",
+        "three simultaneous edits",
+        "one immutable",
+        "Untouched direct members preserve their exact tree identities",
+        "`Option[String]` is not yet supported",
+        "no remote snapshot",
+        "Macro-Paradise 0.1.1",
+        "Quasiquotes 0.3.0",
+        "PUBLIC_EXISTING_METHOD_U_U_STARTER_PASS"
+      )
+      if (lower.contains("`option[string]` is supported"))
+        findings += Finding(
+          "EXISTING_METHOD_U_U_OPTION_OVERCLAIM",
+          path,
+          "starter must not claim current U040 applied-type replacement support"
+        )
+      if (lower.contains("available from maven central"))
+        findings += Finding(
+          "EXISTING_METHOD_U_U_REMOTE_RELEASE_OVERCLAIM",
+          path,
+          "starter must not present the source-only snapshot combination as a remote release"
+        )
     }
 
     if (path == "docs/GETTING_STARTED.md") {

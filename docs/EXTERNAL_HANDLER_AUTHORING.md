@@ -1,5 +1,12 @@
 # External handler authoring
 
+For a complete source-built handler that transforms an original method, see
+the [existing-method U-U starter](../examples/existing-method-u-u-starter/README.md).
+It keeps the marker, genuinely foreign handler, and consumer in separate
+projects and uses the public Quasiquotes exact-version facade for one atomic
+parameter/result/body edit. The generated-member starter below demonstrates a
+different operation.
+
 This guide describes the MacroParadise `0.2.0-SNAPSHOT` unified handler
 contract. Use JDK 25, sbt 1.12.15, and artifacts built for the exact active
 Scala line: 3.3.8, 3.8.4, or 3.9.0. The recipes below intentionally select

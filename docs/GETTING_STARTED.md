@@ -183,6 +183,12 @@ Both use the same consumer plugin, `ExpansionInput`/`ExpansionOutcome` protocol,
 loader, scheduler, and exact-line constraints. Released `0.1.1` supports the
 external style; it does not contain the embedded frontend.
 
+The [existing-method U-U starter](../examples/existing-method-u-u-starter/README.md)
+is the smallest complete source-built example of an external handler capturing
+and atomically rewriting an original method's parameter, result, and body
+through the public Quasiquotes facade. It is separate from generated-member
+starters and remains bounded to primitive method-type replacements.
+
 ## Minimal embedded producer
 
 Start with the behavior-free declaration:

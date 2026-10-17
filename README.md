@@ -382,6 +382,14 @@ same-build local-project, AutoPlugin published-module, and manual
 published-module setup is retained under
 [`examples/user-onboarding-three-mode-fixture`](examples/user-onboarding-three-mode-fixture/README.md).
 
+For a bounded transformation of an original method rather than generated
+output, use the source-built
+[existing-method U-U starter](examples/existing-method-u-u-starter/README.md).
+Its foreign precompiled handler changes one `echo` parameter, result, and body
+atomically through Quasiquotes' public exact-version facade. It is experimental
+and does not claim `Option[String]` method-type support or availability in the
+immutable releases.
+
 ## Supported experimental boundary
 
 The current implementation provides bounded evidence for:
