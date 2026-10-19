@@ -212,6 +212,126 @@ final class SameModuleConfigurationSpec extends FunSuite {
     }
   }
 
+  test("exactly two embedded bindings emit sorted repeated options in both namespaces and one aggregate identity") {
+    withSources { root =>
+      source(root, "demo/ProducerA.scala", "producer-a")
+      source(root, "demo/ProducerB.scala", "producer-b")
+      val output = Files.createDirectories(root.resolve("classes"))
+      val bindingA = SameModuleEmbeddedBinding(
+        "demo.markerA",
+        LabelledSource("a-producer", "demo/ProducerA.scala")
+      )
+      val bindingB = SameModuleEmbeddedBinding(
+        "demo.markerB",
+        LabelledSource("b-producer", "demo/ProducerB.scala")
+      )
+
+      val derived = SameModuleConfiguration
+        .deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(bindingB, bindingA))
+        .toOption
+        .get
+
+      assertEquals(
+        derived.compilerOptions,
+        Vector(
+          "-Xplugin-require:macroparadise",
+          "-Xplugin-require:macroparadise-embedded-producer",
+          "-P:macroparadise:handlerClasspath=" + output.toRealPath().toString,
+          "-P:macroparadise:sameModuleEmbedded=demo.markerA:demo/ProducerA.scala",
+          "-P:macroparadise:sameModuleEmbedded=demo.markerB:demo/ProducerB.scala",
+          "-P:macroparadise:sameModuleSourceIdentity=sha256:" + derived.sourceIdentity.identity,
+          "-P:macroparadise-embedded-producer:sameModuleEmbedded=demo.markerA:demo/ProducerA.scala",
+          "-P:macroparadise-embedded-producer:sameModuleEmbedded=demo.markerB:demo/ProducerB.scala"
+        )
+      )
+      assertEquals(derived.sourceIdentity.manifest.linesIterator.size, 2)
+      assertEquals(
+        SameModuleConfiguration
+          .deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(bindingA, bindingB))
+          .map(_.compilerOptions),
+        Right(derived.compilerOptions)
+      )
+    }
+  }
+
+  test("all sixteen family-presence rows select exactly one family before validating members") {
+    withSources { root =>
+      Seq("MarkerA", "HandlerA", "MarkerB", "HandlerB", "ProducerA", "ProducerB")
+        .foreach(name => source(root, s"demo/$name.scala", name))
+      val output = Files.createDirectories(root.resolve("classes"))
+      val externalA = SameModuleHandlerBinding(
+        "demo.markerA",
+        "demo.HandlerA",
+        LabelledSource("a-marker", "demo/MarkerA.scala"),
+        LabelledSource("a-handler", "demo/HandlerA.scala")
+      )
+      val externalB = SameModuleHandlerBinding(
+        "demo.markerB",
+        "demo.HandlerB",
+        LabelledSource("b-marker", "demo/MarkerB.scala"),
+        LabelledSource("b-handler", "demo/HandlerB.scala")
+      )
+      val embeddedA = SameModuleEmbeddedBinding(
+        "demo.embeddedA",
+        LabelledSource("a-producer", "demo/ProducerA.scala")
+      )
+      val embeddedB = SameModuleEmbeddedBinding(
+        "demo.embeddedB",
+        LabelledSource("b-producer", "demo/ProducerB.scala")
+      )
+
+      (0 until 16).foreach { mask =>
+        val e1 = if ((mask & 1) != 0) Some(externalA) else None
+        val e2 = if ((mask & 2) != 0) Seq(externalA, externalB) else Seq.empty
+        val i1 = if ((mask & 4) != 0) Some(embeddedA) else None
+        val i2 = if ((mask & 8) != 0) Seq(embeddedA, embeddedB) else Seq.empty
+        val result = SameModuleConfiguration.deriveSelected(
+          root.toFile,
+          output.toFile,
+          e1,
+          e2,
+          i1,
+          i2
+        )
+        assertEquals(result.isRight, Integer.bitCount(mask) == 1, clues(mask, result))
+      }
+    }
+  }
+
+  test("embedded pair cardinality and duplicate canonical annotations fail deterministically") {
+    withSources { root =>
+      source(root, "demo/ProducerA.scala", "producer-a")
+      source(root, "demo/ProducerB.scala", "producer-b")
+      val output = Files.createDirectories(root.resolve("classes"))
+      val a = SameModuleEmbeddedBinding(
+        "demo.markerA",
+        LabelledSource("a-producer", "demo/ProducerA.scala")
+      )
+      val b = SameModuleEmbeddedBinding(
+        "demo.markerB",
+        LabelledSource("b-producer", "demo/ProducerB.scala")
+      )
+
+      assertEquals(
+        SameModuleConfiguration.deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(a)),
+        Left("macroParadiseSameModuleEmbeddedBindings requires exactly two entries; use macroParadiseSameModuleEmbeddedBinding for one embedded relationship")
+      )
+      assertEquals(
+        SameModuleConfiguration.deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(a, b, b)),
+        Left("macroParadiseSameModuleEmbeddedBindings supports exactly two embedded relationships")
+      )
+      val expected = Left("duplicate same-module annotation names: demo.markerA")
+      assertEquals(
+        SameModuleConfiguration.deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(a, b.copy(annotationName = a.annotationName))),
+        expected
+      )
+      assertEquals(
+        SameModuleConfiguration.deriveSelected(root.toFile, output.toFile, None, Seq.empty, None, Seq(b.copy(annotationName = a.annotationName), a)),
+        expected
+      )
+    }
+  }
+
   test("exactly one external or embedded binding mode is required") {
     withSources { root =>
       source(root, "demo/Marker.scala", "marker")

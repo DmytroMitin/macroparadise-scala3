@@ -16,7 +16,7 @@ import paradise3.api.ExpansionTargetView.{DefinitionKind, Variance}
 /** Producer-only source phase for the frozen embedded declaration frontend. */
 final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
   private val sameModuleConfiguration = EmbeddedSameModuleConfiguration.parse(options)
-  private val sameModuleMode = sameModuleConfiguration.toOption.flatten.nonEmpty
+  private val sameModuleMode = sameModuleConfiguration.toOption.exists(_.nonEmpty)
 
   override val phaseName = "macroparadiseEmbeddedProducer"
   override val description =
@@ -30,8 +30,8 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
   private var compilationTopLevelNames = Map.empty[String, Set[String]]
   private var compilationMarkerNames = Map.empty[String, Set[String]]
   private var compilationTransformNames = Map.empty[String, Map[String, String]]
-  private var sameModuleDeclarationCount = 0
-  private var sameModuleConfiguredSourcePresent = false
+  private var sameModuleDeclarationCounts = Map.empty[String, Int]
+  private var sameModuleConfiguredSourcesPresent = Set.empty[String]
   private var sameModuleValidationFailed = false
 
   override def runOn(units: List[CompilationUnit])(using Context): List[CompilationUnit] =
@@ -40,11 +40,15 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
         report.error(s"EMBEDDED_SAME_MODULE_OPTION: $message")
         return units
       case Right(_) => ()
-    sameModuleDeclarationCount = 0
+    sameModuleDeclarationCounts = Map.empty
     sameModuleValidationFailed = false
-    sameModuleConfiguredSourcePresent =
-      sameModuleConfiguration.toOption.flatten.exists: configured =>
-        units.exists(unit => sourceMatches(unit.source.file.path, configured.producerSource))
+    sameModuleConfiguredSourcesPresent =
+      sameModuleConfiguration.toOption.toVector.flatten
+        .filter(configured =>
+          units.exists(unit => sourceMatches(unit.source.file.path, configured.producerSource))
+        )
+        .map(_.annotationName)
+        .toSet
     claimedCanonicalIdentities.clear()
     compilationTopLevelNames = units.foldLeft(Map.empty[String, Set[String]]):
       case (acc, unit) =>
@@ -61,16 +65,16 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
     compilationMarkerNames = Map.empty
     compilationTransformNames = Map.empty
     try
+      if sameModuleConfiguration.toOption.exists(_.size == 2) && !preflightSameModulePair(units) then
+        return units
       val rewritten = super.runOn(units)
-      if
-        sameModuleMode &&
-          sameModuleConfiguredSourcePresent &&
-          sameModuleDeclarationCount != 1 &&
-          !sameModuleValidationFailed
-      then
-        report.error(
-          s"EMBEDDED_SAME_MODULE_DECLARATION_COUNT: configured producer source must contain exactly one matching embedded declaration; found $sameModuleDeclarationCount"
-        )
+      if sameModuleMode && !sameModuleValidationFailed then
+        sameModuleConfiguredSourcesPresent.toVector.sorted.foreach: annotationName =>
+          val count = sameModuleDeclarationCounts.getOrElse(annotationName, 0)
+          if count != 1 then
+            report.error(
+              s"EMBEDDED_SAME_MODULE_DECLARATION_COUNT: configured producer source for `$annotationName` must contain exactly one matching embedded declaration; found $count"
+            )
       val withRewrittenReferences = rewriteCompilationReferences(rewritten)
       if sameModuleMode then withRewrittenReferences
       else splitMarkerUnits(withRewrittenReferences)
@@ -79,9 +83,87 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
       compilationMarkerNames = Map.empty
       compilationTransformNames = Map.empty
       claimedCanonicalIdentities.clear()
-      sameModuleDeclarationCount = 0
-      sameModuleConfiguredSourcePresent = false
+      sameModuleDeclarationCounts = Map.empty
+      sameModuleConfiguredSourcesPresent = Set.empty
       sameModuleValidationFailed = false
+
+  private def preflightSameModulePair(
+      units: List[CompilationUnit]
+  )(using outer: Context): Boolean =
+    val configurations = sameModuleConfiguration.toOption.getOrElse(Vector.empty)
+    var valid = true
+
+    configurations.sortBy(configuration => (configuration.annotationName, configuration.producerSource)).foreach:
+      configured =>
+        val matches = units.filter(unit => sourceMatches(unit.source.file.path, configured.producerSource))
+        matches match
+          case Nil => ()
+          case _ :: _ :: _ =>
+            report.error(
+              s"EMBEDDED_SAME_MODULE_SOURCE_MISMATCH: configured producer source `${configured.producerSource}` is ambiguous in the current run"
+            )
+            valid = false
+          case unit :: Nil =>
+            given Context = outer.fresh.setCompilationUnit(unit)
+            unit.untpdTree match
+              case pkg: PackageDef =>
+                val packageName = sourcePackageName(pkg.pid)
+                val topLevelNames = compilationTopLevelNames.getOrElse(packageName, Set.empty).toList
+                var imports = ImportEvidence.Empty
+                val declarations = List.newBuilder[(String, TypeDef)]
+                val producerEdges = scala.collection.mutable.Set.empty[String]
+                pkg.stats.foreach:
+                  case importTree: Import => imports = addImport(imports, importTree)
+                  case definition: MemberDef =>
+                    definition match
+                      case marker: TypeDef
+                          if optInAnnotations(marker, imports, topLevelNames).contains(Right(())) =>
+                        declarations += ((s"$packageName.${marker.name}", marker))
+                      case _ => ()
+                    configurations.foreach: target =>
+                      val simple = target.annotationName.split("\\.").last
+                      if Trees.mods(definition).annotations.exists(annotation =>
+                          referenceMatches(annotation, target.annotationName, simple, imports)
+                        )
+                      then producerEdges += target.annotationName
+                  case _ => ()
+
+                val found = declarations.result()
+                if found.size != 1 then
+                  report.error(
+                    s"EMBEDDED_SAME_MODULE_DECLARATION_COUNT: configured producer source `${configured.producerSource}` must contain exactly one matching embedded declaration; found ${found.size}"
+                  )
+                  valid = false
+                else
+                  val (canonicalIdentity, marker) = found.head
+                  if canonicalIdentity != configured.annotationName then
+                    fail(
+                      "EMBEDDED_SAME_MODULE_BINDING_MISMATCH",
+                      s"configured annotation `${configured.annotationName}` does not match producer declaration `$canonicalIdentity`",
+                      marker
+                    )
+                    valid = false
+                  val markerName = marker.name.toString
+                  val collisions = List(adapterNameFor(markerName), transformNameFor(markerName))
+                    .filter(topLevelNames.contains)
+                  collisions.sorted.foreach: collision =>
+                    fail(
+                      "EMBEDDED_ADAPTER_COLLISION",
+                      s"generated implementation name `$collision` collides with an existing top-level definition",
+                      marker
+                    )
+                    valid = false
+                producerEdges.toVector.sorted.foreach: requiredAnnotation =>
+                  report.error(
+                    s"UNSUPPORTED_SAME_MODULE_PRODUCER_EDGE producerSource=${unit.source.file.path} producerBinding=${configured.annotationName} requiresAnnotation=$requiredAnnotation detail=bounded same-module embedded bindings must be independent"
+                  )
+                  valid = false
+              case _ =>
+                report.error(
+                  s"EMBEDDED_SAME_MODULE_DECLARATION_COUNT: configured producer source `${configured.producerSource}` must contain exactly one matching embedded declaration; found 0"
+                )
+                valid = false
+    valid
 
   override def run(using context: Context): Unit =
     val unit = context.compilationUnit
@@ -910,37 +992,55 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
       canonicalIdentity: String,
       marker: TypeDef
   )(using context: Context): Boolean =
-    sameModuleConfiguration.toOption.flatten match
+    sameModuleConfiguration.toOption match
       case None => true
-      case Some(configured) =>
+      case Some(configurations) if configurations.isEmpty => true
+      case Some(configurations) =>
         val currentSource = context.compilationUnit.source.file.path
-        if !sourceMatches(currentSource, configured.producerSource) then
-          sameModuleValidationFailed = true
-          fail(
-            "EMBEDDED_SAME_MODULE_SOURCE_MISMATCH",
-            s"embedded declaration `$canonicalIdentity` is not in configured producer source `${configured.producerSource}`",
-            marker
-          )
-          false
-        else if canonicalIdentity != configured.annotationName then
-          sameModuleValidationFailed = true
-          fail(
-            "EMBEDDED_SAME_MODULE_BINDING_MISMATCH",
-            s"configured annotation `${configured.annotationName}` does not match producer declaration `$canonicalIdentity`",
-            marker
-          )
-          false
-        else if sameModuleDeclarationCount != 0 then
-          sameModuleValidationFailed = true
-          fail(
-            "EMBEDDED_SAME_MODULE_DECLARATION_COUNT",
-            "same-module embedded mode accepts exactly one configured declaration",
-            marker
-          )
-          false
-        else
-          sameModuleDeclarationCount += 1
-          true
+        val matching = configurations.filter(configured =>
+          sourceMatches(currentSource, configured.producerSource)
+        )
+        matching match
+          case Vector() =>
+            sameModuleValidationFailed = true
+            fail(
+              "EMBEDDED_SAME_MODULE_SOURCE_MISMATCH",
+              s"embedded declaration `$canonicalIdentity` is not in any configured producer source `${configurations.map(_.producerSource).sorted.mkString(", ")}`",
+              marker
+            )
+            false
+          case Vector(configured) if canonicalIdentity != configured.annotationName =>
+            sameModuleValidationFailed = true
+            fail(
+              "EMBEDDED_SAME_MODULE_BINDING_MISMATCH",
+              s"configured annotation `${configured.annotationName}` does not match producer declaration `$canonicalIdentity`",
+              marker
+            )
+            false
+          case Vector(configured) =>
+            val count = sameModuleDeclarationCounts.getOrElse(configured.annotationName, 0)
+            if count != 0 then
+              sameModuleValidationFailed = true
+              fail(
+                "EMBEDDED_SAME_MODULE_DECLARATION_COUNT",
+                s"same-module embedded mode accepts exactly one configured declaration for `${configured.annotationName}`",
+                marker
+              )
+              false
+            else
+              sameModuleDeclarationCounts = sameModuleDeclarationCounts.updated(
+                configured.annotationName,
+                count + 1
+              )
+              true
+          case _ =>
+            sameModuleValidationFailed = true
+            fail(
+              "EMBEDDED_SAME_MODULE_SOURCE_MISMATCH",
+              s"embedded declaration `$canonicalIdentity` matches multiple configured producer sources",
+              marker
+            )
+            false
 
   private def sourceMatches(rawPath: String, configuredPath: String): Boolean =
     val normalized =
@@ -1019,14 +1119,14 @@ final class EmbeddedProducerPhase(options: List[String]) extends PluginPhase:
       definition: MemberDef,
       imports: ImportEvidence
   )(using context: Context): Boolean =
-    sameModuleConfiguration.toOption.flatten.exists: configured =>
+    sameModuleConfiguration.toOption.toVector.flatten.exists: configured =>
       sourceMatches(context.compilationUnit.source.file.path, configured.producerSource) &&
-        {
-          val simple = configured.annotationName.split("\\.").last
-          Trees.mods(definition).annotations.exists(annotation =>
-            referenceMatches(annotation, configured.annotationName, simple, imports)
-          )
-        }
+      {
+        val simple = configured.annotationName.split("\\.").last
+        Trees.mods(definition).annotations.exists(annotation =>
+          referenceMatches(annotation, configured.annotationName, simple, imports)
+        )
+      }
 
   private def typeReferenceMatches(
       tree: Tree,

@@ -1,0 +1,27 @@
+> clean
+> selectProducerEdge
+-> compile
+$ exec grep -F UNSUPPORTED_SAME_MODULE_PRODUCER_EDGE target/streams/compile/compile/_global/streams/out
+$ exec grep -F requiresAnnotation=demo.markerB target/streams/compile/compile/_global/streams/out
+> selectCycle
+-> compile
+$ exec grep -F producerBinding=demo.markerA target/streams/compile/compile/_global/streams/out
+$ exec grep -F producerBinding=demo.markerB target/streams/compile/compile/_global/streams/out
+> selectDual
+-> compile
+$ exec grep -F MULTIPLE_CONFIGURED_SAME_MODULE_ANNOTATIONS target/streams/compile/compile/_global/streams/out
+> selectAlias
+-> compile
+$ exec grep -F EMBEDDED_SAME_MODULE_ANNOTATION_RESOLUTION target/streams/compile/compile/_global/streams/out
+> selectWildcard
+-> compile
+$ exec grep -F EMBEDDED_SAME_MODULE_ANNOTATION_RESOLUTION target/streams/compile/compile/_global/streams/out
+> selectCollision
+-> compile
+$ exec grep -F EMBEDDED_ADAPTER_COLLISION target/streams/compile/compile/_global/streams/out
+> selectWrongBinding
+-> compile
+$ exec grep -F EMBEDDED_SAME_MODULE_BINDING_MISMATCH target/streams/compile/compile/_global/streams/out
+> selectDuplicateDeclaration
+-> compile
+$ exec grep -F EMBEDDED_SAME_MODULE_DECLARATION_COUNT target/streams/compile/compile/_global/streams/out

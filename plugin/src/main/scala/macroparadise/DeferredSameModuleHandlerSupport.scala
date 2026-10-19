@@ -36,6 +36,18 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
       sourceDigest: SourceDigest
   )
 
+  enum SameModuleMode:
+    case NoSameModule
+    case ExternalSingleton
+    case ExternalPair
+    case EmbeddedSingleton
+    case EmbeddedPair
+
+  final case class ParsedSameModuleConfigurations(
+      mode: SameModuleMode,
+      configurations: Vector[SameModuleConfiguration]
+  )
+
   private val EmbeddedAdapterSuffix = "__MacroParadiseEmbeddedExpansionHandler"
 
   def parseConfiguration(
@@ -78,38 +90,74 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
   def parseConfigurations(
       options: List[String]
   ): Either[String, Vector[SameModuleConfiguration]] =
+    parseModeConfigurations(options).map(_.configurations)
+
+  def parseModeConfigurations(
+      options: List[String]
+  ): Either[String, ParsedSameModuleConfigurations] =
     val externalRelationships =
       options.collect:
         case option if option.startsWith("sameModuleHandler=") =>
           option.stripPrefix("sameModuleHandler=")
-    val embeddedRelationships = options.count(_.startsWith("sameModuleEmbedded="))
-    if externalRelationships.size <= 1 then
-      parseConfiguration(options).map(_.toVector)
-    else if embeddedRelationships != 0 then
+    val embeddedRelationships =
+      options.collect:
+        case option if option.startsWith("sameModuleEmbedded=") =>
+          option.stripPrefix("sameModuleEmbedded=")
+    if externalRelationships.size <= 1 && embeddedRelationships.size <= 1 then
+      parseConfiguration(options).map: configuration =>
+        val values = configuration.toVector
+        val mode =
+          if externalRelationships.nonEmpty then SameModuleMode.ExternalSingleton
+          else if embeddedRelationships.nonEmpty then SameModuleMode.EmbeddedSingleton
+          else SameModuleMode.NoSameModule
+        ParsedSameModuleConfigurations(mode, values)
+    else if externalRelationships.nonEmpty && embeddedRelationships.nonEmpty then
       Left("`sameModuleHandler=` and `sameModuleEmbedded=` are mutually exclusive")
     else if externalRelationships.size > 2 then
       Left("the `sameModuleHandler=` option accepts at most two explicit relationships")
+    else if embeddedRelationships.size > 2 then
+      Left("the `sameModuleEmbedded=` option accepts at most two explicit relationships")
     else if externalRelationships.size == 2 then
-      val identities =
-        options.collect:
-          case option if option.startsWith("sameModuleSourceIdentity=") =>
-            option.stripPrefix("sameModuleSourceIdentity=")
-      if identities.isEmpty then
-        Left("`sameModuleHandler=` requires one distinct `sameModuleSourceIdentity=` compiler input")
-      else if identities.size > 1 then
-        Left("the `sameModuleSourceIdentity=` option accepts exactly one source digest")
-      else
-        externalRelationships
-          .sorted
-          .foldLeft[Either[String, Vector[SameModuleConfiguration]]](Right(Vector.empty)):
-            case (acc, relationship) =>
-              for
-                configurations <- acc
-                configuration <- parseBoundedExternalConfiguration(relationship, identities.head)
-              yield configurations :+ configuration
-          .map(_.sortBy(configuration => (configuration.annotationName, configuration.handlerClassName)))
-          .flatMap(validateBoundedConfigurations)
-    else Right(Vector.empty)
+      parseBoundedRelationships(
+        externalRelationships,
+        options,
+        "sameModuleHandler",
+        parseBoundedExternalConfiguration
+      ).flatMap(validateBoundedConfigurations).map: configurations =>
+        ParsedSameModuleConfigurations(SameModuleMode.ExternalPair, configurations)
+    else if embeddedRelationships.size == 2 then
+      parseBoundedRelationships(
+        embeddedRelationships,
+        options,
+        "sameModuleEmbedded",
+        parseBoundedEmbeddedConfiguration
+      ).flatMap(validateBoundedEmbeddedConfigurations).map: configurations =>
+        ParsedSameModuleConfigurations(SameModuleMode.EmbeddedPair, configurations)
+    else
+      Right(ParsedSameModuleConfigurations(SameModuleMode.NoSameModule, Vector.empty))
+
+  private def parseBoundedRelationships(
+      relationships: List[String],
+      options: List[String],
+      optionName: String,
+      parse: (String, String) => Either[String, SameModuleConfiguration]
+  ): Either[String, Vector[SameModuleConfiguration]] =
+    val identities =
+      options.collect:
+        case option if option.startsWith("sameModuleSourceIdentity=") =>
+          option.stripPrefix("sameModuleSourceIdentity=")
+    if identities.isEmpty then
+      Left(s"`$optionName=` requires one distinct `sameModuleSourceIdentity=` compiler input")
+    else if identities.size > 1 then
+      Left("the `sameModuleSourceIdentity=` option accepts exactly one source digest")
+    else
+      relationships.sorted
+        .foldLeft[Either[String, Vector[SameModuleConfiguration]]](Right(Vector.empty)):
+          case (acc, relationship) =>
+            for
+              configurations <- acc
+              configuration <- parse(relationship, identities.head)
+            yield configurations :+ configuration
 
   private def parseBoundedExternalConfiguration(
       relationship: String,
@@ -133,6 +181,15 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
               s"invalid annotation name in bounded `sameModuleHandler=` set: expected a qualified canonical annotation class name: ${configuration.annotationName}"
             )
 
+  private def parseBoundedEmbeddedConfiguration(
+      relationship: String,
+      identity: String
+  ): Either[String, SameModuleConfiguration] =
+    val tokens = relationship.split(":", -1).toList
+    if tokens.exists(token => token != token.trim) then
+      Left("invalid `sameModuleEmbedded=` option; relationship tokens must not contain surrounding whitespace")
+    else parseEmbeddedConfiguration(relationship, identity)
+
   private def validateBoundedConfigurations(
       configurations: Vector[SameModuleConfiguration]
   ): Either[String, Vector[SameModuleConfiguration]] =
@@ -150,6 +207,21 @@ private[macroparadise] object DeferredSameModuleHandlerSupport:
     else if duplicateSources.nonEmpty then
       Left(s"duplicate same-module producer source identities: ${duplicateSources.mkString(", ")}")
     else Right(configurations)
+
+  private def validateBoundedEmbeddedConfigurations(
+      configurations: Vector[SameModuleConfiguration]
+  ): Either[String, Vector[SameModuleConfiguration]] =
+    val sorted = configurations.sortBy(configuration => (
+      configuration.annotationName,
+      configuration.handlerSourceIdentity.value
+    ))
+    val duplicateAnnotations = duplicates(sorted.map(_.annotationName))
+    val duplicateSources = duplicates(sorted.map(_.handlerSourceIdentity.value))
+    if duplicateAnnotations.nonEmpty then
+      Left(s"duplicate same-module annotation names: ${duplicateAnnotations.mkString(", ")}")
+    else if duplicateSources.nonEmpty then
+      Left(s"duplicate same-module producer source identities: ${duplicateSources.mkString(", ")}")
+    else Right(sorted)
 
   private def duplicates(values: Seq[String]): Vector[String] =
     values.groupBy(identity).collect:

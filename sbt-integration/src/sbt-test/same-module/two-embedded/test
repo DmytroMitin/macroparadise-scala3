@@ -1,0 +1,27 @@
+> clean
+> verifyInitial
+> compile
+> runMain consumer.Main
+> compile
+> editConsumerOnly
+> compile
+> runMain consumer.Main
+> compile
+> editAtoV2
+> verifyChanged
+> compile
+> runMain consumer.Main
+> compile
+> breakA
+-> compile
+> repairA
+> compile
+> runMain consumer.Main
+> compile
+> selectFifthSourceTopology
+> clean
+-> compile
+$ exec grep -F generatedValue target/streams/compile/compile/_global/streams/out
+> clean
+> set Compile / sources := Seq(file("src/main/scala/demo/ProducerA.scala"))
+> compile

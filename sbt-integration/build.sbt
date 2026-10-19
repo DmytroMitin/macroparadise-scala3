@@ -39,7 +39,7 @@ lazy val sbtIntegration = project
     Compile / packageDoc / mappings += baseDirectory.value.getParentFile / "LICENSE" -> "META-INF/LICENSE",
     scriptedBufferLog := false,
     scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value) ++
-      Seq("test.scala.version", "p229.ivy", "sbt.ivy.home", "sbt.coursier.home").flatMap { property =>
+      Seq("test.scala.version", "macroparadise.product.version", "p229.ivy", "sbt.ivy.home", "sbt.coursier.home").flatMap { property =>
         sys.props.get(property).map("-D" + property + "=" + _)
       },
     libraryDependencies += "org.scalameta" %% "munit" % "1.2.4" % Test,

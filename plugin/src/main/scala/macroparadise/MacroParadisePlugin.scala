@@ -209,6 +209,162 @@ private[macroparadise] object BoundedSameModuleSelection:
       s"configured same-module producer source cannot also be a consumer: $normalizedConsumerPath; matched producer identities: ${collisions.mkString(", ")}"
     )
 
+private[macroparadise] object EmbeddedSameModuleSelection:
+  import untpd.*
+
+  private final case class ImportEvidence(
+      aliases: Map[String, Set[String]],
+      wildcardPrefixes: Set[String]
+  )
+
+  private object ImportEvidence:
+    val Empty = ImportEvidence(Map.empty, Set.empty)
+
+  def select(
+      tree: untpd.Tree,
+      configuredAnnotationNames: Vector[String]
+  )(using Context): Either[String, Option[String]] =
+    configuredAnnotationNamesIn(tree, configuredAnnotationNames).flatMap:
+      case Vector() => Right(None)
+      case Vector(annotationName) => Right(Some(annotationName))
+      case names =>
+        Left(s"MULTIPLE_CONFIGURED_SAME_MODULE_ANNOTATIONS: ${names.mkString(", ")}")
+
+  private[macroparadise] def configuredAnnotationNamesIn(
+      tree: untpd.Tree,
+      configuredAnnotationNames: Vector[String]
+  )(using Context): Either[String, Vector[String]] =
+    val resolver = ExplicitImportAnnotationIdentityResolver.fromUnitTree(tree)
+    val configured = configuredAnnotationNames.toSet
+    val configuredByLeaf = configuredAnnotationNames.groupBy(_.split('.').last)
+    val selected = Vector.newBuilder[String]
+
+    def reject(detail: String): Left[String, Unit] =
+      Left(s"EMBEDDED_SAME_MODULE_ANNOTATION_RESOLUTION: $detail")
+
+    def record(
+        annotation: untpd.Tree,
+        evidence: ImportEvidence,
+        topLevelNames: Set[String],
+        nestedDefinition: Boolean
+    ): Either[String, Unit] =
+      SyntacticAnnotationIdentity.fromTree(annotation) match
+        case None => Right(())
+        case Some(raw) if raw.isQualified =>
+          if configured(raw.value) && nestedDefinition then
+            reject(s"configured annotation `@${raw.value}` appears in a local or nested definition")
+          else
+            if configured(raw.value) then selected += raw.value
+            Right(())
+        case Some(raw) =>
+          resolver.identityOf(annotation) match
+            case Right(identity) if identity.isQualified && configured(identity.value) =>
+              if nestedDefinition then
+                reject(s"configured annotation `@${identity.value}` appears in a local or nested definition")
+              else if topLevelNames(raw.value) then
+                reject(s"configured short annotation `@${raw.value}` is shadowed by a top-level definition")
+              else
+                selected += identity.value
+                Right(())
+            case Right(identity) if identity.isQualified => Right(())
+            case Right(_) =>
+              val aliasCandidates = evidence.aliases.getOrElse(raw.value, Set.empty).filter(configured)
+              val wildcardCandidates = evidence.wildcardPrefixes
+                .map(prefix => s"$prefix.${raw.value}")
+                .filter(configured)
+              val attributable = (aliasCandidates ++ wildcardCandidates).toVector.sorted
+              if attributable.nonEmpty then
+                reject(
+                  s"unsupported alias or wildcard spelling `@${raw.value}` for configured identities: ${attributable.mkString(", ")}"
+                )
+              else Right(())
+            case Left(diagnostic) =>
+              val attributable = configuredByLeaf.contains(raw.value) ||
+                configuredAnnotationNames.exists(diagnostic.message.contains)
+              if attributable then reject(diagnostic.message) else Right(())
+
+    def analyze(
+        stats: List[untpd.Tree],
+        initial: ImportEvidence,
+        nestedDefinition: Boolean
+    ): Either[String, Unit] =
+      val topLevelNames = stats.collect:
+        case definition: MemberDef => definition.name.toString
+      .toSet
+      stats.foldLeft[Either[String, ImportEvidence]](Right(initial)):
+        case (acc, importTree: Import) => acc.map(addImport(_, importTree))
+        case (acc, nested: PackageDef) =>
+          acc.flatMap(current => analyze(nested.stats, current, nestedDefinition).map(_ => current))
+        case (acc, definition: TypeDef) =>
+          acc.flatMap: current =>
+            Trees.mods(definition).annotations.foldLeft[Either[String, Unit]](Right(())):
+              case (annotationAcc, annotation) =>
+                annotationAcc.flatMap(_ => record(annotation, current, topLevelNames, nestedDefinition))
+            .flatMap: _ =>
+              definition.rhs match
+                case template: Template =>
+                  analyze(template.body(using summon[Context]), current, nestedDefinition = true)
+                case _ => Right(())
+            .map(_ => current)
+        case (acc, definition: ModuleDef) =>
+          acc.flatMap: current =>
+            Trees.mods(definition).annotations.foldLeft[Either[String, Unit]](Right(())):
+              case (annotationAcc, annotation) =>
+                annotationAcc.flatMap(_ => record(annotation, current, topLevelNames, nestedDefinition))
+            .flatMap(_ => analyze(definition.impl.body(using summon[Context]), current, nestedDefinition = true))
+            .map(_ => current)
+        case (acc, _) => acc
+      .map(_ => ())
+
+    val result = tree match
+      case pkg: PackageDef => analyze(pkg.stats, ImportEvidence.Empty, nestedDefinition = false)
+      case definition: TypeDef =>
+        Trees.mods(definition).annotations.foldLeft[Either[String, Unit]](Right(())):
+          case (acc, annotation) =>
+            acc.flatMap(_ => record(annotation, ImportEvidence.Empty, Set(definition.name.toString), nestedDefinition = false))
+      case definition: ModuleDef =>
+        Trees.mods(definition).annotations.foldLeft[Either[String, Unit]](Right(())):
+          case (acc, annotation) =>
+            acc.flatMap(_ => record(annotation, ImportEvidence.Empty, Set(definition.name.toString), nestedDefinition = false))
+      case _ => Right(())
+    result.map(_ => selected.result().distinct.sorted)
+
+  def introducedCrossBinding(
+      original: untpd.Tree,
+      rewritten: untpd.Tree,
+      selectedAnnotationName: String,
+      configuredAnnotationNames: Vector[String]
+  )(using Context): Either[String, Option[String]] =
+    for
+      before <- configuredAnnotationNamesIn(original, configuredAnnotationNames)
+      after <- configuredAnnotationNamesIn(rewritten, configuredAnnotationNames)
+    yield after.find(annotationName => annotationName != selectedAnnotationName && !before.contains(annotationName))
+
+  private def addImport(evidence: ImportEvidence, importTree: Import): ImportEvidence =
+    referenceSegments(importTree.expr) match
+      case None => evidence
+      case Some(prefix) if importTree.selectors.isEmpty => evidence
+      case Some(prefix) =>
+        importTree.selectors.foldLeft(evidence): (current, selector) =>
+          if selector.isWildcard then
+            current.copy(wildcardPrefixes = current.wildcardPrefixes + prefix.mkString("."))
+          else if selector.isGiven || selector.isUnimport || selector.name == selector.rename then current
+          else
+            val canonical = (prefix :+ selector.name.toString).mkString(".")
+            val local = selector.rename.toString
+            current.copy(
+              aliases = current.aliases.updated(
+                local,
+                current.aliases.getOrElse(local, Set.empty) + canonical
+              )
+            )
+
+  private def referenceSegments(tree: untpd.Tree): Option[List[String]] =
+    tree match
+      case Ident(name) => Some(List(name.toString))
+      case Select(qualifier, name) => referenceSegments(qualifier).map(_ :+ name.toString)
+      case _ => None
+
 private[macroparadise] object BoundedSameModulePreflight:
   import DeferredSameModuleHandlerSupport.*
 
@@ -221,7 +377,8 @@ private[macroparadise] object BoundedSameModulePreflight:
   def validate(
       units: List[CompilationUnit],
       producers: Vector[Producer],
-      configuredAnnotationNames: Vector[String]
+      configuredAnnotationNames: Vector[String],
+      embedded: Boolean = false
   )(using Context): Either[String, Vector[String]] =
     val sourcePaths = units.map(_.source.file.path)
     val ordered = producers.sortBy(producer => (
@@ -242,15 +399,24 @@ private[macroparadise] object BoundedSameModulePreflight:
               units.find(unit => normalizePath(unit.source.file.path) == path) match
                 case None => Right(diagnostics)
                 case Some(unit) =>
-                  BoundedSameModuleSelection.configuredAnnotationNames(
-                    unit.untpdTree,
-                    configuredAnnotationNames
-                  ) match
+                  val selected =
+                    if embedded then
+                      EmbeddedSameModuleSelection.configuredAnnotationNamesIn(
+                        unit.untpdTree,
+                        configuredAnnotationNames
+                      )
+                    else
+                      BoundedSameModuleSelection.configuredAnnotationNames(
+                        unit.untpdTree,
+                        configuredAnnotationNames
+                      )
+                  selected match
                     case Left(message) =>
                       Left(s"same-module producer source `$path`: $message")
                     case Right(requiredAnnotations) =>
+                      val family = if embedded then "embedded" else "external"
                       val edges = requiredAnnotations.map: requiredAnnotation =>
-                        s"UNSUPPORTED_SAME_MODULE_PRODUCER_EDGE producerSource=$path producerBinding=${producer.annotationName}/${producer.handlerClassName} requiresAnnotation=$requiredAnnotation detail=bounded same-module external bindings must be independent"
+                        s"UNSUPPORTED_SAME_MODULE_PRODUCER_EDGE producerSource=$path producerBinding=${producer.annotationName}/${producer.handlerClassName} requiresAnnotation=$requiredAnnotation detail=bounded same-module $family bindings must be independent"
                       Right(diagnostics ++ edges)
 
 private object ExternalHandlerLoading:
@@ -276,6 +442,7 @@ private object ExternalHandlerLoading:
       metadataReader: AnnotationMetadataReader,
       metadataHandlerRunCache: ExternalHandlerContractRunCache,
       deferredSameModule: Vector[DeferredSameModuleHandler],
+      sameModuleMode: DeferredSameModuleHandlerSupport.SameModuleMode,
       invocationTrace: ExternalHandlerInvocationTrace,
       ownedLoaders: List[URLClassLoader]
   ) extends AutoCloseable:
@@ -390,7 +557,7 @@ private object ExternalHandlerLoading:
               ownedLoaders
             )
           case Right(reader) =>
-            val deferredSameModule = parseDeferredSameModuleHandler(options)
+            val parsedSameModule = parseDeferredSameModuleHandler(options)
             val explicitHandlers =
               validateUniqueHandlers(
                 handlerClassNames.flatMap(loadHandler(_, loader, handlerClasspath))
@@ -403,7 +570,8 @@ private object ExternalHandlerLoading:
               metadataHandlerRunCache = ExternalHandlerContractRunCache(
                 explicitHandlers
               ),
-              deferredSameModule = deferredSameModule,
+              deferredSameModule = parsedSameModule.configurations,
+              sameModuleMode = parsedSameModule.mode,
               invocationTrace = invocationTrace,
               ownedLoaders = ownedLoaders
             )
@@ -425,6 +593,7 @@ private object ExternalHandlerLoading:
         UnavailableStructuredAnnotationMetadataReader(diagnostic),
       metadataHandlerRunCache = ExternalHandlerContractRunCache(Nil),
       deferredSameModule = Vector.empty,
+      sameModuleMode = DeferredSameModuleHandlerSupport.SameModuleMode.NoSameModule,
       invocationTrace = invocationTrace,
       ownedLoaders = ownedLoaders
     )
@@ -456,20 +625,31 @@ private object ExternalHandlerLoading:
 
   private def parseDeferredSameModuleHandler(
       options: List[String]
-  )(using Context): Vector[DeferredSameModuleHandler] =
-    DeferredSameModuleHandlerSupport.parseConfigurations(options) match
+  )(using Context): DeferredSameModuleHandlers =
+    DeferredSameModuleHandlerSupport.parseModeConfigurations(options) match
       case Left(message) =>
         report.error(s"invalid experimental same-module configuration: $message")
-        Vector.empty
-      case Right(configurations) =>
-        configurations.map: configuration =>
-          DeferredSameModuleHandler(
-            configuration.annotationName,
-            configuration.handlerClassName,
-            configuration.markerSourceIdentity,
-            configuration.handlerSourceIdentity,
-            configuration.sourceDigest
-          )
+        DeferredSameModuleHandlers(
+          DeferredSameModuleHandlerSupport.SameModuleMode.NoSameModule,
+          Vector.empty
+        )
+      case Right(parsed) =>
+        DeferredSameModuleHandlers(
+          parsed.mode,
+          parsed.configurations.map: configuration =>
+            DeferredSameModuleHandler(
+              configuration.annotationName,
+              configuration.handlerClassName,
+              configuration.markerSourceIdentity,
+              configuration.handlerSourceIdentity,
+              configuration.sourceDigest
+            )
+        )
+
+  private final case class DeferredSameModuleHandlers(
+      mode: DeferredSameModuleHandlerSupport.SameModuleMode,
+      configurations: Vector[DeferredSameModuleHandler]
+  )
 
   def discoverMetadataHandlers(
       annotationRequests: Set[ExplicitImportAnnotationIdentityRequest],
@@ -797,38 +977,52 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
 
   override def run(using ctx: Context): Unit =
     val unit = ctx.compilationUnit
-    externalHandlers.deferredSameModule match
-      case pair if pair.size == 2 => runBoundedPair(unit, pair)
-      case Vector(deferred)
-          if ParadiseTreeRewrite.containsTopLevelClassAnnotation(
-            unit.untpdTree,
-            deferred.annotationName
-          ) =>
-        handleDeferredConsumer(unit, deferred)
-      case _ => rewriteOrdinary(unit)
+    externalHandlers.sameModuleMode match
+      case SameModuleMode.ExternalPair =>
+        runBoundedPair(unit, externalHandlers.deferredSameModule)
+      case SameModuleMode.EmbeddedPair =>
+        runEmbeddedPair(unit, externalHandlers.deferredSameModule)
+      case _ =>
+        externalHandlers.deferredSameModule match
+          case Vector(deferred)
+              if ParadiseTreeRewrite.containsTopLevelClassAnnotation(
+                unit.untpdTree,
+                deferred.annotationName
+              ) =>
+            handleDeferredConsumer(unit, deferred)
+          case _ => rewriteOrdinary(unit)
 
   private def prevalidateBoundedProducers(
       units: List[CompilationUnit],
       loaded: ExternalHandlerLoading.LoadedHandlers
   )(using Context): Boolean =
     val pair = loaded.deferredSameModule
-    if pair.size != 2 then true
+    val embedded = loaded.sameModuleMode == SameModuleMode.EmbeddedPair
+    if loaded.sameModuleMode != SameModuleMode.ExternalPair && !embedded then true
     else
-      val producers = pair.flatMap: deferred =>
-        Vector(
-          BoundedSameModulePreflight.Producer(
-            deferred.annotationName,
-            deferred.handlerClassName,
-            deferred.markerSourceIdentity
-          ),
-          BoundedSameModulePreflight.Producer(
-            deferred.annotationName,
-            deferred.handlerClassName,
-            deferred.handlerSourceIdentity
+      val producers =
+        if embedded then
+          pair.map: deferred =>
+            BoundedSameModulePreflight.Producer(
+              deferred.annotationName,
+              deferred.handlerClassName,
+              deferred.handlerSourceIdentity
+            )
+        else pair.flatMap: deferred =>
+          Vector(
+            BoundedSameModulePreflight.Producer(
+              deferred.annotationName,
+              deferred.handlerClassName,
+              deferred.markerSourceIdentity
+            ),
+            BoundedSameModulePreflight.Producer(
+              deferred.annotationName,
+              deferred.handlerClassName,
+              deferred.handlerSourceIdentity
+            )
           )
-        )
       val configured = pair.map(_.annotationName)
-      BoundedSameModulePreflight.validate(units, producers, configured) match
+      BoundedSameModulePreflight.validate(units, producers, configured, embedded) match
         case Left(message) =>
           report.error(message)
           false
@@ -868,6 +1062,28 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
             unit.untpdTree.sourcePos
           )
         else rewriteOrdinary(unit)
+
+  private def runEmbeddedPair(
+      unit: CompilationUnit,
+      pair: Vector[ExternalHandlerLoading.DeferredSameModuleHandler]
+  )(using Context): Unit =
+    val configured = pair.map(_.annotationName)
+    EmbeddedSameModuleSelection.select(unit.untpdTree, configured) match
+      case Left(message) => report.error(message, unit.untpdTree.sourcePos)
+      case Right(Some(annotationName)) =>
+        val deferred = pair.find(_.annotationName == annotationName).get
+        val producerSources = pair.map(_.handlerSourceIdentity)
+        BoundedSameModuleSelection.producerCollisionDiagnostic(
+          unit.source.file.path,
+          producerSources
+        ) match
+          case Some(message) =>
+            report.error(
+              s"EMBEDDED_SAME_MODULE_SAME_SOURCE: $message",
+              unit.untpdTree.sourcePos
+            )
+          case None => handleDeferredConsumer(unit, deferred)
+      case Right(None) => rewriteOrdinary(unit)
 
   private def rewriteOrdinary(unit: CompilationUnit)(using Context): Unit =
     unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
@@ -961,7 +1177,18 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
           )
           val configured = externalHandlers.deferredSameModule.map(_.annotationName)
           val introduced =
-            if configured.size == 2 then
+            if externalHandlers.sameModuleMode == SameModuleMode.EmbeddedPair then
+              EmbeddedSameModuleSelection.introducedCrossBinding(
+                original,
+                rewritten,
+                deferred.annotationName,
+                configured
+              ) match
+                case Left(message) =>
+                  report.error(message, original.sourcePos)
+                  None
+                case Right(value) => value
+            else if configured.size == 2 then
               BoundedSameModuleSelection.introducedCrossBinding(
                 original,
                 rewritten,

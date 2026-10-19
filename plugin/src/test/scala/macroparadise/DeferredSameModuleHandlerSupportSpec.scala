@@ -320,3 +320,50 @@ class DeferredSameModuleHandlerSupportSpec extends munit.FunSuite:
     assert(parseConfiguration(List("sameModuleEmbedded=marker:demo/Embedded.scala", digest)).isLeft)
     assert(parseConfiguration(List("sameModuleEmbedded=demo.marker:Embedded.scala", digest)).isLeft)
   }
+
+  test("exactly two embedded relationships parse in canonical order with explicit embedded-pair mode") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "d" * 64
+    val a = "sameModuleEmbedded=demo.markerA:demo/ProducerA.scala"
+    val b = "sameModuleEmbedded=demo.markerB:demo/ProducerB.scala"
+
+    val parsed = parseModeConfigurations(List(b, digest, a))
+    assertEquals(parsed.map(_.mode), Right(SameModuleMode.EmbeddedPair))
+    assertEquals(
+      parsed.map(_.configurations.map(configuration =>
+        (configuration.annotationName, configuration.handlerClassName, configuration.handlerSourceIdentity.value)
+      )),
+      Right(Vector(
+        ("demo.markerA", "demo.markerA__MacroParadiseEmbeddedExpansionHandler", "demo/ProducerA.scala"),
+        ("demo.markerB", "demo.markerB__MacroParadiseEmbeddedExpansionHandler", "demo/ProducerB.scala")
+      ))
+    )
+    assertEquals(parseModeConfigurations(List(a, digest)).map(_.mode), Right(SameModuleMode.EmbeddedSingleton))
+  }
+
+  test("embedded pair parsing rejects mixed mode, capacity, duplicates, and padded tokens deterministically") {
+    val digest = "sameModuleSourceIdentity=sha256:" + "e" * 64
+    val a = "sameModuleEmbedded=demo.markerA:demo/ProducerA.scala"
+    val b = "sameModuleEmbedded=demo.markerB:demo/ProducerB.scala"
+    val external = "sameModuleHandler=demo.marker:demo.Handler:demo/Marker.scala:demo/Handler.scala"
+
+    assertEquals(
+      parseModeConfigurations(List(a, b, external, digest)),
+      Left("`sameModuleHandler=` and `sameModuleEmbedded=` are mutually exclusive")
+    )
+    assertEquals(
+      parseModeConfigurations(List(a, b, b, digest)),
+      Left("the `sameModuleEmbedded=` option accepts at most two explicit relationships")
+    )
+    assertEquals(
+      parseModeConfigurations(List(a, a, digest)),
+      Left("duplicate same-module annotation names: demo.markerA")
+    )
+    assertEquals(
+      parseModeConfigurations(List(a, "sameModuleEmbedded=demo.markerB:demo/ProducerA.scala", digest)),
+      Left("duplicate same-module producer source identities: demo/ProducerA.scala")
+    )
+    assertEquals(
+      parseModeConfigurations(List(a, "sameModuleEmbedded=demo.markerB: demo/ProducerB.scala", digest)),
+      Left("invalid `sameModuleEmbedded=` option; relationship tokens must not contain surrounding whitespace")
+    )
+  }

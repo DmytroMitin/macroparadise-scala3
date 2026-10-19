@@ -7,6 +7,8 @@ resolvers ++= sys.props.get("p229.ivy").toSeq.map { root =>
 enablePlugins(macroparadise.sbt.MacroParadiseSameModulePlugin)
 
 scalaVersion := sys.props.getOrElse("test.scala.version", "3.8.4")
+macroParadiseSameModuleCompilerProductVersion :=
+  sys.props.getOrElse("macroparadise.product.version", "0.2.0-SNAPSHOT")
 
 macroParadiseSameModuleBindings := Seq(
   macroParadiseSameModuleHandler(

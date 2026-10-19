@@ -28,6 +28,8 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
       settingKey[Seq[SameModuleHandlerBinding]]("Exactly two independent experimental different-file marker/handler bindings")
     val macroParadiseSameModuleEmbeddedBinding =
       settingKey[Option[SameModuleEmbeddedBinding]]("One explicit bounded embedded producer-source binding")
+    val macroParadiseSameModuleEmbeddedBindings =
+      settingKey[Seq[SameModuleEmbeddedBinding]]("Exactly two independent bounded embedded producer-source bindings")
     val macroParadiseSameModuleConfiguration =
       taskKey[DerivedSameModuleConfiguration]("Validated explicit same-module relationship and source-byte identity")
     val macroParadiseSameModuleSourceIdentity =
@@ -72,11 +74,17 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
     macroParadiseSameModuleBinding := None,
     macroParadiseSameModuleBindings := Seq.empty,
     macroParadiseSameModuleEmbeddedBinding := None,
+    macroParadiseSameModuleEmbeddedBindings := Seq.empty,
     libraryDependencies += compilerPlugin(macroParadiseSameModuleCompilerPluginModule.value),
     libraryDependencies += macroParadiseSameModulePluginApiModule.value,
-    libraryDependencies ++= macroParadiseSameModuleEmbeddedBinding.value.toSeq.map(_ =>
-      compilerPlugin(macroParadiseSameModuleEmbeddedProducerCompilerPluginModule.value)
-    ),
+    libraryDependencies ++= {
+      val embeddedSelected =
+        macroParadiseSameModuleEmbeddedBinding.value.nonEmpty ||
+          macroParadiseSameModuleEmbeddedBindings.value.nonEmpty
+      if (embeddedSelected)
+        Seq(compilerPlugin(macroParadiseSameModuleEmbeddedProducerCompilerPluginModule.value))
+      else Seq.empty
+    },
     macroParadiseSameModuleConfiguration := {
       val selectedScala = scalaVersion.value
       check(
@@ -88,7 +96,8 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
         (Compile / classDirectory).value,
         macroParadiseSameModuleBinding.value,
         macroParadiseSameModuleBindings.value,
-        macroParadiseSameModuleEmbeddedBinding.value
+        macroParadiseSameModuleEmbeddedBinding.value,
+        macroParadiseSameModuleEmbeddedBindings.value
       ) match {
         case Right(configuration) => configuration
         case Left(message) => throw new MessageOnlyException(message)
