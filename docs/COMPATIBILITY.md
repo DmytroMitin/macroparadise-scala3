@@ -20,7 +20,7 @@ plugin options, handler packaging dependency, and content identity are retained.
 This sbt-imported workflow is the qualified IDE path. Native JPS compilation is
 not currently qualified.
 
-On current source-built `0.2.0-SNAPSHOT`, the bounded same-module embedded mode
+On current source-built `0.2.0-SNAPSHOT`, the bounded same-module embedded singleton
 is qualified on exact Scala 3.3.8, 3.8.4, and 3.9.0 when the project is imported
 through sbt, import and Build are delegated to the sbt shell, and `run` is
 submitted in that same IntelliJ sbt shell. The sbt JVM must be JDK 25. A direct
@@ -38,10 +38,12 @@ compilation, handler-only, handler-dependency-only, marker-metadata-only, and
 consumer-only edits, followed by stale-handler failure and repaired compilation
 without `clean`.
 
-The newer same-module embedded mode has accepted persistent sbt BSP evidence on
-exact Scala 3.8.4. Its all-line support statement otherwise relies on CLI/Zinc
-and the accepted IntelliJ sbt-shell evidence. No BSP statement here extends to
-native JPS or broader same-module topologies.
+The same-module embedded singleton and exact-two independent pair have accepted
+persistent sbt BSP evidence on exact Scala 3.8.4. Both have all-line CLI/Zinc
+evidence; only the singleton has accepted all-line IntelliJ sbt-shell evidence.
+The exact-two embedded pair has no live IntelliJ, native JPS, or direct Java
+gutter Run qualification. Its four-file topology co-locates `Main` in one
+consumer; a separate fifth initially-unsuspended source remains unqualified.
 
 The exact-two independent external same-module pair on source-built
 `0.2.0-SNAPSHOT` is separately qualified through CLI/Zinc on exact Scala 3.3.8,

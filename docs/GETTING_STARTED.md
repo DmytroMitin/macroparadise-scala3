@@ -247,15 +247,25 @@ helpers, exact-full-cross policy, and source-only installation commands.
 
 ## Bounded same-module embedded onboarding
 
-For unreleased source-built `0.2.0-SNAPSHOT`, one explicit embedded annotation
-binding may instead keep its producer and consumers in one Scala module, in
-different physical source files. This is not a remote snapshot and is not part
+For unreleased source-built `0.2.0-SNAPSHOT`, an explicit embedded annotation
+configuration may keep its producer and consumers in one Scala module, in
+different physical source files. The supported choices are one binding or
+exactly two independent bindings; they are mutually exclusive with both
+external same-module families. This is not a remote snapshot and is not part
 of the immutable `0.1.1` release.
 
 Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, or 3.9.0. Follow the
 [bounded same-module embedded recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe)
 for local installation, the exact binding, declaration and consumer files,
 and compile/run witness.
+
+For the exact-two I2 configuration, follow the
+[complete four-file recipe](../sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe).
+It uses `macroParadiseSameModuleEmbeddedBindings := Seq(...)`, keeps `Main`
+co-located in `ConsumerA.scala`, and demonstrates A-v1/B-v1 followed by an
+A-only no-clean edit to A-v2/B-v1. CLI/Zinc is qualified on all three exact
+lines and persistent sbt BSP on 3.8.4. Pair IntelliJ/JPS/direct-gutter use and a
+separate fifth initially-unsuspended `Main.scala` remain unqualified.
 
 ## Exactly two independent external same-module bindings
 

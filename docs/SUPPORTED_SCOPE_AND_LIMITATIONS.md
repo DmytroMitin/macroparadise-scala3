@@ -47,37 +47,54 @@ Every compilation unit is transactional. Any later rejection, validation error, 
 Current main has two distinct embedded-producer modes. The established
 precompiled mode compiles a producer before its consumers and derives separate
 marker and handler roles. On unreleased source-built `0.2.0-SNAPSHOT`, a
-second bounded same-module mode is now experimentally supported with exactly:
+second bounded same-module mode is now experimentally supported as either the
+singleton or an exact-two independent pair:
 
 - one explicit `SameModuleEmbeddedBinding`;
 - `MacroParadiseSameModulePlugin` enabled with
   `macroParadiseSameModuleEmbeddedBinding` configured through
   `macroParadiseSameModuleEmbedded`;
-- one physical producer source containing one canonical
-  `@embeddedExpander` annotation class and its same-file companion
+- or exactly two distinct `SameModuleEmbeddedBinding` values configured through
+  `macroParadiseSameModuleEmbeddedBindings := Seq(...)`;
+- each physical producer source containing one canonical declaration (one
+  physical producer source for the singleton, two for I2),
+  an `@embeddedExpander` annotation class and its same-file companion
   `transform`; and
-- one or more consumers in different physical source files in the same Scala
-  module.
+- consumers in different physical source files in the same Scala module, with
+  each consumer unit selecting at most one configured annotation.
 
 The binding's producer path is relative to
 `macroParadiseSameModuleSourceRoot`, whose default is
-`Compile / scalaSource`. The external `macroParadiseSameModuleBinding` and
-the embedded binding are mutually exclusive. The generated adapter remains private:
+`Compile / scalaSource`. I1, E1, E2, and I2—the embedded singleton, external
+singleton, external exact-two pair, and embedded exact-two pair—are mutually
+exclusive. The generated adapter remains private:
 users neither configure nor reference its name.
+
+The exact-two embedded I2 layout is four physical files:
+`demo/ProducerA.scala` to `consumer/ConsumerA.scala` and
+`demo/ProducerB.scala` to `consumer/ConsumerB.scala`. A runnable `Main` is
+co-located in one consumer file. Canonical qualified annotations and
+source-preceding explicit unaliased imports are accepted. Alias, wildcard,
+ambiguous, local, nested, late-import, same-source, producer-edge, both-in-one-
+unit, and cross-binding introduction forms fail closed.
 
 Both embedded modes retain the current Class/Trait/Object handler-side target
 grammar. Annotation constructor arguments remain pre-typer syntax. Defaults
 are not materialized, implicits are not synthesized, arbitrary expressions
 are not evaluated, and semantic typing is unavailable.
 
-The bounded same-module mode is qualified on JDK 25, sbt 1.12.15, and exact
-Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc and the accepted sbt-imported,
-sbt-shell-delegated IntelliJ workflow. This is not native JPS support or
-general same-module support.
+Both bounded same-module configurations are qualified on JDK 25, sbt 1.12.15,
+and exact Scala 3.3.8, 3.8.4, and 3.9.0 through CLI/Zinc, plus persistent sbt
+BSP 3.8.4. Only the singleton carries accepted sbt-imported, sbt-shell-delegated
+IntelliJ evidence. Pair IntelliJ, native JPS, and direct Java gutter Run remain
+unqualified.
 
-The same physical source file layout and multiple embedded bindings remain
-unsupported, as do multiple producer sources or
-annotation identities; automatic discovery; helper-source graph solving;
+Neither configuration implies general same-module support.
+
+The same physical source file layout and arbitrary embedded multiplicity remain
+unsupported. The only multi-binding exception is exactly two independent
+relationships; three or more bindings, a separate fifth initially-unsuspended
+consumer source, automatic discovery, helper-source graph solving;
 consumer-owned implementation dependencies or cycles; nested or local
 embedded declarations; wildcard, renamed, local, ambiguous, or inferred
 same-package short imports; broader target grammar; binary-cross marker
@@ -98,9 +115,10 @@ See [Embedded producer authoring](EMBEDDED_PRODUCER_AUTHORING.md).
 On unreleased source-built `0.2.0-SNAPSHOT`, exactly two independent external
 relationships are experimentally supported with `MacroParadiseSameModulePlugin`,
 `macroParadiseSameModuleBindings`, `macroParadiseSameModuleHandler`, and `Seq`.
-The old `macroParadiseSameModuleBinding` singleton and
-`macroParadiseSameModuleEmbeddedBinding` singleton remain mutually exclusive
-alternatives; the three setting families are never merged.
+The old `macroParadiseSameModuleBinding` singleton,
+`macroParadiseSameModuleEmbeddedBinding` singleton, and
+`macroParadiseSameModuleEmbeddedBindings` pair remain mutually exclusive
+alternatives; the four setting families are never merged.
 
 One Scala module contains four globally distinct producer files and two distinct
 consumer files. Each physical consumer unit selects one direct-qualified
@@ -117,8 +135,8 @@ identity; A-v1 to A-v2 without clean retains B-v1. Producer edges, same-unit
 ambiguity, and dynamically introduced cross-binding annotations fail closed.
 Stale producer output is rejected and repair proceeds without `clean`.
 
-Three or more external bindings, multiple pair sets, multiple embedded
-bindings, mixed embedded/external settings, producer DAGs, same-source
+Three or more external or embedded bindings, multiple pair sets, mixed
+embedded/external settings, producer DAGs, same-source
 producer/consumer layouts, and cross-binding composition remain unsupported.
 Released `0.1.1` has no pair support and `0.2.0-SNAPSHOT` is not remotely
 published. See the [complete executable recipe](../sbt-integration/README.md#bounded-two-independent-external-same-module-recipe).

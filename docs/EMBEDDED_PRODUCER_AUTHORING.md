@@ -159,18 +159,22 @@ remotely publish `0.2.0-SNAPSHOT`.
 ## Bounded same-module embedded producer
 
 On unreleased source-built `0.2.0-SNAPSHOT`, the bounded mode uses no separate marker or handler role JARs.
-Enable `MacroParadiseSameModulePlugin`, configure
-exactly one `macroParadiseSameModuleEmbeddedBinding`, and construct it with
+Enable `MacroParadiseSameModulePlugin` and choose either
+`macroParadiseSameModuleEmbeddedBinding` for one relationship or
+`macroParadiseSameModuleEmbeddedBindings := Seq(...)` for exactly two
+independent relationships. Construct every binding with
 `macroParadiseSameModuleEmbedded`.
 
-The binding names one canonical annotation and one physical producer source.
+Each binding names one canonical annotation and one physical producer source.
 Its path is relative to `macroParadiseSameModuleSourceRoot`, whose default is
 `Compile / scalaSource`. The producer contains the `@embeddedExpander` class,
 same-file companion, exact `transform`, and any same-file helpers. Consumers
 must be in different physical source files.
 
-The external `macroParadiseSameModuleBinding` is mutually exclusive with the
-embedded binding. Exactly one mode must be configured. The generated adapter remains private;
+The external singleton/pair settings and embedded singleton/pair settings are
+four mutually exclusive families. In particular,
+`macroParadiseSameModuleBinding` is mutually exclusive with either embedded
+family. Exactly one family must be configured. The generated adapter remains private;
 users do not supply or rely on its name.
 
 Consumers may use either:
@@ -184,12 +188,15 @@ short forms are not qualified. Annotation constructor arguments remain
 pre-typer syntax, not evaluated or typed Scala expressions.
 
 Use JDK 25, sbt 1.12.15, and exact Scala 3.3.8, 3.8.4, and 3.9.0. The complete
-runnable build and source files are in the
-[sbt integration recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe).
+runnable builds and source files are in the
+[singleton recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe)
+and [exact-two embedded recipe](../sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe).
 
 For IntelliJ, import through sbt, ensure the sbt JVM is JDK 25, delegate import
 and builds to sbt, and submit `run` in the IntelliJ `sbt shell`. Counted Build
-and Run qualification used that shell on all three exact lines. A direct Java gutter Run is not qualified;
+and Run qualification used that shell on all three exact lines for the
+singleton. The exact-two pair has CLI/Zinc evidence on all three lines and
+persistent sbt BSP evidence on 3.8.4, but no pair IntelliJ claim. A direct Java gutter Run is not qualified;
 neither native JPS nor an arbitrary gutter run is
 part of this support statement. A fixture project SDK observed as Corretto 21
 did not qualify compiler execution on JDK 21—the sbt JVM remained JDK 25.
@@ -484,15 +491,18 @@ Current source-built `0.2.0-SNAPSHOT` supports:
 - same-file companion transforms;
 - precompiled producers;
 - derived marker and handler roles;
-- the separately documented one-source, different-file-consumer same-module
-  mode;
+- the separately documented singleton and exact-two independent,
+  different-file-consumer same-module configurations;
 - exact Scala 3.3.8, 3.8.4, and 3.9.0;
 - the same current Class/Trait/Object target grammar used by external handlers.
 
 The following remain unsupported:
 
 - producer and consumer in the same physical source file;
-- multiple embedded bindings, producer sources, or annotation identities;
+- arbitrary embedded multiplicity: the only same-module multi-binding exception
+  is exactly two independent relationships; three or more remain unsupported;
+- a separate fifth initially-unsuspended consumer source that depends on both
+  exact-two consumers;
 - automatic discovery, helper-source graph solving, or cycles;
 - wildcard, renamed, local, ambiguous, or inferred short imports;
 - nested or local embedded annotations;

@@ -38,7 +38,7 @@ The generated adapter class name and relocated transform name are private implem
 | Authoring frontend | Precompiled in other module | Same Scala module |
 | --- | --- | --- |
 | @expander | explicit marker/handler | singleton Model A, plus exactly two independent external bindings on unreleased source-built main |
-| @embeddedExpander | precompiled generated adapter | bounded embedded same-module |
+| @embeddedExpander | precompiled generated adapter | bounded embedded singleton, plus exactly two independent bindings on unreleased source-built main |
 
 ### Explicit `@expander`, precompiled producer
 
@@ -85,21 +85,25 @@ cross-binding annotations fail closed. See the [complete bounded pair recipe](..
 
 ### Embedded frontend, bounded same-module
 
+This bounded embedded same-module cell has a singleton configuration and one
+exact-two independent exception on source-built main.
+
 ```text
-src/main/scala/demo/EmbeddedAnnotations.scala
-  (annotation class + companion transform)
-src/main/scala/consumer/Usage.scala
+singleton: demo/EmbeddedAnnotations.scala -> consumer/Usage.scala
+pair A:    demo/ProducerA.scala           -> consumer/ConsumerA.scala (Main co-located)
+pair B:    demo/ProducerB.scala           -> consumer/ConsumerB.scala
 ```
 
-- **Source rule:** exactly one configured producer source contains one matching embedded declaration and same-file companion. Every consumer is in a different physical source file.
+- **Source rule:** singleton configures one producer/consumer relationship. Pair mode configures exactly two independent relationships in four physical files. Each producer file contains one matching embedded declaration and same-file companion; each consumer is separate and selects at most one binding.
 - **Ownership:** the embedded producer plugin runs before `paradiseGen` only in this selected mode and avoids synthetic marker splitting. The main plugin resumes consumers against fresh current output.
-- **sbt:** enable `MacroParadiseSameModulePlugin`; configure `macroParadiseSameModuleEmbeddedBinding` with `macroParadiseSameModuleEmbedded`. This mode adds the embedded producer compiler plugin. There are no packaged marker/handler roles.
+- **sbt:** enable `MacroParadiseSameModulePlugin`; configure singleton `macroParadiseSameModuleEmbeddedBinding`, or pair `macroParadiseSameModuleEmbeddedBindings := Seq(...)` with `macroParadiseSameModuleEmbedded`. This mode adds the embedded producer compiler plugin. There are no packaged marker/handler roles.
 - **Manual wiring:** no separate complete manual same-module recipe is qualified.
 - **Name resolution:** use the fully qualified annotation or the bounded source-preceding package-level explicit unaliased import form.
-- **Multiplicity:** exactly one relationship. External and embedded same-module settings are mutually exclusive in one enabled sbt project.
+- **Multiplicity:** one relationship or exactly two independent embedded relationships. I1, E1, E2, and I2 are four mutually exclusive setting families. Three or more embedded bindings, mixed modes, producer graphs, and cross-binding composition remain unsupported.
 - **Availability:** unreleased source-built `0.2.0-SNAPSHOT` only.
 
-See the [runnable same-module embedded recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe).
+See the [runnable singleton recipe](../sbt-integration/README.md#bounded-same-module-embedded-recipe)
+and [exact-two embedded recipe](../sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe).
 
 ## Parity claims and limits
 
@@ -110,8 +114,9 @@ See the [runnable same-module embedded recipe](../sbt-integration/README.md#boun
 - **Authoring declaration parity: no.** Embedded requires an opted-in top-level final `StaticAnnotation` class, same-file companion, and exact `transform`; explicit authors implement the handler protocol.
 - **Topology parity: no.** Embedded declaration and companion share one physical source. External same-module Model A uses separate marker and handler files. Consumers are separate files in both bounded cells.
 - **Import resolution parity: no.** External Model A is direct-qualified. Embedded same-module also qualifies one bounded explicit-import form.
-- **General same-module multi-binding support: no.** The only exception is the exact-two independent external pair on source-built main. Three or more external bindings, multiple embedded bindings, mixed external/embedded settings, producer graphs, and cross-binding composition remain unsupported.
-- **Release and embedded limits:** Released 0.1.1 has no exact-two pair. Multiple embedded bindings remain unsupported.
+- **General same-module multi-binding support: no.** The only exceptions are the exact-two independent external pair and exact-two independent embedded pair on source-built main. Three or more bindings, mixed external/embedded settings, producer graphs, and cross-binding composition remain unsupported.
+- **Release and embedded limits:** Released 0.1.1 has no exact-two mode or embedded frontend. The source-built embedded exception is exactly two, not arbitrary multiplicity.
+- **External pair release limit:** Released 0.1.1 has no exact-two pair.
 - **Precompiled multi-producer support:** qualified for explicit producers through sequence-based local/module integration.
 - **Precompiled multiple embedded declarations:** qualified within the declaration contract; it does not imply same-module multiplicity.
 - **Full release parity: no.** Released 0.1.1 contains external-handler Model A and its earlier API. Embedded authoring and the current handler protocol are source-built 0.2.0-SNAPSHOT only. No remote 0.2.0 artifact exists.
@@ -120,14 +125,14 @@ Semantic parity means a shared underlying expansion mechanism and expressive out
 
 ## Shared same-module lifecycle
 
-1. A singleton configures one relationship; the external pair configures two independent relationships, with one selected relationship per consumer unit.
+1. A singleton configures one relationship; either exact-two pair configures two independent relationships, with one selected relationship per consumer unit.
 2. One aggregate source-byte digest participates in Zinc incremental identity.
 3. The selected consumer is suspended before mutation or handler loading while current producer output compiles.
 4. A fresh current-output classloader resumes ordinary expansion for that unit; one processor instance does not execute both independent deferred handlers in one unit.
 5. Stale output, missing output, producer edges, cross-binding composition, and dependency cycles fail closed.
 6. Tested producer-body edits invalidate unchanged consumers without `clean`.
 
-Not implemented or qualified: producer and consumer in the same physical source, arbitrary external multiplicity, multiple embedded bindings, mixed external/embedded mode, dependency-graph solving, cycles, automatic discovery, native IntelliJ JPS, or direct Java gutter Run.
+Not implemented or qualified: producer and consumer in the same physical source, arbitrary multiplicity including three or more embedded bindings, mixed external/embedded mode, dependency-graph solving, cycles, automatic discovery, native IntelliJ JPS, or direct Java gutter Run. A separate fifth initially-unsuspended source that depends on both embedded consumers is also unqualified.
 
 ## Compiler, BSP, and IDE evidence
 
@@ -137,7 +142,8 @@ Not implemented or qualified: producer and consumer in the same physical source,
 | Embedded precompiled | Four setup quadrants remain in all three public boundaries | No dedicated precompiled embedded IDE/BSP claim is added |
 | External same-module singleton Model A | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP and sbt-delegated IntelliJ evidence is bounded to 3.3.8 and 3.8.4 |
 | Exactly two independent external bindings | CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0 | persistent sbt BSP is qualified on 3.8.4; pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified |
-| Embedded same-module | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP: 3.8.4; IntelliJ sbt-shell Build/run: all three lines |
+| Embedded same-module singleton | CLI/Zinc passes 3.3.8, 3.8.4, 3.9.0 | Persistent BSP: 3.8.4; IntelliJ sbt-shell Build/run: all three lines |
+| Exactly two independent embedded bindings | CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0 | persistent sbt BSP is qualified on 3.8.4; pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified |
 
 The qualified environment is JDK 25 and sbt 1.12.15. IntelliJ evidence uses sbt import, sbt-delegated Build, and `run` in the sbt shell. Native JPS and direct Java gutter Run are not qualified.
 

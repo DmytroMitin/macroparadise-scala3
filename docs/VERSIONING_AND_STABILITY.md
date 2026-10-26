@@ -27,14 +27,17 @@ stable compatibility promise.
 - Unreleased source-built `0.2.0-SNAPSHOT` additionally qualifies exactly two
   independent external same-module relationships through CLI/Zinc on exact
   Scala 3.3.8, 3.8.4, and 3.9.0 and persistent sbt BSP 3.8.4. It does not
-  qualify three or more relationships, embedded multiplicity, mixed modes,
+  qualify three or more external relationships, mixed modes,
   producer graphs, live IntelliJ, native JPS, or direct Java gutter Run.
-- Unreleased source-built `0.2.0-SNAPSHOT` additionally has one bounded
-  same-module embedded mode: one explicit binding and producer source, with
-  consumers in different physical files. It is experimentally qualified on
-  exact Scala 3.3.8, 3.8.4, and 3.9.0 for CLI/Zinc and IntelliJ's sbt-shell-
-  delegated Build/Run, plus accepted persistent sbt BSP 3.8.4. It is not in
-  Maven Central, and does not qualify native JPS or direct Java gutter Run.
+- Unreleased source-built `0.2.0-SNAPSHOT` additionally has bounded same-module
+  embedded singleton and exact-two independent configurations, with every
+  producer and consumer in distinct physical files and `Main` co-located in one
+  consumer for the pair. Both are qualified on exact Scala 3.3.8, 3.8.4, and
+  3.9.0 for CLI/Zinc plus persistent sbt BSP 3.8.4. Only the singleton has
+  IntelliJ sbt-shell-delegated Build/Run evidence. Three or more embedded
+  bindings, pair IntelliJ, native JPS, direct Java gutter Run, and a separate
+  fifth initially-unsuspended consumer remain unqualified. It is not in Maven
+  Central.
 - The released coordinate does not imply a release cadence or maintained
   compatibility line.
 

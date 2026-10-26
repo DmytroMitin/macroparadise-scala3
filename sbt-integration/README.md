@@ -786,6 +786,241 @@ External same-module Model A remains separate. Its
 `macroParadiseSameModuleEmbeddedBinding` are mutually exclusive. This recipe
 also does not alter the four precompiled producer topology/wiring quadrants.
 
+## Bounded two independent embedded same-module recipe
+
+This complete recipe is the exact-two I2 exception on unreleased source-built
+`0.2.0-SNAPSHOT`. It is not Maven Central. Use JDK 25, sbt 1.12.15, and exact
+Scala 3.3.8, 3.8.4, or 3.9.0. The supported topology is exactly four physical
+files and two independent relationships:
+
+```text
+demo/ProducerA.scala      -> consumer/ConsumerA.scala (Main co-located here)
+demo/ProducerB.scala      -> consumer/ConsumerB.scala
+```
+
+First install the exact-line compiler API, embedded-producer compiler plugin,
+and main compiler plugin from the product checkout. Repeat the command with the
+exact Scala line selected by the downstream build:
+
+```sh
+sbt -Dmacroparadise.exactScalaVersion=3.8.4 -batch \
+  "++3.8.4!" \
+  "pluginApi/publishLocal" \
+  "embeddedProducerPlugin/publishLocal" \
+  "plugin/publishLocal"
+```
+
+Then install the source-built sbt integration from this checkout:
+
+```sh
+cd sbt-integration
+sbt -batch verifyIntegrationPolicy publishLocal
+```
+
+Those commands write only machine-local development artifacts. They do not
+publish `0.2.0-SNAPSHOT` remotely. Create this downstream layout:
+
+```text
+project/build.properties
+project/plugins.sbt
+build.sbt
+src/main/scala/demo/ProducerA.scala
+src/main/scala/demo/ProducerB.scala
+src/main/scala/consumer/ConsumerA.scala
+src/main/scala/consumer/ConsumerB.scala
+```
+
+Pin the downstream sbt plugin:
+
+```text
+# project/build.properties
+sbt.version=1.12.15
+```
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("com.github.dmytromitin" % "sbt-macroparadise" % "0.2.0-SNAPSHOT")
+```
+
+Enable the no-trigger same-module integration and configure exactly two
+bindings. `macroParadiseLabelledSource` paths are relative to
+`macroParadiseSameModuleSourceRoot`, which defaults to `Compile / scalaSource`:
+
+```scala
+// build.sbt
+enablePlugins(macroparadise.sbt.MacroParadiseSameModulePlugin)
+
+scalaVersion := "3.8.4" // or exact 3.3.8 / 3.9.0
+
+macroParadiseSameModuleCompilerProductVersion := "0.2.0-SNAPSHOT"
+
+macroParadiseSameModuleEmbeddedBindings := Seq(
+  macroParadiseSameModuleEmbedded(
+    annotationName = "demo.markerA",
+    producerSource =
+      macroParadiseLabelledSource("a-producer", "demo/ProducerA.scala")
+  ),
+  macroParadiseSameModuleEmbedded(
+    annotationName = "demo.markerB",
+    producerSource =
+      macroParadiseLabelledSource("b-producer", "demo/ProducerB.scala")
+  )
+)
+```
+
+Each producer declares one opted-in top-level annotation class and its
+same-file companion `transform`. Producer A is:
+
+```scala
+// src/main/scala/demo/ProducerA.scala
+package demo
+
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Names.{termName, typeName}
+import paradise3.api.*
+import paradise3.api.embeddedExpander
+import paradise3.api.helpers.ExpansionTransforms
+import scala.annotation.StaticAnnotation
+
+@embeddedExpander
+final class markerA extends StaticAnnotation
+
+object markerA:
+  def transform(input: ExpansionInput)(using Context): ExpansionOutcome =
+    val value = untpd.DefDef(
+      termName("generatedValueA"),
+      Nil,
+      untpd.Ident(typeName("String")),
+      untpd.Literal(Constant("A-v1"))
+    )
+    ExpansionEdit.finish:
+      for
+        edit <- ExpansionEdit.start(input)
+        next <- ExpansionTransforms.placeMemberInPrimary(value)(edit)
+      yield next
+```
+
+Producer B is independent and generates a different member:
+
+```scala
+// src/main/scala/demo/ProducerB.scala
+package demo
+
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Names.{termName, typeName}
+import paradise3.api.*
+import paradise3.api.embeddedExpander
+import paradise3.api.helpers.ExpansionTransforms
+import scala.annotation.StaticAnnotation
+
+@embeddedExpander
+final class markerB extends StaticAnnotation
+
+object markerB:
+  def transform(input: ExpansionInput)(using Context): ExpansionOutcome =
+    val value = untpd.DefDef(
+      termName("generatedValueB"),
+      Nil,
+      untpd.Ident(typeName("String")),
+      untpd.Literal(Constant("B-v1"))
+    )
+    ExpansionEdit.finish:
+      for
+        edit <- ExpansionEdit.start(input)
+        next <- ExpansionTransforms.placeMemberInPrimary(value)(edit)
+      yield next
+```
+
+Consumer A uses the canonical qualified annotation. `Main` must remain in this
+physical consumer unit for the qualified four-file topology:
+
+```scala
+// src/main/scala/consumer/ConsumerA.scala
+package consumer
+
+@demo.markerA
+final class ConsumerA
+
+object Main:
+  def main(args: Array[String]): Unit =
+    val a = new ConsumerA().generatedValueA
+    val b = new ConsumerB().generatedValueB
+    assert(a == "A-v1" || a == "A-v2")
+    assert(b == "B-v1")
+    println("G1_A=" + a)
+    println("G1_B=" + b)
+```
+
+Consumer B demonstrates the other accepted spelling: a source-preceding,
+explicit, unaliased import.
+
+```scala
+// src/main/scala/consumer/ConsumerB.scala
+package consumer
+
+import demo.markerB
+
+@markerB
+final class ConsumerB
+```
+
+Compile from a blank target and run the assertions:
+
+```sh
+sbt -batch clean compile "runMain consumer.Main"
+```
+
+The initial runtime lines are:
+
+```text
+G1_A=A-v1
+G1_B=B-v1
+```
+
+The integration deterministically sorts the two relationship records and uses
+one aggregate identity over both producer sources. To exercise no-clean
+incremental behavior, edit only `"A-v1"` to `"A-v2"` in `ProducerA.scala`,
+then run:
+
+```sh
+sbt -batch compile "runMain consumer.Main"
+sbt -batch compile "runMain consumer.Main"
+```
+
+The first command must print A-v2/B-v1; the second is the no-op witness. This
+does not claim selective per-binding invalidation: the aggregate identity may
+conservatively invalidate both relationships even though B remains
+behaviorally B-v1. If Producer A is then made syntactically invalid, `compile`
+must fail rather than load its stale prior output. Restore the valid A-v2 bytes
+and rerun without `clean`; compilation and A-v2/B-v1 runtime must recover.
+
+The embedded pair accepts canonical qualified annotations and source-preceding
+explicit unaliased imports. Aliases, wildcards, ambiguous or shadowed names,
+local or nested import forms, late imports, selecting both configured
+annotations in one physical unit, same-source producer/use, producer edges,
+and cross-binding annotation introduction fail closed. This grammar is
+deliberately different from the external exact-two pair, whose consumers are
+direct-qualified only.
+
+I1 (`macroParadiseSameModuleEmbeddedBinding`), E1
+(`macroParadiseSameModuleBinding`), E2 (`macroParadiseSameModuleBindings`), and
+I2 (`macroParadiseSameModuleEmbeddedBindings`) are four mutually exclusive
+setting families. I2 accepts exactly two distinct bindings; three or more,
+mixed external/embedded mode, producer graphs, and arbitrary embedded
+multiplicity remain unsupported. The four precompiled embedded producer wiring
+quadrants are separate supported paths and are unchanged.
+
+CLI/Zinc is qualified on exact Scala 3.3.8, 3.8.4, and 3.9.0; persistent sbt
+BSP is qualified on 3.8.4. Pair IntelliJ, native JPS, and direct Java gutter Run
+remain unqualified. Do not move `Main` into a separate fifth initially-
+unsuspended source: that topology fails initial symbol resolution and remains
+`THIRD_UNSUSPENDED_CONSUMER_SOURCE=UNQUALIFIED`. Released `0.1.1` has no
+embedded frontend or exact-two mode, and no remote `0.2.0-SNAPSHOT` exists.
+
 ## Experimental same-module different-file Model A
 
 This path is included in released `0.1.1` but remains experimentally supported

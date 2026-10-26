@@ -75,15 +75,25 @@ See [Embedded producer authoring](docs/EMBEDDED_PRODUCER_AUTHORING.md) and the
 
 ## Bounded same-module embedded on source-built main
 
-Current unreleased source-built `0.2.0-SNAPSHOT` also supports one bounded experimental topology:
-one explicit embedded binding, one physical producer source, and consumers in
-different physical source files in the same Scala
-module. This is opt-in experimental support, not general same-module support.
+Current unreleased source-built `0.2.0-SNAPSHOT` supports two mutually exclusive
+bounded embedded configurations in one Scala module: the established singleton,
+or exactly two independent bindings through
+`macroParadiseSameModuleEmbeddedBindings`. The exact-two layout has four
+physical files: `demo/ProducerA.scala` to `consumer/ConsumerA.scala` and
+`demo/ProducerB.scala` to `consumer/ConsumerB.scala`, with `Main` co-located in
+one consumer file. Each consumer unit selects at most one configured annotation.
+This is opt-in experimental support, not general same-module multiplicity.
 
 The immutable `0.1.1` release is unchanged, and no remote `0.2.0-SNAPSHOT` is
 published. Use JDK 25, sbt 1.12.15, and one exact Scala line. The complete
-copy/paste setup is the
-[same-module embedded recipe](sbt-integration/README.md#bounded-same-module-embedded-recipe).
+copy/paste setups are the
+[singleton recipe](sbt-integration/README.md#bounded-same-module-embedded-recipe)
+and the
+[exact-two embedded recipe](sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe).
+Both pass CLI/Zinc on the three exact Scala lines and persistent sbt BSP 3.8.4.
+The exact-two pair has no live IntelliJ, native JPS, or direct Java gutter Run
+qualification. A separate fifth initially-unsuspended `Main.scala` remains
+unqualified; keep `Main` in one of the two consumer files.
 
 ## Exactly two independent external same-module bindings
 

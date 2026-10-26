@@ -133,7 +133,7 @@ object PublicDocumentationPolicy {
       findings += Finding(
         "STALE_EXACT_TWO_EXTERNAL_BLANKET_CLAIM",
         path,
-        "public docs must distinguish the bounded exact-two external pair from unsupported general and embedded multiplicity"
+        "public docs must distinguish both bounded exact-two pairs from unsupported general, mixed, and 3+ multiplicity"
       )
     def requireAll(code: String, detail: String, required: String*): Unit = {
       val missing = required.filter(token => !text.contains(token))
@@ -238,6 +238,7 @@ object PublicDocumentationPolicy {
         "macroParadiseSameModuleBinding",
         "macroParadiseSameModuleBindings",
         "macroParadiseSameModuleEmbeddedBinding",
+        "macroParadiseSameModuleEmbeddedBindings",
         "mutually exclusive",
         "Released 0.1.1",
         "source-built 0.2.0-SNAPSHOT only",
@@ -251,7 +252,7 @@ object PublicDocumentationPolicy {
         "source-built 0.2.0-SNAPSHOT",
         "macroParadiseSameModuleBindings := Seq(...)",
         "exactly two macroParadiseSameModuleHandler records",
-        "macroParadiseSameModuleBinding, macroParadiseSameModuleBindings, and macroParadiseSameModuleEmbeddedBinding are mutually exclusive",
+        "four mutually exclusive setting families",
         "six distinct core files",
         "each consumer unit selects one binding",
         "direct-qualified consumer spelling",
@@ -266,7 +267,28 @@ object PublicDocumentationPolicy {
         "persistent sbt BSP is qualified on 3.8.4",
         "pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified",
         "Released 0.1.1 has no exact-two pair",
-        "Multiple embedded bindings remain unsupported"
+        "Three or more bindings"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_PARITY_INCOMPLETE",
+        "authoritative guide must define the exact-two embedded cell, four-file topology, distinct resolution grammar, lifecycle, evidence, and fifth-source limit",
+        "exactly two independent embedded bindings",
+        "macroParadiseSameModuleEmbeddedBindings := Seq(...) with macroParadiseSameModuleEmbedded",
+        "demo/ProducerA.scala",
+        "consumer/ConsumerA.scala (Main co-located)",
+        "demo/ProducerB.scala",
+        "consumer/ConsumerB.scala",
+        "each consumer is separate and selects at most one binding",
+        "fully qualified annotation",
+        "source-preceding package-level explicit unaliased import",
+        "four mutually exclusive setting families",
+        "three or more embedded bindings",
+        "one aggregate source-byte digest",
+        "fresh current-output classloader",
+        "separate fifth initially-unsuspended source",
+        "CLI/Zinc is qualified on exact 3.3.8, 3.8.4, and 3.9.0",
+        "persistent sbt BSP is qualified on 3.8.4",
+        "pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified"
       )
       if (
         lower.contains("all programs are behaviorally equivalent") ||
@@ -283,7 +305,7 @@ object PublicDocumentationPolicy {
       ) findings += Finding(
         "SAME_MODULE_MULTI_BINDING_OVERCLAIM",
         path,
-        "only the bounded exact-two external pair is supported; arbitrary, mixed, and embedded multiplicity remain unsupported"
+        "only the bounded exact-two external and embedded pairs are supported; arbitrary, mixed, and 3+ multiplicity remain unsupported"
       )
       if (
         lower.contains("same sbt multi-project build is the same scala compilation module") ||
@@ -304,7 +326,7 @@ object PublicDocumentationPolicy {
         "`MacroParadiseSameModulePlugin`",
         "`macroParadiseSameModuleEmbeddedBinding`",
         "`macroParadiseSameModuleEmbedded`",
-        "one physical producer source",
+        "each physical producer source",
         "different physical source files",
         "3.3.8, 3.8.4, and 3.9.0",
         "JDK 25",
@@ -313,12 +335,34 @@ object PublicDocumentationPolicy {
         "generated adapter remains private",
         "mutually exclusive",
         "same physical source file",
-        "multiple embedded bindings",
+        "three or more bindings",
         "automatic discovery",
         "cycles",
         "general same-module support",
         "native JPS",
         "immutable `0.1.1` release",
+        "not remotely published"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_SUPPORT_CONTRACT_MISSING",
+        "support scope must retain the exact-two embedded topology, grammar, fail-closed boundary, evidence, and release distinction",
+        "exactly two distinct `SameModuleEmbeddedBinding` values",
+        "`macroParadiseSameModuleEmbeddedBindings := Seq(...)`",
+        "demo/ProducerA.scala",
+        "consumer/ConsumerA.scala",
+        "demo/ProducerB.scala",
+        "consumer/ConsumerB.scala",
+        "runnable `Main` is co-located in one consumer file",
+        "source-preceding explicit unaliased imports",
+        "four setting families are never merged",
+        "A-v1 to A-v2 without clean retains B-v1",
+        "one aggregate exact-source-byte identity",
+        "three or more external or embedded bindings",
+        "separate fifth initially-unsuspended consumer source",
+        "CLI/Zinc",
+        "persistent sbt BSP 3.8.4",
+        "Pair IntelliJ, native JPS, and direct Java gutter Run remain unqualified",
+        "Released `0.1.1` has no pair support",
         "not remotely published"
       )
       requireAllSemantic(
@@ -333,6 +377,7 @@ object PublicDocumentationPolicy {
         "`Seq`",
         "`macroParadiseSameModuleBinding`",
         "`macroParadiseSameModuleEmbeddedBinding`",
+        "`macroParadiseSameModuleEmbeddedBindings`",
         "mutually exclusive alternatives",
         "four globally distinct producer files",
         "two distinct consumer files",
@@ -398,10 +443,11 @@ object PublicDocumentationPolicy {
         "different physical source files",
         "`MacroParadiseSameModulePlugin`",
         "`macroParadiseSameModuleEmbeddedBinding`",
+        "`macroParadiseSameModuleEmbeddedBindings := Seq(...)`",
         "`macroParadiseSameModuleEmbedded`",
         "`macroParadiseSameModuleSourceRoot`",
         "`Compile / scalaSource`",
-        "`macroParadiseSameModuleBinding` is mutually exclusive",
+        "four mutually exclusive families",
         "generated adapter remains private",
         "source-preceding package-level explicit unaliased import",
         "JDK 25, sbt 1.12.15",
@@ -409,6 +455,19 @@ object PublicDocumentationPolicy {
         "IntelliJ",
         "`sbt shell`",
         "direct Java gutter Run is not qualified"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_GUIDE_INCOMPLETE",
+        "embedded guide must retain the bounded exact-two setting, four-file recipe navigation, evidence boundary, and exclusions",
+        "exactly two independent relationships",
+        "`macroParadiseSameModuleEmbeddedBindings := Seq(...)`",
+        "four mutually exclusive families",
+        "exact-two embedded recipe",
+        "exact-two independent, different-file-consumer same-module configurations",
+        "three or more remain unsupported",
+        "separate fifth initially-unsuspended consumer source",
+        "persistent sbt BSP evidence on 3.8.4",
+        "no pair IntelliJ claim"
       )
     }
 
@@ -493,6 +552,18 @@ object PublicDocumentationPolicy {
         "exact Scala 3.3.8, 3.8.4, or 3.9.0",
         "../sbt-integration/README.md#bounded-same-module-embedded-recipe"
       )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_NAVIGATION_MISSING",
+        "Getting Started must expose exact-two embedded onboarding without broadening release, IDE, or fifth-source support",
+        "exactly two independent bindings",
+        "../sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe",
+        "macroParadiseSameModuleEmbeddedBindings := Seq(...)",
+        "A-v2/B-v1",
+        "CLI/Zinc",
+        "persistent sbt BSP on 3.8.4",
+        "Pair IntelliJ/JPS/direct-gutter use",
+        "separate fifth initially-unsuspended `Main.scala` remain unqualified"
+      )
     }
 
     if (path == "docs/EXTERNAL_HANDLER_AUTHORING.md") {
@@ -535,10 +606,23 @@ object PublicDocumentationPolicy {
         "README must expose the bounded source-built same-module recipe without blurring the immutable release",
         "## Bounded same-module embedded on source-built main",
         "unreleased source-built `0.2.0-SNAPSHOT`",
-        "bounded experimental topology",
+        "bounded embedded configurations",
         "immutable `0.1.1` release",
         "no remote `0.2.0-SNAPSHOT`",
         "sbt-integration/README.md#bounded-same-module-embedded-recipe"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_README_DISCOVERY_MISSING",
+        "README must expose the exact-two embedded four-file recipe and evidence limit",
+        "exactly two independent bindings",
+        "demo/ProducerA.scala",
+        "consumer/ConsumerA.scala",
+        "demo/ProducerB.scala",
+        "consumer/ConsumerB.scala",
+        "sbt-integration/README.md#bounded-two-independent-embedded-same-module-recipe",
+        "persistent sbt BSP 3.8.4",
+        "exact-two pair has no live IntelliJ",
+        "separate fifth initially-unsuspended `Main.scala` remains unqualified"
       )
       requireAllSemantic(
         "EXACT_TWO_EXTERNAL_README_DISCOVERY_MISSING",
@@ -703,6 +787,43 @@ object PublicDocumentationPolicy {
         "SAME_MODULE_EMBEDDED_RUNTIME:same-module-v1",
         "Exactly one public binding",
         "External same-module Model A remains separate"
+      )
+      requireAllSemantic(
+        "EXACT_TWO_EMBEDDED_RECIPE_INCOMPLETE",
+        "sbt integration guide must retain the complete exact-two embedded source-built four-file recipe and bounded evidence envelope",
+        "## Bounded two independent embedded same-module recipe",
+        "source-built `0.2.0-SNAPSHOT`",
+        "not Maven Central",
+        "JDK 25, sbt 1.12.15",
+        "exact Scala 3.3.8, 3.8.4, or 3.9.0",
+        "`pluginApi/publishLocal`",
+        "`embeddedProducerPlugin/publishLocal`",
+        "`plugin/publishLocal`",
+        "sbt -batch verifyIntegrationPolicy publishLocal",
+        "sbt.version=1.12.15",
+        "addSbtPlugin(\"com.github.dmytromitin\" % \"sbt-macroparadise\" % \"0.2.0-SNAPSHOT\")",
+        "macroParadiseSameModuleEmbeddedBindings := Seq(",
+        "macroParadiseLabelledSource(\"a-producer\", \"demo/ProducerA.scala\")",
+        "macroParadiseLabelledSource(\"b-producer\", \"demo/ProducerB.scala\")",
+        "@embeddedExpander",
+        "object markerA",
+        "object markerB",
+        "@demo.markerA",
+        "import demo.markerB",
+        "@markerB",
+        "object Main",
+        "sbt -batch clean compile \"runMain consumer.Main\"",
+        "G1_A=A-v1",
+        "G1_B=B-v1",
+        "A-v2/B-v1",
+        "aggregate identity",
+        "does not claim selective per-binding invalidation",
+        "stale prior output",
+        "four mutually exclusive setting families",
+        "three or more",
+        "persistent sbt BSP is qualified on 3.8.4",
+        "THIRD_UNSUSPENDED_CONSUMER_SOURCE=UNQUALIFIED",
+        "no remote `0.2.0-SNAPSHOT` exists"
       )
       requireAllSemantic(
         "EXACT_TWO_EXTERNAL_RECIPE_INCOMPLETE",
