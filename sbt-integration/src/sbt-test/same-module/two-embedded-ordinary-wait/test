@@ -33,3 +33,5 @@
 -> compile
 > selectPatternValueOrdinary
 -> compile
+> selectChainedImportOrdinary
+-> compile

@@ -70,12 +70,18 @@ private[macroparadise] object OrdinaryWaitRoleGuard:
       case _ => None
 
     def addImport(scope: Scope, imp: Import): Scope =
+      val prefix = if imp.expr.isEmpty then Some(Nil) else segments(imp.expr)
+      // Raw prefix concatenation cannot discharge imported/local authority.
+      // Preserve uncertainty without resolving or substituting alias names.
+      val uncertainPrefix = prefix.exists: parts =>
+        parts.headOption.exists(first => first != "_root_" &&
+          (scope.imports.contains(first) || scope.shadows(first)))
       def add(current: Scope, local: String, canonical: String, renamed: Boolean): Scope =
-        val binding = ImportBinding(canonical.stripPrefix("_root_."), renamed || !scope.packageLevel)
+        val binding = ImportBinding(canonical.stripPrefix("_root_."),
+          renamed || !scope.packageLevel || uncertainPrefix)
         current.copy(imports = current.imports.updated(local, current.imports.getOrElse(local, Set.empty) + binding))
       // The parser represents `import demo as renamed` with EmptyTree and
       // a named selector. This is syntactic import evidence, not a Symbol.
-      val prefix = if imp.expr.isEmpty then Some(Nil) else segments(imp.expr)
       prefix match
         case None => scope.copy(wildcard = true)
         case Some(prefix) if imp.selectors.isEmpty =>

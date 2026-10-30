@@ -128,3 +128,9 @@ selectPatternValueOrdinary := {
   IO.copyFile(baseDirectory.value / "role-fixtures" / "PatternValueMain.scala",
     (Compile / scalaSource).value / "consumer" / "Main.scala")
 }
+
+lazy val selectChainedImportOrdinary = taskKey[Unit]("Select the chained-import ordinary role fixture")
+selectChainedImportOrdinary := {
+  IO.copyFile(baseDirectory.value / "role-fixtures" / "ChainedImportMain.scala",
+    (Compile / scalaSource).value / "consumer" / "Main.scala")
+}

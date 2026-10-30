@@ -105,6 +105,38 @@ final class OrdinaryWaitRoleGuardSpec extends munit.FunSuite:
     assert(observed)
   }
 
+  private val uncertainChains = List(
+    "A chain" -> "import demo as renamed; import renamed.markerA; object Main { def main(): Unit = { @markerA class Hidden; () } }",
+    "B chain" -> "import demo as renamed; import renamed.markerB; object Main { def main(): Unit = { @markerB class Hidden; () } }",
+    "three hops" -> "import demo as first; import first as second; import second.markerA; object Main { def main(): Unit = { @markerA class Hidden; () } }",
+    "nested chain" -> "object Main { def main(): Unit = { import demo as renamed; import renamed.markerA; @markerA class Hidden; () } }",
+    "renamed leaf" -> "import demo as renamed; import renamed.{markerA as leaf}; object Main { def main(): Unit = { @leaf class Hidden; () } }",
+    "different package" -> "import other as renamed; import renamed.markerA; object Main { def main(): Unit = { @markerA class Hidden; () } }",
+    "owner shadow" -> "object renamed { type markerA = demo.markerA }; import renamed.markerA; object Main { def main(): Unit = { @markerA class Hidden; () } }",
+    "local shadow" -> "object Main { def main(): Unit = { object renamed { type markerA = demo.markerA }; import renamed.markerA; @markerA class Hidden; () } }",
+    "pattern-bound prefix shadow" -> "object Holder { type markerA = demo.markerA }; val (renamed, ignored) = (Holder, 1); import renamed.markerA; object Main { def main(): Unit = { @markerA class Hidden; () } }",
+    "later chain" -> "object Main { def main(): Unit = { @markerA class Hidden; import demo as renamed; import renamed.markerA; () } }"
+  )
+  uncertainChains.foreach: (label, body) =>
+    test(s"retains uncertain import provenance for $label") {
+      val (tree, ctx) = parsed(s"package consumer; $body")
+      val result = OrdinaryWaitRoleGuard.validate(tree, configured)(using ctx)
+      assert(result.isLeft, result.toString)
+      val diagnostic = result.swap.toOption.get
+      assert(diagnostic.message.startsWith("SAME_MODULE_ORDINARY_WAIT_ANNOTATION_IDENTITY:"), diagnostic.message)
+      assert(diagnostic.pos.span.exists)
+    }
+
+  List(
+    "rooted unrelated import" -> "import _root_.other.Unrelated; object Main { def main(): Unit = { @Unrelated class Local; () } }",
+    "rooted unrelated same leaf" -> "import _root_.other.markerA; object Main { def main(): Unit = { @markerA class Local; () } }",
+    "unused uncertain imports" -> "import demo as renamed; import renamed.markerA; object Main { val number = 1 }"
+  ).foreach: (label, body) =>
+    test(s"preserves $label without promoting alias authority") {
+      val (tree, ctx) = parsed(s"package consumer; $body")
+      assertEquals(OrdinaryWaitRoleGuard.validate(tree, configured)(using ctx), Right(()))
+    }
+
   private def parsed(source: String): (Tree, Context) =
     val unit = CompilationUnit("OrdinaryWaitRoleGuardSpec.scala", source)
     val ctx = ContextBase().initialCtx.fresh.setCompilationUnit(unit)
