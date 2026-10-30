@@ -969,6 +969,7 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
     def real(path: String): Option[Path] =
       try Some(Path.of(path).toRealPath())
       catch case NonFatal(_) => None
+    var roleDiagnostic: Option[OrdinaryWaitRoleGuard.Diagnostic] = None
     val result = OrdinaryWaitConfiguration.parse(options).flatMap:
       case None => Right(None)
       case Some(configuration) =>
@@ -990,11 +991,17 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
             else matches.headOption match
               case None => Right(Some(configuration)) // Full membership is validated by sbt, not this incremental subset.
               case Some(unit) =>
-                EmbeddedSameModuleSelection.select(unit.untpdTree, pair.map(_.annotationName)) match
-                  case Right(None) => Right(Some(configuration))
-                  case _ => Left("SAME_MODULE_ORDINARY_WAIT_ANNOTATED: designated source must not select a configured annotation")
+                OrdinaryWaitRoleGuard.validate(unit.untpdTree, pair.map(_.annotationName)) match
+                  case Right(()) => Right(Some(configuration))
+                  case Left(diagnostic) =>
+                    roleDiagnostic = Some(diagnostic)
+                    Left(diagnostic.message)
     result match
-      case Left(message) => report.error(message); false
+      case Left(message) =>
+        roleDiagnostic match
+          case Some(diagnostic) => report.error(message, diagnostic.pos)
+          case None => report.error(message)
+        false
       case Right(value) => activeOrdinaryWait = value; true
 
   private def externalHandlers: ExternalHandlerLoading.LoadedHandlers =

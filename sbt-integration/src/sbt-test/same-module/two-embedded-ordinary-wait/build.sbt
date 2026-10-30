@@ -108,10 +108,23 @@ verifyDefaultWait := {
   assert(macroParadiseSameModuleConfiguration.value.sourceIdentity.sources.size == 2)
 }
 
-// This regression is intentionally red until the ordinary-role validation blocker is fixed.
+// The method-local regression is retained; the independent role fixtures below remain blocked.
 lazy val selectHiddenLocalOrdinary = taskKey[Unit]("Put a configured annotation inside the designated ordinary method")
 selectHiddenLocalOrdinary := {
   val main = (Compile / scalaSource).value / "consumer" / "Main.scala"
   val text = IO.read(main)
   IO.write(main, text.replace("    val a =", "    @demo.markerA class Hidden\n    val a ="))
+}
+
+// Independent whole-unit falsifiers. Each copies a complete physical source;
+// neither relies on the preceding fixture's annotation or incremental state.
+lazy val selectPrefixAliasOrdinary = taskKey[Unit]("Select the blocked renamed-package ordinary role fixture")
+selectPrefixAliasOrdinary := {
+  IO.copyFile(baseDirectory.value / "role-fixtures" / "PrefixAliasMain.scala",
+    (Compile / scalaSource).value / "consumer" / "Main.scala")
+}
+lazy val selectPatternValueOrdinary = taskKey[Unit]("Select the blocked pattern-value ordinary role fixture")
+selectPatternValueOrdinary := {
+  IO.copyFile(baseDirectory.value / "role-fixtures" / "PatternValueMain.scala",
+    (Compile / scalaSource).value / "consumer" / "Main.scala")
 }

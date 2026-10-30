@@ -29,3 +29,7 @@
 > compile
 > selectHiddenLocalOrdinary
 -> compile
+> selectPrefixAliasOrdinary
+-> compile
+> selectPatternValueOrdinary
+-> compile
