@@ -30,6 +30,8 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
       settingKey[Option[SameModuleEmbeddedBinding]]("One explicit bounded embedded producer-source binding")
     val macroParadiseSameModuleEmbeddedBindings =
       settingKey[Seq[SameModuleEmbeddedBinding]]("Exactly two independent bounded embedded producer-source bindings")
+    val macroParadiseSameModuleDependentSource =
+      settingKey[Option[String]]("One ordinary physical source waiting with the exact-two embedded consumer cohort")
     val macroParadiseSameModuleConfiguration =
       taskKey[DerivedSameModuleConfiguration]("Validated explicit same-module relationship and source-byte identity")
     val macroParadiseSameModuleSourceIdentity =
@@ -75,6 +77,7 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
     macroParadiseSameModuleBindings := Seq.empty,
     macroParadiseSameModuleEmbeddedBinding := None,
     macroParadiseSameModuleEmbeddedBindings := Seq.empty,
+    macroParadiseSameModuleDependentSource := None,
     libraryDependencies += compilerPlugin(macroParadiseSameModuleCompilerPluginModule.value),
     libraryDependencies += macroParadiseSameModulePluginApiModule.value,
     libraryDependencies ++= {
@@ -105,8 +108,18 @@ object MacroParadiseSameModulePlugin extends AutoPlugin {
     },
     macroParadiseSameModuleSourceIdentity :=
       macroParadiseSameModuleConfiguration.value.sourceIdentity.identity,
-    macroParadiseSameModuleCompilerOptions :=
-      macroParadiseSameModuleConfiguration.value.compilerOptions,
+    macroParadiseSameModuleCompilerOptions := Def.taskDyn {
+      val configuration = macroParadiseSameModuleConfiguration.value
+      val designated = macroParadiseSameModuleDependentSource.value
+      val root = macroParadiseSameModuleSourceRoot.value
+      if (designated.isEmpty) Def.task { configuration.compilerOptions }
+      else Def.task {
+        OrdinaryWaitSource.options(root, (Compile / sources).value, configuration, designated) match {
+          case Right(options) => configuration.compilerOptions ++ options
+          case Left(message) => throw new MessageOnlyException(message)
+        }
+      }
+    }.value,
     Compile / scalacOptions ++= macroParadiseSameModuleCompilerOptions.value
   )
 

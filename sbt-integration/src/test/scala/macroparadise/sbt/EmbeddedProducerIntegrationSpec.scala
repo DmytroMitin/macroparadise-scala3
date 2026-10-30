@@ -57,7 +57,8 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
         "macroParadiseSameModuleEmbeddedBinding",
         "macroParadiseSameModuleEmbeddedBindings",
         "macroParadiseSameModuleEmbedded",
-        "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule"
+        "macroParadiseSameModuleEmbeddedProducerCompilerPluginModule",
+        "macroParadiseSameModuleDependentSource"
       )
     )
   }
@@ -82,6 +83,8 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
   test("same-module embedded surface exposes the singleton and exact-two settings, helper, and producer module") {
     import MacroParadiseSameModulePlugin.autoImport._
 
+    val dependent: SettingKey[Option[String]] = macroParadiseSameModuleDependentSource
+    assertEquals(dependent.key.label, "macroParadiseSameModuleDependentSource")
     val producer = LabelledSource("embedded-producer-source", "demo/EmbeddedAnnotations.scala")
     val binding = macroParadiseSameModuleEmbedded("demo.sameModuleGreeting", producer)
 
@@ -94,7 +97,7 @@ class EmbeddedProducerIntegrationSpec extends munit.FunSuite {
     )
     val baseline = Files.readAllLines(new File("sbt-public-surface.txt").toPath).asScala.filter(_.nonEmpty).toVector
     assertEquals(
-      baseline.takeRight(5),
+      baseline.dropRight(1).takeRight(5),
       Vector(
         "SameModuleEmbeddedBinding",
         "macroParadiseSameModuleEmbeddedBinding",

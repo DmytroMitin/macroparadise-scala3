@@ -934,6 +934,7 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
   import DeferredSameModuleHandlerSupport.*
 
   private var activeExternalHandlers: Option[ExternalHandlerLoading.LoadedHandlers] = None
+  private var activeOrdinaryWait: Option[OrdinaryWaitConfiguration.Configuration] = None
   private var activeExpansionBudget: Option[Int] = None
   override val phaseName = "paradiseGen"
   override val description =
@@ -956,12 +957,45 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
           activeExternalHandlers = Some(loaded)
           activeExpansionBudget = Some(budget)
           try
-            prevalidateBoundedProducers(units, loaded) match
+            (validateOrdinaryWait(units, loaded) && prevalidateBoundedProducers(units, loaded)) match
               case true => super.runOn(units)
               case false => units
           finally
+            activeOrdinaryWait = None
             activeExpansionBudget = None
             activeExternalHandlers = None
+
+  private def validateOrdinaryWait(units: List[CompilationUnit], loaded: ExternalHandlerLoading.LoadedHandlers)(using Context): Boolean =
+    def real(path: String): Option[Path] =
+      try Some(Path.of(path).toRealPath())
+      catch case NonFatal(_) => None
+    val result = OrdinaryWaitConfiguration.parse(options).flatMap:
+      case None => Right(None)
+      case Some(configuration) =>
+        val pair = loaded.deferredSameModule
+        if loaded.sameModuleMode != SameModuleMode.EmbeddedPair then
+          Left("SAME_MODULE_ORDINARY_WAIT_MODE: ordinary waiting requires exact-two embedded bindings")
+        else
+          val producers = pair.map(d => configuration.root.resolve(d.handlerSourceIdentity.value))
+          val wrongRoot = pair.exists(d => units.exists(u =>
+            pathMatchesIdentity(normalizePath(u.source.file.path), d.handlerSourceIdentity) &&
+              real(u.source.file.path) != Some(configuration.root.resolve(d.handlerSourceIdentity.value))))
+          if producers.exists(p => !Files.isRegularFile(p) || p.toRealPath() != p) || wrongRoot then
+            Left("SAME_MODULE_ORDINARY_WAIT_ROOT: declared root disagrees with configured producer source identities")
+          else if producers.contains(configuration.source) then
+            Left("SAME_MODULE_ORDINARY_WAIT_PRODUCER: a producer cannot be the ordinary waiting source")
+          else
+            val matches = units.filter(u => real(u.source.file.path).contains(configuration.source))
+            if matches.size > 1 then Left("SAME_MODULE_ORDINARY_WAIT_AMBIGUOUS: multiple active units designate one physical source")
+            else matches.headOption match
+              case None => Right(Some(configuration)) // Full membership is validated by sbt, not this incremental subset.
+              case Some(unit) =>
+                EmbeddedSameModuleSelection.select(unit.untpdTree, pair.map(_.annotationName)) match
+                  case Right(None) => Right(Some(configuration))
+                  case _ => Left("SAME_MODULE_ORDINARY_WAIT_ANNOTATED: designated source must not select a configured annotation")
+    result match
+      case Left(message) => report.error(message); false
+      case Right(value) => activeOrdinaryWait = value; true
 
   private def externalHandlers: ExternalHandlerLoading.LoadedHandlers =
     activeExternalHandlers.getOrElse:
@@ -1083,7 +1117,15 @@ final case class ParadiseGenPhase(options: List[String]) extends PluginPhase:
               unit.untpdTree.sourcePos
             )
           case None => handleDeferredConsumer(unit, deferred)
-      case Right(None) => rewriteOrdinary(unit)
+      case Right(None) =>
+        val designated = activeOrdinaryWait.exists(c =>
+          new File(unit.source.file.path).getCanonicalFile.toPath == c.source)
+        val producerPresent = pair.exists(d => summon[Context].run.units.exists(u =>
+          pathMatchesIdentity(normalizePath(u.source.file.path), d.handlerSourceIdentity)))
+        if designated && producerPresent && !summon[Context].run.isCompilingSuspended then
+          report.echo(s"[same-module-ordinary-wait] action=suspend unit=${unit.source.file.path}")
+          CompilationUnitSuspension.suspend(unit, "ordinary source waiting for exact-two embedded consumers")
+        else rewriteOrdinary(unit)
 
   private def rewriteOrdinary(unit: CompilationUnit)(using Context): Unit =
     unit.untpdTree = ParadiseTreeRewrite.rewriteUnit(
