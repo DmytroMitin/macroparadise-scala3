@@ -19,6 +19,7 @@ final class OrdinaryWaitRoleGuardSpec extends munit.FunSuite:
     "template" -> "@demo.markerA class Hidden",
     "method annotation" -> "@demo.markerA def hidden(): Unit = ()",
     "pattern value annotation" -> "def main(): Unit = { @demo.markerA val (left, right) = (1, 2); () }",
+    "pattern B annotation" -> "def main(): Unit = { @demo.markerB val (left, right) = (1, 2); () }",
     "value annotation" -> "@demo.markerB val hidden = 1",
     "type annotation" -> "val hidden: String @demo.markerA = null",
     "annotation argument" -> "@other.Unrelated({ @demo.markerB class Hidden; 1 }) class C",
@@ -39,6 +40,11 @@ final class OrdinaryWaitRoleGuardSpec extends munit.FunSuite:
     "renamed" -> "import demo.{markerA as Alias}; object Main { def main(): Unit = { @Alias class Hidden; () } }",
     "wildcard" -> "import demo.*; object Main { def main(): Unit = { @markerB class Hidden; () } }",
     "prefix alias" -> "import demo as renamed; object Main { def main(): Unit = { @renamed.markerA class Hidden; () } }",
+    "nested prefix alias" -> "object Main { def main(): Unit = { import demo as renamed; @renamed.markerB class Hidden; () } }",
+    "unrelated prefix alias" -> "import other as renamed; object Main { @renamed.Unrelated class Local }",
+    "shadowed prefix alias" -> "import demo as renamed; object Main { def main(): Unit = { object renamed; @renamed.markerA class Hidden; () } }",
+    "later prefix import" -> "object Main { def main(): Unit = { @renamed.markerA class Hidden; import demo as renamed; () } }",
+    "different same spelling" -> "import other as renamed; object Main { @renamed.markerA class Local }",
     "shadow" -> "import demo.markerA; object Main { def main(): Unit = { class markerA; @markerA class Hidden; () } }",
     "conflict" -> "import demo.markerA; import other.markerA; object Main { @markerA class Hidden }",
     "later import" -> "object Main { def main(): Unit = { @markerA class Hidden; import demo.markerA; () } }",
@@ -67,6 +73,36 @@ final class OrdinaryWaitRoleGuardSpec extends munit.FunSuite:
     assertEquals(EmbeddedSameModuleSelection.select(local, configured)(using ctx), Right(None))
     val (nested, nestedCtx) = parsed("package consumer; object Main { @demo.markerA class Hidden }")
     assert(EmbeddedSameModuleSelection.select(nested, configured)(using nestedCtx).isLeft)
+  }
+
+  test("parser retains a root prefix import as empty expression and named selector") {
+    val (tree, ctx) = parsed("package consumer; import demo as renamed; object Main")
+    var observed = false
+    object Probe extends dotty.tools.dotc.ast.untpd.UntypedTreeTraverser:
+      def traverse(current: Tree)(using Context): Unit =
+        current match
+          case imp: dotty.tools.dotc.ast.untpd.Import =>
+            observed = imp.expr.isEmpty && imp.selectors.exists(s =>
+              s.name.toString == "demo" && s.rename.toString == "renamed" && !s.isWildcard && !s.isUnimport)
+          case _ => ()
+        traverseChildren(current)
+    Probe.traverse(tree)(using ctx)
+    assert(observed)
+  }
+
+  test("parser retains the pattern annotation on PatDef modifiers at its source site") {
+    val (tree, ctx) = parsed("package consumer; object Main { @demo.markerA val (left,right)=(1,2) }")
+    var observed = false
+    object Probe extends dotty.tools.dotc.ast.untpd.UntypedTreeTraverser:
+      def traverse(current: Tree)(using Context): Unit =
+        current match
+          case pat: dotty.tools.dotc.ast.untpd.PatDef =>
+            observed = pat.mods.annotations.exists(a =>
+              SyntacticAnnotationIdentity.fromTree(a).exists(_.value == "demo.markerA") && a.span.exists)
+          case _ => ()
+        traverseChildren(current)
+    Probe.traverse(tree)(using ctx)
+    assert(observed)
   }
 
   private def parsed(source: String): (Tree, Context) =

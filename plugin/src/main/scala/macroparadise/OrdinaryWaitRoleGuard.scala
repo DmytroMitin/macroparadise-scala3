@@ -73,7 +73,10 @@ private[macroparadise] object OrdinaryWaitRoleGuard:
       def add(current: Scope, local: String, canonical: String, renamed: Boolean): Scope =
         val binding = ImportBinding(canonical.stripPrefix("_root_."), renamed || !scope.packageLevel)
         current.copy(imports = current.imports.updated(local, current.imports.getOrElse(local, Set.empty) + binding))
-      segments(imp.expr) match
+      // The parser represents `import demo as renamed` with EmptyTree and
+      // a named selector. This is syntactic import evidence, not a Symbol.
+      val prefix = if imp.expr.isEmpty then Some(Nil) else segments(imp.expr)
+      prefix match
         case None => scope.copy(wildcard = true)
         case Some(prefix) if imp.selectors.isEmpty =>
           add(scope, prefix.last, prefix.mkString("."), renamed = false)
@@ -82,8 +85,13 @@ private[macroparadise] object OrdinaryWaitRoleGuard:
             if selector.isWildcard || selector.isGiven || selector.isUnimport then current.copy(wildcard = true)
             else add(current, selector.rename.toString, (prefix :+ selector.name.toString).mkString("."), selector.name != selector.rename)
 
-    def names(stats: List[Tree]): Set[String] = stats.collect:
-      case member: MemberDef => member.name.toString
+    def names(stats: List[Tree]): Set[String] = stats.flatMap:
+      case member: MemberDef => List(member.name.toString)
+      // A later root-prefix import does not resolve an earlier annotation.
+      // Retain its spelling only as an ambiguity barrier, never as authority.
+      case imp: Import if imp.expr.isEmpty =>
+        imp.selectors.filterNot(s => s.isWildcard || s.isUnimport).map(_.rename.toString)
+      case _ => Nil
     .toSet
 
     def walkStats(stats: List[Tree], initial: Scope): Scope =
@@ -101,6 +109,10 @@ private[macroparadise] object OrdinaryWaitRoleGuard:
             Trees.mods(member).annotations.foreach: annotation =>
               record(annotation, scope)
               walk(annotation, scope) // Annotation arguments can themselves contain declarations.
+          case pattern: PatDef =>
+            pattern.mods.annotations.foreach: annotation =>
+              record(annotation, scope)
+              walk(annotation, scope)
           case Annotated(_, annotation) => record(annotation, scope)
           case _ => ()
         if failure.isEmpty then
